@@ -18,6 +18,7 @@ public class WebsocketFeature {
     }
 
     public void close() {
+        if (websocketHandler == null) return;
         this.websocketHandler.close();
     }
 

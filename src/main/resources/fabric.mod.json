@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "niamod",
+  "version": "${version}",
+  "name": "NiaMod",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/niamod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "net.d0cr.niamod.client.NiamodClient"
+    ],
+    "main": [
+      "net.d0cr.niamod.Niamod"
+    ]
+  },
+  "mixins": [
+    "niamod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "wynntils": "${wynntils_version}",
+    "minecraft": "${minecraft_version}"
+  }
+}
