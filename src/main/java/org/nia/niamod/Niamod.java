@@ -1,4 +1,4 @@
-package net.d0cr.niamod;
+package org.nia.niamod;
 
 import net.fabricmc.api.ModInitializer;
 

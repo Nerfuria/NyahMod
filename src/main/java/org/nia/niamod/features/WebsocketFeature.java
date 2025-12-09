@@ -1,6 +1,6 @@
-package net.d0cr.niamod.features;
+package org.nia.niamod.features;
 
-import net.d0cr.niamod.websocket.WebsocketHandler;
+import org.nia.niamod.websocket.WebsocketHandler;
 import net.minecraft.client.MinecraftClient;
 
 import java.net.URI;

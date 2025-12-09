@@ -11,10 +11,10 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "net.d0cr.niamod.client.NiamodClient"
+      "org.nia.niamod.client.NiamodClient"
     ],
     "main": [
-      "net.d0cr.niamod.Niamod"
+      "org.nia.niamod.Niamod"
     ]
   },
   "mixins": [

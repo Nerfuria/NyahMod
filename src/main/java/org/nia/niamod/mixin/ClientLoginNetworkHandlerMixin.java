@@ -1,8 +1,7 @@
-package net.d0cr.niamod.mixin;
+package org.nia.niamod.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import net.d0cr.niamod.features.Features;
-import net.minecraft.client.MinecraftClient;
+import org.nia.niamod.features.Features;
 import net.minecraft.client.network.ClientLoginNetworkHandler;
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket;
 import org.spongepowered.asm.mixin.Mixin;

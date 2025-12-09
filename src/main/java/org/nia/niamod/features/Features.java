@@ -1,4 +1,4 @@
-package net.d0cr.niamod.features;
+package org.nia.niamod.features;
 
 public class Features {
     private static WebsocketFeature wsFeature;

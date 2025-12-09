@@ -1,6 +1,6 @@
-package net.d0cr.niamod.websocket;
+package org.nia.niamod.websocket;
 
-import net.d0cr.niamod.client.NiamodClient;
+import org.nia.niamod.client.NiamodClient;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 

@@ -1,7 +1,7 @@
-package net.d0cr.niamod.client;
+package org.nia.niamod.client;
 
 import com.mojang.logging.LogUtils;
-import net.d0cr.niamod.features.Features;
+import org.nia.niamod.features.Features;
 import net.fabricmc.api.ClientModInitializer;
 import org.slf4j.Logger;
 
@@ -12,6 +12,5 @@ public class NiamodClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Features.init();
-
     }
 }
