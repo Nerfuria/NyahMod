@@ -7,10 +7,10 @@ General warring/raiding utility mod made by and for Nerfurians. This mod is heav
 ### War
 - **Res tick timer** - function that returns the current resource tick even without any owned territories ❌
 - **Support for `/gu territory` in wars** ❌
-- **Pre-snipe consu checker** - Double checks if you have the consus you need ❌
+- **Pre-snipe consu checker** - double checks if you have the consus you need ❌
 - **Queue timer overlay on map** ❌
 - **Territory borders in world** ❌
-- **Defense reverser** - Shows estimated territory defenses based on the resources of that territory ❌
+- **Defense reverser** - shows estimated territory defenses based on the resources of that territory ❌
 - **Ecoing on the territory map** ❌
 - **Individual DPS stats after wars** ❌
 ### Raids
