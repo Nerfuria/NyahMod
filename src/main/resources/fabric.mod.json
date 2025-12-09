@@ -11,10 +11,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.nia.niamod.client.NiamodClient"
-    ],
-    "main": [
-      "org.nia.niamod.Niamod"
+      "org.nia.niamod.NiamodClient"
     ]
   },
   "mixins": [

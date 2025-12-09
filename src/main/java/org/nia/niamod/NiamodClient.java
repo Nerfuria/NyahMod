@@ -1,4 +1,4 @@
-package org.nia.niamod.client;
+package org.nia.niamod;
 
 import com.mojang.logging.LogUtils;
 import org.nia.niamod.features.Features;
