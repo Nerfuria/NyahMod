@@ -15,18 +15,35 @@ repositories {
     mavenCentral()
 }
 
+
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+def downloadWynntils() {
+    def wynntils = projectDir.toPath().resolve("libs").resolve("wynntils-${wynntils_version}.jar")
+    if (!Files.exists(wynntils)) {
+        Files.createDirectories(wynntils.getParent())
+        URI.create("https://github.com/Wynntils/Wynntils/releases/download/v${wynntils_version}/wynntils-${wynntils_version}-fabric+MC-${minecraft_version}.jar").toURL().openStream().withCloseable { input -> Files.copy(input, wynntils, StandardCopyOption.REPLACE_EXISTING)}
+    }
+    return files(wynntils)
+}
+
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     implementation 'org.java-websocket:Java-WebSocket:1.6.0'
+
+    modImplementation(downloadWynntils())
 }
 
 processResources {
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version
     inputs.property "loader_version", project.loader_version
+    inputs.property "wynntils_version", project.wynntils_version
 
     filteringCharset "UTF-8"
 
