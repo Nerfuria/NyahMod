@@ -1,5 +1,6 @@
 plugins {
     id 'fabric-loom' version '1.14-SNAPSHOT'
+    id "com.modrinth.minotaur" version "2.+"
 }
 
 version = project.mod_version
@@ -71,5 +72,16 @@ loom {
         client {
             property("devauth.configDir", project.rootDir.getAbsolutePath() + "/.devauth")
         }
+    }
+}
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "nyahmod"
+    versionNumber = project.mod_version
+    versionType = "alpha"
+    uploadFile = remapJar
+    gameVersions = ["1.21.4"]
+    dependencies {
+        required.version "wynntils", "v${project.wynntils_version}"
     }
 }
