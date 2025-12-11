@@ -46,7 +46,7 @@ processResources {
     inputs.property "loader_version", project.loader_version
     inputs.property "wynntils_version", project.wynntils_version
 
-    filteringCharset "UTF-8"
+    filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
