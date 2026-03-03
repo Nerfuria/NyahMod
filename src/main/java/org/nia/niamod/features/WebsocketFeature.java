@@ -1,20 +1,20 @@
 package org.nia.niamod.features;
 
-import org.nia.niamod.websocket.WebsocketHandler;
 import net.minecraft.client.MinecraftClient;
+import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.websocket.WebsocketHandler;
 
 import java.net.URI;
 
 public class WebsocketFeature {
 
-    public static boolean enabled = true;
 
     private WebsocketHandler websocketHandler;
 
     public void init(String serverId) {
-        if (!enabled) return;
+        if (!NyahConfig.nyahConfigData.wsEnabled) return;
         String username = MinecraftClient.getInstance().getSession().getUsername();
-        this.websocketHandler = new WebsocketHandler(URI.create("wss://localhost:6767"), username, serverId, this::handleMessage);
+        this.websocketHandler = new WebsocketHandler(URI.create(NyahConfig.nyahConfigData.wsURL), username, serverId, this::handleMessage);
     }
 
     public void close() {
@@ -23,7 +23,7 @@ public class WebsocketFeature {
     }
 
     public void handleMessage(String message) {
-
+        // TODO: Implement messages with WSw
     }
 
 }
