@@ -18,7 +18,7 @@ General warring/raiding utility mod made by and for Nerfurians. This mod is heav
 ### Guild
 - **Snipe team tracking** ❌
 ### Other
-- **Encrypted chat** ❌
+- **Encrypted chat** ✅
 - **Auto ignore** ❌
 - **Auto stream** ❌
 - **Emotes** ❌
