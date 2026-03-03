@@ -10,6 +10,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
 
+import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -108,7 +109,7 @@ public class ChatEncryptionFeature {
         }
     }
 
-    private String decrypt(String message) {
+    private String decrypt(String message) throws AEADBadTagException {
         byte[] bytes = decode(message);
 
         Cipher cipher = null;
@@ -156,7 +157,11 @@ public class ChatEncryptionFeature {
         int start = message.indexOf("£67-");
         int end = message.indexOf("-67$");
         if (start == -1 || end == -1) return message;
-        return decrypt(message.substring(start + 4, end));
+        try {
+            return decrypt(message.substring(start + 4, end));
+        } catch (AEADBadTagException e) {
+            return message;
+        }
     }
 
     public Text modifyChat(Text text, boolean overlay) {
