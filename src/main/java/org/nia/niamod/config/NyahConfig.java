@@ -16,6 +16,7 @@ import org.nia.niamod.NiamodClient;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 
+import java.awt.*;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -88,7 +89,6 @@ public class NyahConfig {
                         .setDefaultValue("six seven")
                         .setSaveConsumer(newValue -> nyahConfigData.encryptionKey = newValue)
                         .build());
-
         encryption.addEntry(
                 entryBuilder
                         .startIntField(Text.of("Salt Length"), nyahConfigData.saltLength)
@@ -97,6 +97,16 @@ public class NyahConfig {
                         .setSaveConsumer(newValue -> nyahConfigData.saltLength = newValue)
                         .setMin(0)
                         .build());
+
+        ConfigCategory war = builder.getOrCreateCategory(Text.of("War"));
+        war.addEntry(
+                entryBuilder
+                        .startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
+                        .setTooltip(Text.of("Colour of boxes showing queued territory boundaries"))
+                        .setDefaultValue(0xFFFFFF)
+                        .setSaveConsumer(newValue -> nyahConfigData.color = newValue)
+                        .build()
+        );
 
         builder.setSavingRunnable(nyahConfigData::save);
 
@@ -134,15 +144,18 @@ public class NyahConfig {
         public String encryptionKey = "six seven";
         public int saltLength = 16;
 
+        public int color = 0xFFFFFF;
+
         public NyahConfigData() {}
 
-        public NyahConfigData(boolean wsEnabled, String wsURL, boolean encryptionEnabled, String encryptionPrefix, String encryptionKey, int saltLength) {
+        public NyahConfigData(boolean wsEnabled, String wsURL, boolean encryptionEnabled, String encryptionPrefix, String encryptionKey, int saltLength, int color) {
             this.wsEnabled = wsEnabled;
             this.wsURL = wsURL;
             this.encryptionEnabled = encryptionEnabled;
             this.encryptionPrefix = encryptionPrefix;
             this.encryptionKey = encryptionKey;
             this.saltLength = saltLength;
+            this.color = color;
         }
 
         public void save() {
