@@ -21,9 +21,9 @@ public class NiamodClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(
-                literal("maptick") // command name
+                literal("restick")
                     .executes(context -> {
-                        int tick = Features.getResTickFeature().calcMapTick();
+                        int tick = Features.getResTickFeature().getTimeUntilResTick();
                         MinecraftClient.getInstance().player.sendMessage(Text.literal(String.valueOf(tick)), false);
                         return 1;
                     })
