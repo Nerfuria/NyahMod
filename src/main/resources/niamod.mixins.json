@@ -6,7 +6,8 @@
   "mixins": [
   ],
   "client": [
-    "ClientLoginNetworkHandlerMixin"
+    "ClientLoginNetworkHandlerMixin",
+    "FunctionManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

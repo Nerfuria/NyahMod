@@ -1,6 +1,8 @@
 package org.nia.niamod.features;
 
 import com.wynntils.core.components.Models;
+import com.wynntils.core.consumers.functions.Function;
+import com.wynntils.core.consumers.functions.arguments.FunctionArguments;
 import com.wynntils.models.territories.TerritoryInfo;
 import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.services.map.pois.TerritoryPoi;
@@ -8,13 +10,17 @@ import com.wynntils.utils.type.CappedValue;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ResourceTickFeature {
 
     private static final GuildResource[] RESOURCES = GuildResource.values();
     private static final int resTickOffset = 5;     // The map updates with a delay of 5 seconds for some reason
     public static boolean enabled = true;
+    public Function<?> ResTickFunction = new ResTickFunction();
     private Integer lastMapTick = null;
     private String lastWorld = null;
     private Instant lastResTick = null;
@@ -146,6 +152,13 @@ public class ResourceTickFeature {
         int secondsSinceResTick = (int) java.time.Duration.between(lastResTick, java.time.Instant.now()).getSeconds();
 
         return 60 - (secondsSinceResTick % 60);
+    }
+
+    public class ResTickFunction extends Function<Integer> {
+        @Override
+        public Integer getValue(FunctionArguments arguments) {
+            return getTimeUntilResTick();
+        }
     }
 }
 
