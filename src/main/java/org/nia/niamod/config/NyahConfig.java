@@ -117,7 +117,7 @@ public class NyahConfig {
                 entryBuilder
                         .startIntField(Text.of("Maximum Distance"), nyahConfigData.maximumDistance)
                         .setTooltip(Text.of("Furthest territory box to render at once"))
-                        .setDefaultValue(10)
+                        .setDefaultValue(1000)
                         .setSaveConsumer(newValue -> nyahConfigData.maximumDistance = newValue)
                         .build()
         );

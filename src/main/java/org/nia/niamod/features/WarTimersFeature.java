@@ -30,21 +30,20 @@ public class WarTimersFeature {
     }
 
     public void render(WorldRenderContext ctx) {
-        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0xFF, b = NyahConfig.nyahConfigData.color & 0xFF;
-        int y = NiamodClient.mc.player.getBlockPos().getY() - 20;
+        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0x55, b = NyahConfig.nyahConfigData.color & 0x55;
         Models.GuildAttackTimer.getUpcomingTimers()
                 .map(timer -> new Object[]{
                         timer,
                         territories.get(timer.territoryName()),
                         territories.get(timer.territoryName()).distance()
                 })
-                .filter(o -> (double) o[2] <= NyahConfig.nyahConfigData.maximumDistance)
+                .filter(o -> (int) o[2] <= NyahConfig.nyahConfigData.maximumDistance * NyahConfig.nyahConfigData.maximumDistance)
                 .sorted(Comparator
                         .comparing(o -> ((TerritoryAttackTimer) ((Object[]) o)[0]).timerEnd())
-                        .thenComparing(o -> (double) ((Object[]) o)[2]))
+                        .thenComparing(o -> (int) ((Object[]) o)[2]))
                 .limit(NyahConfig.nyahConfigData.maximumTerritories)
                 .map(o -> (Territory) o[1])
-                .forEach(t -> BoxRenderer.renderBox(ctx, t.leftCorner.withY(y), t.rightCorner, r, g, b));
+                .forEach(t -> BoxRenderer.renderBox(ctx, t.leftCorner.withY(0), t.rightCorner.withY(512), r, g, b));
     }
 
     private static class Territory {
