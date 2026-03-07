@@ -1,29 +1,17 @@
-package org.nia.niamod;
+package org.nia.niamod.render;
 
-import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
-import org.nia.niamod.config.NyahConfig;
 
 public class BoxRenderer {
 
-    public static void renderBox(WorldRenderContext context, BlockPos corner1, BlockPos corner2) {
+    public static void renderBox(WorldRenderContext context, BlockPos corner1, BlockPos corner2, int r, int g, int b) {
         if (corner1 == null || corner2 == null) return;
 
         MatrixStack matrices = context.matrices();
@@ -36,23 +24,21 @@ public class BoxRenderer {
         double maxY = Math.max(corner1.getY(), corner2.getY()) + 1.0;
         double maxZ = Math.max(corner1.getZ(), corner2.getZ()) + 1.0;
 
-        float bx1 = (float)(minX - camPos.x);
-        float bx2 = (float)(maxX - camPos.x);
-        float by1 = (float)(minY - camPos.y);
-        float by2 = (float)(maxY - camPos.y);
-        float bz1 = (float)(minZ - camPos.z);
-        float bz2 = (float)(maxZ - camPos.z);
+        float bx1 = (float) (minX - camPos.x);
+        float bx2 = (float) (maxX - camPos.x);
+        float by1 = (float) (minY - camPos.y);
+        float by2 = (float) (maxY - camPos.y);
+        float bz1 = (float) (minZ - camPos.z);
+        float bz2 = (float) (maxZ - camPos.z);
 
         VertexConsumerProvider consumers = context.consumers();
-        if (consumers == null) return;
 
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
-        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0xFF, b = NyahConfig.nyahConfigData.color & 0xFF;
-        int alphaBottom = 70; // 50%
-        int alphaTop    = 0;   // 0%
-        int lineAlphaBottom = 170;
-        int lineAlphaTop    = 0;
+        int alphaBottom = 70;
+        int alphaTop = 0;
+        int lineAlphaBottom = 250;
+        int lineAlphaTop = 0;
 
         VertexConsumer vc = consumers.getBuffer(RenderLayers.debugQuads());
 
@@ -94,9 +80,9 @@ public class BoxRenderer {
                              float x1, float y1, float z1, int a1,
                              int r, int g, int b) {
         float dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
-        float len = (float) Math.sqrt(dx*dx + dy*dy + dz*dz);
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len == 0) return;
-        float nx = dx/len, ny = dy/len, nz = dz/len;
+        float nx = dx / len, ny = dy / len, nz = dz / len;
         lc.vertex(matrix, x0, y0, z0).color(r, g, b, a0).normal(nx, ny, nz).lineWidth(1.0f);
         lc.vertex(matrix, x1, y1, z1).color(r, g, b, a1).normal(nx, ny, nz).lineWidth(1.0f);
     }

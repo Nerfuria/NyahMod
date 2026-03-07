@@ -1,8 +1,5 @@
 package org.nia.niamod.features;
 
-import com.wynntils.core.text.StyledText;
-import com.wynntils.mc.event.SystemMessageEvent;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
@@ -29,11 +26,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class ChatEncryptionFeature {
-
-    public void init() {
-        ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
-        ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
-    }
 
     private static String encode(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length / 2 + bytes.length % 2);
@@ -84,6 +76,11 @@ public class ChatEncryptionFeature {
             result[i] = byteList.get(i);
         }
         return result;
+    }
+
+    public void init() {
+        ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
+        ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
     }
 
     private String encryptMessage(String message) {

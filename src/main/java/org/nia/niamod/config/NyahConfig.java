@@ -1,22 +1,20 @@
 package org.nia.niamod.config;
 
 import com.google.gson.Gson;
-import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
 
-import java.awt.*;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -28,11 +26,11 @@ import java.util.Optional;
 
 public class NyahConfig {
 
-    public static NyahConfigData nyahConfigData;
     private static final Path config_dir = Paths.get(MinecraftClient.getInstance().runDirectory.getPath() + "/config");
     private static final Path config_file = Paths.get(config_dir + "/nyah-mod.json");
     private static final KeyBinding.Category niamodConfig = KeyBinding.Category.create(Identifier.of("niamod", "config"));
-    private static KeyBinding openConfig = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.niamod.open_config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, niamodConfig));
+    private static final KeyBinding openConfig = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.niamod.open_config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, niamodConfig));
+    public static NyahConfigData nyahConfigData;
 
     public static void init() {
         getConfigData();
@@ -107,11 +105,28 @@ public class NyahConfig {
                         .setSaveConsumer(newValue -> nyahConfigData.color = newValue)
                         .build()
         );
+        war.addEntry(
+                entryBuilder
+                        .startIntField(Text.of("Maximum Territories"), nyahConfigData.maximumTerritories)
+                        .setTooltip(Text.of("Maximum territory regions to render at once"))
+                        .setDefaultValue(10)
+                        .setSaveConsumer(newValue -> nyahConfigData.maximumTerritories = newValue)
+                        .build()
+        );
+        war.addEntry(
+                entryBuilder
+                        .startIntField(Text.of("Maximum Distance"), nyahConfigData.maximumDistance)
+                        .setTooltip(Text.of("Furthest territory box to render at once"))
+                        .setDefaultValue(10)
+                        .setSaveConsumer(newValue -> nyahConfigData.maximumDistance = newValue)
+                        .build()
+        );
 
         builder.setSavingRunnable(nyahConfigData::save);
 
         return builder.build();
     }
+
     private static void getConfigData() {
         try {
             if (!Files.exists(config_file)) {
@@ -145,10 +160,13 @@ public class NyahConfig {
         public int saltLength = 16;
 
         public int color = 0xFFFFFF;
+        public int maximumDistance = 1000;
+        public int maximumTerritories = 10;
 
-        public NyahConfigData() {}
+        public NyahConfigData() {
+        }
 
-        public NyahConfigData(boolean wsEnabled, String wsURL, boolean encryptionEnabled, String encryptionPrefix, String encryptionKey, int saltLength, int color) {
+        public NyahConfigData(boolean wsEnabled, String wsURL, boolean encryptionEnabled, String encryptionPrefix, String encryptionKey, int saltLength, int color, int maximumDistance, int maximumTerritories) {
             this.wsEnabled = wsEnabled;
             this.wsURL = wsURL;
             this.encryptionEnabled = encryptionEnabled;
@@ -156,6 +174,8 @@ public class NyahConfig {
             this.encryptionKey = encryptionKey;
             this.saltLength = saltLength;
             this.color = color;
+            this.maximumDistance = maximumDistance;
+            this.maximumTerritories = maximumTerritories;
         }
 
         public void save() {
