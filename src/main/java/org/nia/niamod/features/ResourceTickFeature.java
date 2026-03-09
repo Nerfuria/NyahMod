@@ -113,34 +113,42 @@ public class ResourceTickFeature {
         List<Integer> map_ticks = new ArrayList<>();
 
         for (TerritoryPoi poi : TerritoryPois) {
-            TerritoryInfo territoryInfo = poi.getTerritoryInfo();
-            if (territoryInfo == null) continue;
-            if (territoryInfo.isHeadquarters()) continue;   // Skip if HQ
+            try {
+                TerritoryInfo territoryInfo = poi.getTerritoryInfo();
+                if (territoryInfo == null) continue;
+                if (territoryInfo.isHeadquarters()) continue;   // Skip if HQ
 
-            int emerald_gen = territoryInfo.getGeneration(GuildResource.EMERALDS);
-            if (emerald_gen < 250000) continue;             // only check if 3-3 em prod and city
+                int emerald_gen = territoryInfo.getGeneration(GuildResource.EMERALDS);
+                if (emerald_gen < 250000) continue;             // only check if 3-3 em prod and city
 
-            boolean has_res_prods = false;
-            for (GuildResource resource : RESOURCES) {
-                if (!resource.isMaterialResource()) continue;
-                if (territoryInfo.getGeneration(resource) >= 4800) {
-                    has_res_prods = true;
-                    break;
+                boolean has_res_prods = false;
+                for (GuildResource resource : RESOURCES) {
+                    if (!resource.isMaterialResource()) continue;
+                    if (territoryInfo.getGeneration(resource) >= 4800) {
+                        has_res_prods = true;
+                        break;
+                    }
                 }
+                if (has_res_prods) continue;                 // No res prods
+
+                CappedValue emerald_storage = territoryInfo.getStorage(GuildResource.EMERALDS);
+                if (emerald_storage == null || emerald_storage.max() < 6000) continue;     // min 1 emerald storage level
+
+                CappedValue wood_storage = territoryInfo.getStorage(GuildResource.WOOD);
+                if (wood_storage == null)
+                    continue;
+                int res_storage_lvl = get_res_storage_lvl(wood_storage.max());
+                if (res_storage_lvl < 1) continue;              // min 1 res storage level
+
+                int res_storage_cost = get_res_storage_cost(res_storage_lvl);
+
+                float emeralds_max = ((float) (emerald_gen - res_storage_cost)) / 60f;
+
+                map_ticks.add(Math.round((emerald_storage.current() / emeralds_max) * 60));
+            } catch (Exception e) {
+                System.out.println(poi.getName());
+                e.printStackTrace();
             }
-            if (has_res_prods) continue;                 // No res prods
-
-            CappedValue emerald_storage = territoryInfo.getStorage(GuildResource.EMERALDS);
-            if (emerald_storage.max() < 6000) continue;     // min 1 emerald storage level
-
-            int res_storage_lvl = get_res_storage_lvl(territoryInfo.getStorage(GuildResource.WOOD).max());
-            if (res_storage_lvl < 1) continue;              // min 1 res storage level
-
-            int res_storage_cost = get_res_storage_cost(res_storage_lvl);
-
-            float emeralds_max = ((float) (emerald_gen - res_storage_cost)) / 60f;
-
-            map_ticks.add(Math.round((emerald_storage.current() / emeralds_max) * 60));
         }
 
         return mode(map_ticks);
