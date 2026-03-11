@@ -7,8 +7,10 @@ import com.wynntils.models.territories.TerritoryAttackTimer;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
-import org.nia.niamod.NiamodClient;
+import org.nia.niamod.api.TerritoryResponse;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.Territory;
+import org.nia.niamod.models.TimerEntry;
 import org.nia.niamod.render.BoxRenderer;
 import org.nia.niamod.util.WebUtils;
 
@@ -30,56 +32,24 @@ public class WarTimersFeature {
     }
 
     public void render(WorldRenderContext ctx) {
-        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0x55, b = NyahConfig.nyahConfigData.color & 0x55;
+        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0xFF, b = NyahConfig.nyahConfigData.color & 0xFF;
         Models.GuildAttackTimer.getUpcomingTimers()
-                .map(timer -> new Object[]{
-                        timer,
-                        territories.get(timer.territoryName()),
-                        territories.get(timer.territoryName()).distance()
+                .map(timer -> {
+                    Territory t = territories.get(timer.territoryName());
+                    return new TimerEntry(timer, t, t.distance());
                 })
-                .filter(o -> (int) o[2] <= NyahConfig.nyahConfigData.maximumDistance * NyahConfig.nyahConfigData.maximumDistance)
+                .filter(e -> e.distance() <= NyahConfig.nyahConfigData.maximumDistance * NyahConfig.nyahConfigData.maximumDistance)
                 .sorted(Comparator
-                        .comparing(o -> ((TerritoryAttackTimer) ((Object[]) o)[0]).timerEnd())
-                        .thenComparing(o -> (int) ((Object[]) o)[2]))
+                        .comparing(TimerEntry::timer, Comparator.comparing(TerritoryAttackTimer::timerEnd))
+                        .thenComparingInt(TimerEntry::distance))
                 .limit(NyahConfig.nyahConfigData.maximumTerritories)
-                .map(o -> (Territory) o[1])
-                .forEach(t -> BoxRenderer.renderBox(ctx, t.leftCorner.withY(0), t.rightCorner.withY(512), r, g, b));
+                .map(TimerEntry::territory)
+                .forEach(t -> BoxRenderer.renderBox(
+                        ctx,
+                        t.leftCorner().withY(0),
+                        t.rightCorner().withY(512),
+                        r, g, b
+                ));
     }
 
-    private static class Territory {
-        private final BlockPos middle;
-        public String name;
-        public BlockPos leftCorner;
-        public BlockPos rightCorner;
-
-        public Territory(String name, BlockPos leftCorner, BlockPos rightCorner) {
-            this.name = name;
-            this.leftCorner = leftCorner;
-            this.rightCorner = rightCorner;
-
-            middle = new BlockPos((leftCorner.getX() + rightCorner.getX()) / 2, 0, (leftCorner.getZ() + rightCorner.getZ()) / 2);
-        }
-
-        public int distance() {
-            return (int) middle.getSquaredDistance(NiamodClient.mc.player.getBlockPos().withY(0));
-        }
-    }
-
-    private static class TerritoryResponse {
-        public Location location;
-
-        public TerritoryResponse(Location location) {
-            this.location = location;
-        }
-
-        private class Location {
-            public int[] start;
-            public int[] end;
-
-            public Location(int[] start, int[] end) {
-                this.start = start;
-                this.end = end;
-            }
-        }
-    }
 }

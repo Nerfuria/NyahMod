@@ -132,7 +132,8 @@ public class ResourceTickFeature {
                 if (has_res_prods) continue;                 // No res prods
 
                 CappedValue emerald_storage = territoryInfo.getStorage(GuildResource.EMERALDS);
-                if (emerald_storage == null || emerald_storage.max() < 6000) continue;     // min 1 emerald storage level
+                if (emerald_storage == null || emerald_storage.max() < 6000)
+                    continue;     // min 1 emerald storage level
 
                 CappedValue wood_storage = territoryInfo.getStorage(GuildResource.WOOD);
                 if (wood_storage == null)
