@@ -1,4 +1,4 @@
-package org.nia.niamod.models;
+package org.nia.niamod.models.records;
 
 import com.wynntils.models.territories.TerritoryAttackTimer;
 

@@ -1,8 +1,7 @@
-package org.nia.niamod.config;
+package org.nia.niamod.models.gui;
 
 import com.google.common.collect.Lists;
 import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
@@ -11,12 +10,15 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 import org.jspecify.annotations.Nullable;
-import org.nia.niamod.models.MultiClickButton;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static org.nia.niamod.NiamodClient.mc;
 
 public class IgnoreEntry extends TooltipListEntry<Text> {
 
@@ -42,7 +44,7 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
     ) {
         super(fieldName, tooltipSupplier);
 
-        var renderer = MinecraftClient.getInstance().textRenderer;
+        var renderer = mc.textRenderer;
         emojiWidth = renderer.getWidth("♥");
         startWidth = renderer.getWidth("@@@@@@@@@@@@@@@@");
 
@@ -87,6 +89,12 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
     }
 
     @Override
+    public Iterator<String> getSearchTags() {
+        return Collections.singleton(getFieldName().toString()).iterator();
+    }
+
+
+    @Override
     public List<? extends Selectable> narratables() {
         return widgets;
     }
@@ -102,7 +110,7 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
                        int mouseX, int mouseY, boolean isHovered, float delta) {
         super.render(graphics, index, y, x, entryWidth, entryHeight, mouseX, mouseY, isHovered, delta);
 
-        var renderer = MinecraftClient.getInstance().textRenderer;
+        var renderer = mc.textRenderer;
         graphics.drawText(renderer, getDisplayedFieldName(), x, y + 6, getPreferredTextColor(), true);
 
         ignoreWidget.setPosition(x + startWidth + 4, y);

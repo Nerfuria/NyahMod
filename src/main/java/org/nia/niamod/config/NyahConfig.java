@@ -15,6 +15,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.features.Features;
+import org.nia.niamod.models.gui.SeparatorEntry;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -26,9 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.nia.niamod.NiamodClient.mc;
+
 public class NyahConfig {
 
-    private static final Path CONFIG_DIR = Paths.get(MinecraftClient.getInstance().runDirectory.getPath(), "config");
+    private static final Path CONFIG_DIR = Paths.get(mc.runDirectory.getPath(), "config");
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve("nyah-mod.json");
     private static final Gson GSON = new Gson();
 
@@ -37,7 +41,6 @@ public class NyahConfig {
             new KeyBinding("Open Config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY));
 
     public static NyahConfigData nyahConfigData;
-    private static ClothConfigScreen screen;
 
     public static void init() {
         loadConfig();
@@ -55,22 +58,20 @@ public class NyahConfig {
         ConfigEntryBuilder eb = builder.entryBuilder();
 
         ConfigCategory general = builder.getOrCreateCategory(Text.of("General"));
-        general.addEntry(new SeparatorEntry(Text.of("Websocket"), null));
-        general.addEntry(eb.startBooleanToggle(Text.of("Enable"), nyahConfigData.wsEnabled)
-                .setTooltip(Text.of("Enable or disable the websocket connection"))
-                .setDefaultValue(false)
-                .setSaveConsumer(v -> nyahConfigData.wsEnabled = v)
-                .build());
-        general.addEntry(eb.startStrField(Text.of("URL"), nyahConfigData.wsURL)
-                .setTooltip(Text.of("Server URL to connect to"))
-                .setDefaultValue("wss://localhost:6767")
-                .setSaveConsumer(v -> nyahConfigData.wsURL = v)
-                .build());
 
+        general.addEntry(new SeparatorEntry(Text.of("Miscellaneous"), null));
+        general.addEntry(eb.startStrField(Text.of("API URL"), nyahConfigData.apiBase)
+                .setTooltip(Text.of("Base Wynncraft API URL"))
+                .setDefaultValue("https://api.wynncraft.com/v3/")
+                .setSaveConsumer(v -> nyahConfigData.apiBase = v)
+                .build());
+        general.addEntry(eb.startStrField(Text.of("Guild Name"), nyahConfigData.guildName)
+                .setDefaultValue("Nerfuria")
+                .setSaveConsumer(v -> nyahConfigData.guildName = v)
+                .build());
 
         general.addEntry(new SeparatorEntry(Text.of("Chat Encryption"), null));
         general.addEntry(eb.startBooleanToggle(Text.of("Enable"), nyahConfigData.encryptionEnabled)
-                .setTooltip(Text.of("Enable or disable chat encryption"))
                 .setDefaultValue(true)
                 .setSaveConsumer(v -> nyahConfigData.encryptionEnabled = v)
                 .build());
@@ -83,7 +84,7 @@ public class NyahConfig {
                 .setErrorSupplier(key -> key.isEmpty()
                         ? Optional.of(Text.literal("The encryption key cannot be empty!").withColor(0xFF0000))
                         : Optional.empty())
-                .setTooltip(Text.of("Encryption Key, should be the same as people you want to secretly message"))
+                .setTooltip(Text.of("Key to use to encrypt your messages"))
                 .setDefaultValue("six seven")
                 .setSaveConsumer(v -> nyahConfigData.encryptionKey = v)
                 .build());
@@ -113,14 +114,11 @@ public class NyahConfig {
                 .build());
 
         ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
-        for (String name : List.of("Otuclop", "d0cr", "@@@@@@@@@@@@@@@@")) {
-            //ignore.addEntry(ignoreEntry(name));
-        }
+        Features.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
 
         builder.setSavingRunnable(nyahConfigData::save);
-        //builder.setAfterInitConsumer(s -> sortEntries());
-        screen = (ClothConfigScreen) builder.build();
-        return screen;
+        builder.setAfterInitConsumer(screen -> Features.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
+        return builder.build();
     }
 
 
@@ -143,15 +141,14 @@ public class NyahConfig {
     }
 
     public static class NyahConfigData {
-        public boolean wsEnabled = false;
-        public String wsURL = "wss://localhost:6767";
+        public String apiBase = "https://api.wynncraft.com/v3/";
+        public String guildName = "Nerfuria";
 
         public boolean encryptionEnabled = true;
         public String encryptionPrefix = "$";
         public String encryptionKey = "six seven";
         public int saltLength = 16;
 
-        public String guildName = "Nerfuria";
 
         public int color = 0xFFFFFF;
         public int maximumDistance = 1000;

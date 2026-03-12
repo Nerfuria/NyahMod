@@ -7,12 +7,13 @@ import com.wynntils.models.territories.TerritoryAttackTimer;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
-import org.nia.niamod.api.TerritoryResponse;
+import org.nia.niamod.models.api.TerritoryResponse;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.models.Territory;
-import org.nia.niamod.models.TimerEntry;
+import org.nia.niamod.models.records.Territory;
+import org.nia.niamod.models.records.TimerEntry;
 import org.nia.niamod.render.BoxRenderer;
 import org.nia.niamod.util.WebUtils;
+import org.nia.niamod.util.WynncraftAPI;
 
 import java.lang.reflect.Type;
 import java.util.Comparator;
@@ -24,10 +25,7 @@ public class WarTimersFeature {
     private final HashMap<String, Territory> territories = new HashMap<>();
 
     public void init() {
-        Type type = new TypeToken<Map<String, TerritoryResponse>>() {
-        }.getType();
-        Map<String, TerritoryResponse> data = new Gson().fromJson(WebUtils.queryAPI("https://api.wynncraft.com/v3/guild/list/territory"), type);
-        data.forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location.start[0], -100, v.location.start[1]), new BlockPos(v.location.end[0], 256, v.location.end[1]))));
+        WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
         WorldRenderEvents.AFTER_ENTITIES.register(this::render);
     }
 

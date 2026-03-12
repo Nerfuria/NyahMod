@@ -7,7 +7,6 @@
   ],
   "client": [
     "ChatListenerMixin",
-    "ClientLoginNetworkHandlerMixin",
     "FunctionManagerMixin"
   ],
   "injectors": {

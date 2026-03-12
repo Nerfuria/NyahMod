@@ -14,7 +14,7 @@ public class NiamodClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         mc = MinecraftClient.getInstance();
-        Features.init();
         NyahConfig.init();
+        Features.init();
     }
 }

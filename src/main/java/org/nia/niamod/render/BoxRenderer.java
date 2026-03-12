@@ -40,10 +40,10 @@ public class BoxRenderer {
                                     float x1, float y1, float z1,
                                     float x2, float y2, float z2,
                                     int r, int g, int b) {
-        quad(vc, m, r, g, b, x1, y2, z1, x2, y2, z1, x2, y1, z1, x1, y1, z1); // north
-        quad(vc, m, r, g, b, x2, y2, z2, x1, y2, z2, x1, y1, z2, x2, y1, z2); // south
-        quad(vc, m, r, g, b, x1, y2, z2, x1, y2, z1, x1, y1, z1, x1, y1, z2); // west
-        quad(vc, m, r, g, b, x2, y2, z1, x2, y2, z2, x2, y1, z2, x2, y1, z1); // east
+        quad(vc, m, r, g, b, x1, y2, z1, x2, y2, z1, x2, y1, z1, x1, y1, z1);
+        quad(vc, m, r, g, b, x2, y2, z2, x1, y2, z2, x1, y1, z2, x2, y1, z2);
+        quad(vc, m, r, g, b, x1, y2, z2, x1, y2, z1, x1, y1, z1, x1, y1, z2);
+        quad(vc, m, r, g, b, x2, y2, z1, x2, y2, z2, x2, y1, z2, x2, y1, z1);
     }
 
     private static void quad(VertexConsumer vc, Matrix4f m, int r, int g, int b,

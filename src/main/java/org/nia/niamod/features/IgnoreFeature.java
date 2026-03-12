@@ -2,11 +2,16 @@ package org.nia.niamod.features;
 
 import me.shedaniel.clothconfig2.api.AbstractConfigEntry;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
+import me.shedaniel.clothconfig2.gui.widget.SearchFieldEntry;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import org.nia.niamod.config.IgnoreEntry;
+import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.gui.IgnoreEntry;
+import org.nia.niamod.util.WynncraftAPI;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -17,19 +22,16 @@ import static org.nia.niamod.config.NyahConfig.nyahConfigData;
 public class IgnoreFeature {
 
     private ClothConfigScreen screen;
-
-    private static IgnoreEntry.State stateOf(String name) {
-        if (nyahConfigData.favouritePlayers.contains(name)) return IgnoreEntry.State.FAVOURITE;
-        if (nyahConfigData.avoidedPlayers.contains(name)) return IgnoreEntry.State.AVOID;
-        return IgnoreEntry.State.NORMAL;
-    }
+    private boolean updated = true;
+    private List<AbstractConfigEntry<AbstractConfigEntry<?>>> cache;
 
     public void setScreen(ClothConfigScreen screen) {
         this.screen = screen;
+        sortEntries();
     }
 
     public List<IgnoreEntry> getIgnoreEntries() {
-        return null;
+        return WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
     }
 
     private IgnoreEntry ignoreEntry(String username) {
@@ -44,6 +46,12 @@ public class IgnoreFeature {
         );
     }
 
+    private IgnoreEntry.State stateOf(String name) {
+        if (nyahConfigData.favouritePlayers.contains(name)) return IgnoreEntry.State.FAVOURITE;
+        if (nyahConfigData.avoidedPlayers.contains(name)) return IgnoreEntry.State.AVOID;
+        return IgnoreEntry.State.NORMAL;
+    }
+
     private void setState(String username, IgnoreEntry.State newState, ButtonWidget button) {
         nyahConfigData.favouritePlayers.remove(username);
         nyahConfigData.avoidedPlayers.remove(username);
@@ -56,14 +64,22 @@ public class IgnoreFeature {
         }
 
         button.setMessage(Text.of(newState.code + "♥"));
+        updated = true;
+
         sortEntries();
     }
 
     private void sortEntries() {
         screen.listWidget.entriesTransformer = list -> {
             if (!screen.getSelectedCategory().getString().equals("Ignore")) {
-                return list;
+                return list.stream().filter(entry -> screen.matchesSearch(entry.getSearchTags())).toList();
             }
+
+            if (!updated) {
+                return cache.stream().filter(entry -> screen.matchesSearch(entry.getSearchTags())).toList();
+            }
+
+            updated = false;
 
             List<AbstractConfigEntry<AbstractConfigEntry<?>>> players = list.subList(3, list.size());
 
@@ -80,11 +96,8 @@ public class IgnoreFeature {
                     .thenComparing(e -> e.getFieldName().getString(), String.CASE_INSENSITIVE_ORDER);
 
             List<AbstractConfigEntry<AbstractConfigEntry<?>>> result = new ArrayList<>(list.subList(0, 3));
-
-            result.addAll(players.stream().sorted(comparator).toList());
-
-            screen.listWidget.entriesTransformer = a -> result;
-
+            result.addAll(players.stream().filter(entry -> screen.matchesSearch(entry.getSearchTags())).sorted(comparator).toList());
+            cache = result;
             return result;
         };
     }

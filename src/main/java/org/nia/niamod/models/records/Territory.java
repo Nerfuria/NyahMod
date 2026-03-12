@@ -1,4 +1,4 @@
-package org.nia.niamod.models;
+package org.nia.niamod.models.records;
 
 import net.minecraft.util.math.BlockPos;
 import org.nia.niamod.NiamodClient;

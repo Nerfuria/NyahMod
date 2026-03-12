@@ -8,6 +8,7 @@ import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.services.map.pois.TerritoryPoi;
 import com.wynntils.utils.type.CappedValue;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import org.nia.niamod.NiamodClient;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class ResourceTickFeature {
 
             if (client.world != null) {
                 long time = client.world.getTime();
-                System.out.println("Map tick changed to " + currentMapTick + " at world time " + time);
+                NiamodClient.LOGGER.info("Map tick changed to {} at world time {}", currentMapTick, time);
             }
         });
     }
@@ -147,8 +148,7 @@ public class ResourceTickFeature {
 
                 map_ticks.add(Math.round((emerald_storage.current() / emeralds_max) * 60));
             } catch (Exception e) {
-                System.out.println(poi.getName());
-                e.printStackTrace();
+                NiamodClient.LOGGER.error("Error at POI {}", poi, e);
             }
         }
 
