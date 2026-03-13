@@ -2,16 +2,14 @@ package org.nia.niamod.features;
 
 import me.shedaniel.clothconfig2.api.AbstractConfigEntry;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
-import me.shedaniel.clothconfig2.gui.widget.SearchFieldEntry;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.text.Text;
-import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.IgnoreEntry;
+import org.nia.niamod.models.gui.SeparatorEntry;
 import org.nia.niamod.util.WynncraftAPI;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +22,11 @@ public class IgnoreFeature {
     private ClothConfigScreen screen;
     private boolean updated = true;
     private List<AbstractConfigEntry<AbstractConfigEntry<?>>> cache;
+    private List<IgnoreEntry> entries;
+
+    public void init() {
+        entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
+    }
 
     public void setScreen(ClothConfigScreen screen) {
         this.screen = screen;
@@ -31,7 +34,7 @@ public class IgnoreFeature {
     }
 
     public List<IgnoreEntry> getIgnoreEntries() {
-        return WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
+        return entries;
     }
 
     private IgnoreEntry ignoreEntry(String username) {
@@ -72,7 +75,13 @@ public class IgnoreFeature {
     private void sortEntries() {
         screen.listWidget.entriesTransformer = list -> {
             if (!screen.getSelectedCategory().getString().equals("Ignore")) {
-                return list.stream().filter(entry -> screen.matchesSearch(entry.getSearchTags())).toList();
+                return list.stream()
+                        .filter(entry -> entry.getClass() == SeparatorEntry.class
+                                ? list.subList(list.indexOf(entry) + 1, list.size()).stream()
+                                .takeWhile(next -> next.getClass() != SeparatorEntry.class)
+                                .anyMatch(next -> screen.matchesSearch(next.getSearchTags()))
+                                : screen.matchesSearch(entry.getSearchTags()))
+                        .toList();
             }
 
             if (!updated) {

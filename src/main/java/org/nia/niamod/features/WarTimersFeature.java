@@ -1,24 +1,18 @@
 package org.nia.niamod.features;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.wynntils.core.components.Models;
 import com.wynntils.models.territories.TerritoryAttackTimer;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
-import org.nia.niamod.models.api.TerritoryResponse;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.records.Territory;
 import org.nia.niamod.models.records.TimerEntry;
 import org.nia.niamod.render.BoxRenderer;
-import org.nia.niamod.util.WebUtils;
 import org.nia.niamod.util.WynncraftAPI;
 
-import java.lang.reflect.Type;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Map;
 
 public class WarTimersFeature {
 

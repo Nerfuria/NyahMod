@@ -13,11 +13,12 @@ public class WynncraftAPI {
     private static final Gson gson = new Gson();
 
     public static Map<String, TerritoryResponse> territoryResponse() {
-        Type type = new TypeToken<Map<String, TerritoryResponse>>() {}.getType();
+        Type type = new TypeToken<Map<String, TerritoryResponse>>() {
+        }.getType();
         return gson.fromJson(WebUtils.queryAPI(NyahConfig.nyahConfigData.apiBase + "guild/list/territory"), type);
     }
 
     public static GuildResponse guildResponse(String guildName) {
-        return gson.fromJson(WebUtils.queryAPI(NyahConfig.nyahConfigData.apiBase + "guild/%s?identifier=username".formatted(guildName)), GuildResponse.class);
+        return gson.fromJson(WebUtils.queryAPI(NyahConfig.nyahConfigData.apiBase + "guild/%s?identifier=username".formatted(guildName.replace(" ", "%20"))), GuildResponse.class);
     }
 }

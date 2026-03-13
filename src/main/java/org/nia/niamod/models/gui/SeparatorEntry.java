@@ -1,7 +1,6 @@
 package org.nia.niamod.models.gui;
 
 import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;

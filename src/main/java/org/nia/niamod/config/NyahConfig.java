@@ -7,7 +7,6 @@ import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -68,6 +67,7 @@ public class NyahConfig {
         general.addEntry(eb.startStrField(Text.of("Guild Name"), nyahConfigData.guildName)
                 .setDefaultValue("Nerfuria")
                 .setSaveConsumer(v -> nyahConfigData.guildName = v)
+                .requireRestart()
                 .build());
 
         general.addEntry(new SeparatorEntry(Text.of("Chat Encryption"), null));
@@ -135,7 +135,7 @@ public class NyahConfig {
             if (nyahConfigData.favouritePlayers == null) nyahConfigData.favouritePlayers = new ArrayList<>();
             if (nyahConfigData.avoidedPlayers == null) nyahConfigData.avoidedPlayers = new ArrayList<>();
         } catch (IOException e) {
-            e.printStackTrace();
+            NiamodClient.LOGGER.error("Error loading config file!", e);
             nyahConfigData = new NyahConfigData();
         }
     }
@@ -161,7 +161,7 @@ public class NyahConfig {
             try (FileWriter writer = new FileWriter(CONFIG_FILE.toFile())) {
                 GSON.toJson(this, writer);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to save config", e);
+                NiamodClient.LOGGER.error("Failed to save config", e);
             }
         }
     }
