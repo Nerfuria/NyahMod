@@ -19,7 +19,7 @@
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
-    "wynntils": "${wynntils_version}",
+    "wynntils": ">=${wynntils_version}",
     "minecraft": "${minecraft_version}"
   }
 }
