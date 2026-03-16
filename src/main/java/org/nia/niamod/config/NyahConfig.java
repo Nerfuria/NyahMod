@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.gui.screen.Screen;
@@ -14,7 +13,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
-import org.nia.niamod.features.Features;
 import org.nia.niamod.models.gui.SeparatorEntry;
 
 import java.io.FileReader;
@@ -23,8 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import static org.nia.niamod.NiamodClient.mc;
@@ -95,6 +91,48 @@ public class NyahConfig {
                 .setSaveConsumer(v -> nyahConfigData.saltLength = v)
                 .build());
 
+        general.addEntry(new SeparatorEntry(Text.of("Held Item Transformation"), null));
+        general.addEntry(eb.startIntField(Text.of("X Offset"), nyahConfigData.xOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(150)
+                .setSaveConsumer(v -> nyahConfigData.xOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Y Offset"), nyahConfigData.yOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(150)
+                .setSaveConsumer(v -> nyahConfigData.yOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Z Offset"), nyahConfigData.zOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(50)
+                .setSaveConsumer(v -> nyahConfigData.zOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("X Rotation"), nyahConfigData.xRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.xRotation = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Y Rotation"), nyahConfigData.yRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.yRotation = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Z Rotation"), nyahConfigData.zRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.zRotation = v)
+                .build());
+        general.addEntry(eb.startFloatField(Text.of("Item Scale"), nyahConfigData.itemScale)
+                .setDefaultValue(1.0f)
+                .setSaveConsumer(v -> nyahConfigData.itemScale = v)
+                .build());
+
         ConfigCategory war = builder.getOrCreateCategory(Text.of("War"));
         war.addEntry(new SeparatorEntry(Text.of("Territory Boxes"), null));
         war.addEntry(eb.startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
@@ -113,11 +151,7 @@ public class NyahConfig {
                 .setSaveConsumer(v -> nyahConfigData.maximumDistance = v)
                 .build());
 
-        ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
-        Features.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
-
         builder.setSavingRunnable(nyahConfigData::save);
-        builder.setAfterInitConsumer(screen -> Features.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
         return builder.build();
     }
 
@@ -132,8 +166,6 @@ public class NyahConfig {
                 return;
             }
             nyahConfigData = GSON.fromJson(new FileReader(CONFIG_FILE.toFile()), NyahConfigData.class);
-            if (nyahConfigData.favouritePlayers == null) nyahConfigData.favouritePlayers = new ArrayList<>();
-            if (nyahConfigData.avoidedPlayers == null) nyahConfigData.avoidedPlayers = new ArrayList<>();
         } catch (IOException e) {
             NiamodClient.LOGGER.error("Error loading config file!", e);
             nyahConfigData = new NyahConfigData();
@@ -154,8 +186,13 @@ public class NyahConfig {
         public int maximumDistance = 1000;
         public int maximumTerritories = 10;
 
-        public List<String> favouritePlayers = new ArrayList<>();
-        public List<String> avoidedPlayers = new ArrayList<>();
+        public int xOffset = 0;
+        public int yOffset = 0;
+        public int zOffset = 0;
+        public int xRotation = 0;
+        public int yRotation = 0;
+        public int zRotation = 0;
+        public float itemScale = 1.0f;
 
         public void save() {
             try (FileWriter writer = new FileWriter(CONFIG_FILE.toFile())) {
