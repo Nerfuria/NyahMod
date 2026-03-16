@@ -11,10 +11,6 @@ public class NiamodClient implements ClientModInitializer {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static MinecraftClient mc;
 
-    public static void postInit() {
-        Features.postInit();
-    }
-
     @Override
     public void onInitializeClient() {
         mc = MinecraftClient.getInstance();

@@ -8,8 +8,7 @@
   "client": [
     "ChatListenerMixin",
     "FunctionManagerMixin",
-    "HeldItemRendererMixin",
-    "MinecraftClientMixin"
+    "HeldItemRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -16,10 +16,6 @@ public class Features {
         warTimersFeature.init();
     }
 
-    public static void postInit() {
-        ignoreFeature.init();
-    }
-
     public static ResourceTickFeature getResTickFeature() {
         return resTickFeature;
     }
