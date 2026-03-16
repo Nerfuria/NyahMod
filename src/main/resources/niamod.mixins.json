@@ -8,6 +8,7 @@
   "client": [
     "ChatListenerMixin",
     "FunctionManagerMixin",
+    "GameRendererMixin",
     "HeldItemRendererMixin"
   ],
   "injectors": {

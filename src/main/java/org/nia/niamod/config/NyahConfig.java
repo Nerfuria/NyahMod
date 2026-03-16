@@ -132,6 +132,10 @@ public class NyahConfig {
                 .setDefaultValue(1.0f)
                 .setSaveConsumer(v -> nyahConfigData.itemScale = v)
                 .build());
+        general.addEntry(eb.startBooleanToggle(Text.of("Disable Bobbing"), nyahConfigData.disableHeldBobbing)
+                .setDefaultValue(false)
+                .setSaveConsumer(v -> nyahConfigData.disableHeldBobbing = v)
+                .build());
 
         ConfigCategory war = builder.getOrCreateCategory(Text.of("War"));
         war.addEntry(new SeparatorEntry(Text.of("Territory Boxes"), null));
@@ -193,6 +197,7 @@ public class NyahConfig {
         public int yRotation = 0;
         public int zRotation = 0;
         public float itemScale = 1.0f;
+        public boolean disableHeldBobbing = true;
 
         public void save() {
             try (FileWriter writer = new FileWriter(CONFIG_FILE.toFile())) {
