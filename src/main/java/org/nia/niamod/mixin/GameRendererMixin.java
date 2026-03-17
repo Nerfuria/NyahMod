@@ -1,5 +1,7 @@
 package org.nia.niamod.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -15,7 +17,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
@@ -62,7 +63,7 @@ public abstract class GameRendererMixin {
         );
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "renderHand",
             at = @At(
                     value = "INVOKE",
@@ -70,10 +71,10 @@ public abstract class GameRendererMixin {
             )
     )
     private void cancel(
-            HeldItemRenderer instance, float tickProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, ClientPlayerEntity player, int light
+            HeldItemRenderer instance, float tickProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, ClientPlayerEntity player, int light, Operation<Void> original
     ) {
         if (!NyahConfig.nyahConfigData.disableHeldBobbing) {
-            instance.renderItem(tickProgress, matrices, orderedRenderCommandQueue, player, light);
+            original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
         }
     }
 }
