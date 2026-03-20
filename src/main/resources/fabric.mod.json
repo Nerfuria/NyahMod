@@ -21,6 +21,6 @@
     "fabricloader": ">=${loader_version}",
     "wynntils": ">=${wynntils_version}",
     "minecraft": "${minecraft_version}",
-    "clothconfig": ">=21.11.153"
+    "cloth-config": ">=21.11.153"
   }
 }
