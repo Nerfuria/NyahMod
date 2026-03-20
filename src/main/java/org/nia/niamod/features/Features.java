@@ -5,12 +5,14 @@ public class Features {
     private static ChatEncryptionFeature chatEncryptionFeature;
     private static WarTimersFeature warTimersFeature;
     private static IgnoreFeature ignoreFeature;
+    private static WarTowerEHPFeature warTowerEHPFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
         chatEncryptionFeature = new ChatEncryptionFeature();
         warTimersFeature = new WarTimersFeature();
         ignoreFeature = new IgnoreFeature();
+        warTowerEHPFeature = new WarTowerEHPFeature();
 
         chatEncryptionFeature.init();
         warTimersFeature.init();
@@ -30,5 +32,9 @@ public class Features {
 
     public static IgnoreFeature getIgnoreFeature() {
         return ignoreFeature;
+    }
+
+    public static WarTowerEHPFeature getWarTowerEHPFeature() {
+        return warTowerEHPFeature;
     }
 }

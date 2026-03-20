@@ -14,6 +14,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -106,6 +107,7 @@ public class ChatEncryptionFeature {
     private String encryptMessage(String message) {
         try {
             byte[] iv = new byte[NyahConfig.nyahConfigData.saltLength];
+            new SecureRandom().nextBytes(iv);
             Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, iv);
             byte[] encrypted = cipher.doFinal(message.trim().getBytes());
             return MSG_START + encode(iv) + encode(encrypted) + MSG_END;

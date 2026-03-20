@@ -33,7 +33,7 @@ public class NyahConfig {
 
     private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("niamod", "config"));
     private static final KeyBinding OPEN_CONFIG = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding("Open Config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY));
+            new KeyBinding("Open NiaMod Config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY));
 
     public static NyahConfigData nyahConfigData;
 
@@ -138,6 +138,12 @@ public class NyahConfig {
                 .build());
 
         ConfigCategory war = builder.getOrCreateCategory(Text.of("War"));
+        war.addEntry(new SeparatorEntry(Text.of("General"), null));
+        war.addEntry(eb.startBooleanToggle(Text.of("Replace Tower HP"), nyahConfigData.replaceTowerHP)
+                .setTooltip(Text.of("Replace War tower HP and Defense with EHP"))
+                .setDefaultValue(false)
+                .setSaveConsumer(v -> nyahConfigData.replaceTowerHP = v)
+                .build());
         war.addEntry(new SeparatorEntry(Text.of("Territory Boxes"), null));
         war.addEntry(eb.startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
                 .setTooltip(Text.of("Colour of boxes showing queued territory boundaries"))
@@ -185,7 +191,7 @@ public class NyahConfig {
         public String encryptionKey = "six seven";
         public int saltLength = 16;
 
-
+        public boolean replaceTowerHP = true;
         public int color = 0xFFFFFF;
         public int maximumDistance = 1000;
         public int maximumTerritories = 10;

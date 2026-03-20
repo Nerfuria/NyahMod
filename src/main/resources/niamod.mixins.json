@@ -4,6 +4,7 @@
   "package": "org.nia.niamod.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BossBarHudMixin"
   ],
   "client": [
     "ChatListenerMixin",

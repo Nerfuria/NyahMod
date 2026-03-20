@@ -12,16 +12,6 @@ public class NiamodClient implements ClientModInitializer {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static MinecraftClient mc;
 
-    private static final ThreadLocal<MatrixStack> NYAH_MATRIX = new ThreadLocal<>();
-
-    public static MatrixStack getMatrixStack() {
-        return NYAH_MATRIX.get();
-    }
-
-    public static  void setMatrixStack(MatrixStack matrixStack) {
-        NYAH_MATRIX.set(matrixStack);
-    }
-
     @Override
     public void onInitializeClient() {
         mc = MinecraftClient.getInstance();
