@@ -15,8 +15,8 @@ public class WarTowerEHPFeature {
     public Text replaceEHP(Text text) {
         if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
         Matcher matcher = towerRegex.matcher(text.getString());
-        StringBuffer sb = new StringBuffer();
         if (matcher.matches()) {
+            System.out.println(text.getString());
             String tag = matcher.group(1);
             String name = matcher.group(2);
             int hp = Integer.parseInt(matcher.group(3));
@@ -25,17 +25,14 @@ public class WarTowerEHPFeature {
             int atckHigh = Integer.parseInt(matcher.group(6));
             double speed = Double.parseDouble(matcher.group(7));
 
-            double newValue = hp / (1 - (percent / 100.0));
+            double ehp = hp / (1 - (percent / 100.0));
 
-            String replacement =
-                    "§3[" + tag + "] §b" + name + "§7 - §4❤ " + newValue +
+            return Text.of(
+                    "§3[" + tag + "] §b" + name + "§7 - §4❤ " + Math.ceil(ehp) +
                             "§7 - §c☠ " + atckLow + "-" + atckHigh +
-                            "§7 (§b" + speed + "x§7)";
-
-            matcher.appendReplacement(sb, replacement);
+                            "§7 (§b" + speed + "x§7)");
+        } else {
+            return text;
         }
-        matcher.appendTail(sb);
-
-        return Text.of(sb.toString());
     }
 }
