@@ -28,7 +28,7 @@ public class WarTowerEHPFeature {
             double ehp = hp / (1 - (percent / 100.0));
 
             return Text.of(
-                    "§3[" + tag + "] §b" + name + "§7 - §4❤ " + Math.ceil(ehp) +
+                    "§3[" + tag + "] §b" + name + "§7 - §4❤ " + (int)ehp +
                             "§7 - §c☠ " + atckLow + "-" + atckHigh +
                             "§7 (§b" + speed + "x§7)");
         } else {
