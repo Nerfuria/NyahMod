@@ -2,6 +2,7 @@ package org.nia.niamod.features;
 
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.misc.Feature;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.records.Territory;
 import org.nia.niamod.models.records.TimerEntry;
 import org.nia.niamod.render.BoxRenderer;

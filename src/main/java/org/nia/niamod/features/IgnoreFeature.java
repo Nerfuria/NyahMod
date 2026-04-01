@@ -10,6 +10,7 @@ import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.gui.IgnoreEntry;
 import org.nia.niamod.models.gui.SeparatorEntry;
+import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.records.State;
 import org.nia.niamod.util.WynncraftAPI;
 

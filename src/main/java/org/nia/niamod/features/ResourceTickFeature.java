@@ -9,6 +9,7 @@ import com.wynntils.services.map.pois.TerritoryPoi;
 import com.wynntils.utils.type.CappedValue;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.models.misc.Feature;
 
 import java.time.Instant;
 import java.util.ArrayList;

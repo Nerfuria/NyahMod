@@ -1,4 +1,4 @@
-package org.nia.niamod.features;
+package org.nia.niamod.models.misc;
 
 import org.nia.niamod.NiamodClient;
 

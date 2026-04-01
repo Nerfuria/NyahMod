@@ -6,6 +6,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.misc.Feature;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;

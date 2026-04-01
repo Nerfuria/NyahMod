@@ -15,6 +15,7 @@ import com.wynntils.utils.render.type.TextShadow;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.records.StatLabel;
 import org.nia.niamod.util.FileUtils;
 
