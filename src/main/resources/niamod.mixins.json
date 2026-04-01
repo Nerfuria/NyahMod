@@ -10,10 +10,11 @@
   ],
   "client": [
     "ChatListenerMixin",
-    "wynntils.FunctionManagerMixin",
     "GameRendererMixin",
     "HandledScreenMixin",
-    "HeldItemRendererMixin"
+    "HeldItemRendererMixin",
+    "InGameHudMixin",
+    "wynntils.FunctionManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

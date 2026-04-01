@@ -6,6 +6,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.events.ChatEvent;
 import org.nia.niamod.models.misc.Feature;
 
 import javax.crypto.AEADBadTagException;
@@ -76,6 +77,7 @@ public class ChatEncryptionFeature extends Feature {
     protected void init() {
         ClientSendMessageEvents.MODIFY_CHAT.register((String message) -> runSafe(() -> processMessage(message), message));
         ClientSendMessageEvents.MODIFY_COMMAND.register((String message) -> runSafe(() -> processMessage(message), message));
+        ChatEvent.MODIFY.register(this::modifyChat);
     }
 
     private byte[] encryptionKey() {
@@ -150,9 +152,7 @@ public class ChatEncryptionFeature extends Feature {
         }
     }
 
-    public Text modifyChat(Text text, boolean overlay) {
-        if (overlay) return text;
-
+    public Text modifyChat(Text text) {
         MutableText copy = Text.empty();
         text.visit((style, string) -> {
             String decoded = decodeMessage(string);

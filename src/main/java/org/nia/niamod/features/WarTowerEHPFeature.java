@@ -1,7 +1,9 @@
 package org.nia.niamod.features;
 
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
 
 import java.util.regex.Matcher;
@@ -39,5 +41,6 @@ public class WarTowerEHPFeature extends Feature {
 
     @Override
     protected void init() {
+        BossBarNameEvent.MODIFY.register(this::replaceEHP);
     }
 }

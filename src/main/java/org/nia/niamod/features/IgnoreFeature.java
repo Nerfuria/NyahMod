@@ -5,9 +5,11 @@ import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
+import org.nia.niamod.models.events.ChatEvent;
 import org.nia.niamod.models.gui.IgnoreEntry;
 import org.nia.niamod.models.gui.SeparatorEntry;
 import org.nia.niamod.models.misc.Feature;
@@ -43,25 +45,27 @@ public class IgnoreFeature extends Feature {
         KeybindManager.registerKeybinding("Ignore All", GLFW.GLFW_KEY_DELETE, this::ignoreAll);
         ignoreAddRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
         ignoreRemoveRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
+        ChatEvent.RECIEVED.register(this::processMessage);
     }
 
     public void postInit() {
         entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
     }
 
-    public void processMessage(Text message) {
+    public ActionResult processMessage(Text message) {
         String text = message.getString();
 
         Matcher ignoreAdd = ignoreAddRegex.matcher(text);
         if (ignoreAdd.find()) {
             ignored.put(ignoreAdd.group(1), true);
-            return;
         }
 
         Matcher ignoreRemove = ignoreRemoveRegex.matcher(text);
         if (ignoreRemove.find()) {
             ignored.put(ignoreAdd.group(1), false);
         }
+
+        return ActionResult.PASS;
     }
 
     public void setScreen(ClothConfigScreen screen) {
