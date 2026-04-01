@@ -14,13 +14,13 @@ import org.nia.niamod.util.WynncraftAPI;
 import java.util.Comparator;
 import java.util.HashMap;
 
-public class WarTimersFeature {
+public class WarTimersFeature extends Feature {
 
     private final HashMap<String, Territory> territories = new HashMap<>();
 
-    public void init() {
+    protected void init() {
         WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
-        WorldRenderEvents.AFTER_ENTITIES.register(this::render);
+        WorldRenderEvents.AFTER_ENTITIES.register((WorldRenderContext ctx) -> runSafe(() -> render(ctx)));
     }
 
     public void render(WorldRenderContext ctx) {

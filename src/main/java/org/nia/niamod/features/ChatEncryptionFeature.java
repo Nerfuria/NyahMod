@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-public class ChatEncryptionFeature {
+public class ChatEncryptionFeature extends Feature {
 
     private static final int AAD_VALUE = 67;
     private static final int GCM_TAG_LENGTH = 128;
@@ -72,9 +72,9 @@ public class ChatEncryptionFeature {
         return result;
     }
 
-    public void init() {
-        ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
-        ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
+    protected void init() {
+        ClientSendMessageEvents.MODIFY_CHAT.register((String message) -> runSafe(() -> processMessage(message), message));
+        ClientSendMessageEvents.MODIFY_COMMAND.register((String message) -> runSafe(() -> processMessage(message), message));
     }
 
     private byte[] encryptionKey() {

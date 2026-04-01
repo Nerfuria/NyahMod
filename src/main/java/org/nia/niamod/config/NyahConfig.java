@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
-import org.nia.niamod.managers.Features;
+import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.models.gui.SeparatorEntry;
 
@@ -171,10 +171,10 @@ public class NyahConfig {
                 .build());
 
         ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
-        Features.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
+        FeatureManager.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
 
         builder.setSavingRunnable(nyahConfigData::save);
-        builder.setAfterInitConsumer(screen -> Features.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
+        builder.setAfterInitConsumer(screen -> FeatureManager.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
 
         builder.setSavingRunnable(nyahConfigData::save);
         return builder.build();

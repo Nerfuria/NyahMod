@@ -7,7 +7,7 @@ import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
 
-public class Features {
+public class FeatureManager {
     private static ResourceTickFeature resTickFeature;
     private static ChatEncryptionFeature chatEncryptionFeature;
     private static WarTimersFeature warTimersFeature;
@@ -23,13 +23,14 @@ public class Features {
         warTowerEHPFeature = new WarTowerEHPFeature();
         consuTextFeature = new ConsuTextFeature();
 
-        chatEncryptionFeature.init();
-        warTimersFeature.init();
-        consuTextFeature.init();
+        consuTextFeature.initSafe();
+        chatEncryptionFeature.initSafe();
+        warTimersFeature.initSafe();
+        resTickFeature.initSafe();
     }
 
     public static void postInit() {
-        ignoreFeature.init();
+        ignoreFeature.initSafe();
     }
 
     public static ResourceTickFeature getResTickFeature() {

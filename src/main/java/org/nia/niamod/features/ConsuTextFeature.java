@@ -21,11 +21,11 @@ import org.nia.niamod.util.FileUtils;
 import java.util.List;
 import java.util.Optional;
 
-public class ConsuTextFeature {
+public class ConsuTextFeature extends Feature {
 
     private List<StatLabel> STAT_LABELS;
 
-    public void init() {
+    protected void init() {
         STAT_LABELS = parseStatLabels();
     }
 

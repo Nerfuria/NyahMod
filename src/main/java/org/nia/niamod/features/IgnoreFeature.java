@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 import static org.nia.niamod.config.NyahConfig.nyahConfigData;
 
-public class IgnoreFeature {
+public class IgnoreFeature extends Feature {
 
     private ClothConfigScreen screen;
     private boolean updated = true;
@@ -36,7 +36,7 @@ public class IgnoreFeature {
     private Pattern ignoreAddRegex;
     private Pattern ignoreRemoveRegex;
 
-    public void init() {
+    protected void init() {
         entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
         ignored = new HashMap<>();
         globalIgnore = false;
