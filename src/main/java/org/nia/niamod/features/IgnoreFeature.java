@@ -2,11 +2,10 @@ package org.nia.niamod.features;
 
 import me.shedaniel.clothconfig2.api.AbstractConfigEntry;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.NiamodClient;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.ChatEvent;
@@ -45,14 +44,14 @@ public class IgnoreFeature extends Feature {
         KeybindManager.registerKeybinding("Ignore All", GLFW.GLFW_KEY_DELETE, this::ignoreAll);
         ignoreAddRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
         ignoreRemoveRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
-        ChatEvent.RECIEVED.register(this::processMessage);
+        ChatEvent.RECIEVED.register((Text message) -> runSafe(() -> processMessage(message)));
     }
 
     public void postInit() {
         entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
     }
 
-    public ActionResult processMessage(Text message) {
+    public void processMessage(Text message) {
         String text = message.getString();
 
         Matcher ignoreAdd = ignoreAddRegex.matcher(text);
@@ -65,7 +64,6 @@ public class IgnoreFeature extends Feature {
             ignored.put(ignoreAdd.group(1), false);
         }
 
-        return ActionResult.PASS;
     }
 
     public void setScreen(ClothConfigScreen screen) {
@@ -98,7 +96,7 @@ public class IgnoreFeature extends Feature {
     }
 
     public void ignore(String username, boolean ignore) {
-        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("ignore " + (ignore ? "add " : "remove ") + username);
+        NiamodClient.mc.getNetworkHandler().sendChatCommand("ignore " + (ignore ? "add " : "remove ") + username);
         ignored.put(username, ignore);
     }
 

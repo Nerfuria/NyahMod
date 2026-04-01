@@ -11,7 +11,6 @@ public interface BossBarNameEvent {
         for (BossBarNameEvent listener : listeners) {
             title = listener.modify(title);
         }
-
         return title;
     });
 

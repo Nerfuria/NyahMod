@@ -12,14 +12,10 @@ public interface PostInitEvent {
     Event<@NotNull PostInitEvent> EVENT = EventFactory.createArrayBacked(PostInitEvent.class,
             (listeners) -> () -> {
                 for (PostInitEvent listener : listeners) {
-                    ActionResult result = listener.onInit();
-                    if (result != ActionResult.PASS) {
-                        return result;
-                    }
+                    listener.onInit();
                 }
-                return ActionResult.PASS;
             });
 
-    ActionResult onInit();
+    void onInit();
 
 }

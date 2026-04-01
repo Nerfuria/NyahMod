@@ -41,6 +41,6 @@ public class WarTowerEHPFeature extends Feature {
 
     @Override
     protected void init() {
-        BossBarNameEvent.MODIFY.register(this::replaceEHP);
+        BossBarNameEvent.MODIFY.register((Text text) -> runSafe(() -> replaceEHP(text), text));
     }
 }

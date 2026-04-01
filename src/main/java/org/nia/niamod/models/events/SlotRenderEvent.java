@@ -12,14 +12,10 @@ public interface SlotRenderEvent {
     Event<@NotNull SlotRenderEvent> EVENT = EventFactory.createArrayBacked(SlotRenderEvent.class,
             (listeners) -> (drawContext, itemStack, slotX, slotY) -> {
                 for (SlotRenderEvent listener : listeners) {
-                    ActionResult result = listener.render(drawContext, itemStack, slotX, slotY);
-                    if (result != ActionResult.PASS) {
-                        return result;
-                    }
+                    listener.render(drawContext, itemStack, slotX, slotY);
                 }
-                return ActionResult.PASS;
             });
 
-    ActionResult render(DrawContext context, ItemStack stack, int slotX, int slotY);
+    void render(DrawContext context, ItemStack stack, int slotX, int slotY);
 
 }

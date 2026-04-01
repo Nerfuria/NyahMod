@@ -22,17 +22,13 @@ public interface ChatEvent {
 
     Event<@NotNull Recieved> RECIEVED = EventFactory.createArrayBacked(Recieved.class, listeners -> message -> {
         for (Recieved listener : listeners) {
-            ActionResult result = listener.onMessage(message);
-            if (result != ActionResult.PASS) {
-                return result;
-            }
+            listener.onMessage(message);
         }
-        return ActionResult.PASS;
     });
 
     @FunctionalInterface
     interface Recieved {
-        ActionResult onMessage(Text message);
+        void onMessage(Text message);
     }
 
     @FunctionalInterface

@@ -77,7 +77,7 @@ public class ChatEncryptionFeature extends Feature {
     protected void init() {
         ClientSendMessageEvents.MODIFY_CHAT.register((String message) -> runSafe(() -> processMessage(message), message));
         ClientSendMessageEvents.MODIFY_COMMAND.register((String message) -> runSafe(() -> processMessage(message), message));
-        ChatEvent.MODIFY.register(this::modifyChat);
+        ChatEvent.MODIFY.register((Text message) -> runSafe(() -> modifyChat(message), message));
     }
 
     private byte[] encryptionKey() {
