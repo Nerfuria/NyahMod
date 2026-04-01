@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
 
-    @Inject(method="renderHotbarItem", at=@At("RETURN"))
+    @Inject(method = "renderHotbarItem", at = @At("RETURN"))
     public void render(DrawContext context, int x, int y, RenderTickCounter tickCounter, PlayerEntity player, ItemStack stack, int seed, CallbackInfo ci) {
         SlotRenderEvent.EVENT.invoker().render(context, stack, x, y);
     }

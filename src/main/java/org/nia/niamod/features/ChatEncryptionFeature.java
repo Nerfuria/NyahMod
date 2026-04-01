@@ -8,6 +8,7 @@ import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.ChatEvent;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
@@ -74,10 +75,12 @@ public class ChatEncryptionFeature extends Feature {
         return result;
     }
 
-    protected void init() {
-        ClientSendMessageEvents.MODIFY_CHAT.register((String message) -> runSafe(() -> processMessage(message), message));
-        ClientSendMessageEvents.MODIFY_COMMAND.register((String message) -> runSafe(() -> processMessage(message), message));
-        ChatEvent.MODIFY.register((Text message) -> runSafe(() -> modifyChat(message), message));
+    @Override
+    @Safe
+    public void init() {
+        ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
+        ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
+        ChatEvent.MODIFY.register(this::modifyChat);
     }
 
     private byte[] encryptionKey() {
@@ -134,6 +137,7 @@ public class ChatEncryptionFeature extends Feature {
         }
     }
 
+    @Safe(ordinal = 0)
     public String processMessage(String message) {
         String prefix = NyahConfig.nyahConfigData.encryptionPrefix;
         int idx = message.indexOf(prefix);
@@ -152,6 +156,7 @@ public class ChatEncryptionFeature extends Feature {
         }
     }
 
+    @Safe(ordinal = 0)
     public Text modifyChat(Text text) {
         MutableText copy = Text.empty();
         text.visit((style, string) -> {

@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.models.records.Territory;
 import org.nia.niamod.models.records.TimerEntry;
 import org.nia.niamod.render.BoxRenderer;
@@ -19,11 +20,14 @@ public class WarTimersFeature extends Feature {
 
     private final HashMap<String, Territory> territories = new HashMap<>();
 
-    protected void init() {
+    @Safe
+    public void init() {
         WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
-        WorldRenderEvents.AFTER_ENTITIES.register((WorldRenderContext ctx) -> runSafe(() -> render(ctx)));
+        WorldRenderEvents.AFTER_ENTITIES.register(this::render);
+        throw new RuntimeException("blah");
     }
 
+    @Safe
     public void render(WorldRenderContext ctx) {
         int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0xFF, b = NyahConfig.nyahConfigData.color & 0xFF;
         Models.GuildAttackTimer.getUpcomingTimers()

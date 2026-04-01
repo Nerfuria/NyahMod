@@ -12,6 +12,7 @@ import org.nia.niamod.models.events.ChatEvent;
 import org.nia.niamod.models.gui.IgnoreEntry;
 import org.nia.niamod.models.gui.SeparatorEntry;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.models.records.State;
 import org.nia.niamod.util.WynncraftAPI;
 
@@ -38,19 +39,21 @@ public class IgnoreFeature extends Feature {
     private Pattern ignoreAddRegex;
     private Pattern ignoreRemoveRegex;
 
-    protected void init() {
+    @Safe
+    public void init() {
         ignored = new HashMap<>();
         globalIgnore = false;
         KeybindManager.registerKeybinding("Ignore All", GLFW.GLFW_KEY_DELETE, this::ignoreAll);
         ignoreAddRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
         ignoreRemoveRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
-        ChatEvent.RECIEVED.register((Text message) -> runSafe(() -> processMessage(message)));
+        ChatEvent.RECIEVED.register(this::processMessage);
     }
 
     public void postInit() {
         entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
     }
 
+    @Safe
     public void processMessage(Text message) {
         String text = message.getString();
 
@@ -61,9 +64,8 @@ public class IgnoreFeature extends Feature {
 
         Matcher ignoreRemove = ignoreRemoveRegex.matcher(text);
         if (ignoreRemove.find()) {
-            ignored.put(ignoreAdd.group(1), false);
+            ignored.put(ignoreRemove.group(1), false);
         }
-
     }
 
     public void setScreen(ClothConfigScreen screen) {
@@ -89,7 +91,7 @@ public class IgnoreFeature extends Feature {
 
     public void ignoreAll() {
         globalIgnore = !globalIgnore;
-        for (int i = 0; i < entries.size(); i++) {
+        for (int i = 0; i < nyahConfigData.favouritePlayers.size(); i++) {
             String username = nyahConfigData.favouritePlayers.get(i);
             Scheduler.schedule(() -> ignore(username, globalIgnore), i);
         }

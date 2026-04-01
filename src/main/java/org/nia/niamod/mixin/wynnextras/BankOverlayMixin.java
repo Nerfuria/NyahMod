@@ -3,7 +3,6 @@ package org.nia.niamod.mixin.wynnextras;
 import julianh06.wynnextras.features.bankoverlay.BankOverlay2;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
-import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

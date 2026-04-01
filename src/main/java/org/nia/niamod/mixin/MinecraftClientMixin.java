@@ -1,7 +1,6 @@
 package org.nia.niamod.mixin;
 
 import net.minecraft.client.MinecraftClient;
-import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.models.events.PostInitEvent;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;

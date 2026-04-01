@@ -10,6 +10,7 @@ import com.wynntils.utils.type.CappedValue;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -83,8 +84,9 @@ public class ResourceTickFeature extends Feature {
     }
 
     @Override
-    protected void init() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> runSafe(() -> {
+    @Safe
+    public void init() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!enabled) return;
 
             Instant currentTime = Instant.now();
@@ -108,7 +110,7 @@ public class ResourceTickFeature extends Feature {
                 long time = client.world.getTime();
                 NiamodClient.LOGGER.info("Map tick changed to {} at world time {}", currentMapTick, time);
             }
-        }));
+        });
     }
 
     private int calcMapTick() {

@@ -17,6 +17,7 @@ import net.minecraft.item.ItemStack;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.models.records.StatLabel;
 import org.nia.niamod.util.FileUtils;
 
@@ -27,9 +28,10 @@ public class ConsuTextFeature extends Feature {
 
     private List<StatLabel> STAT_LABELS;
 
-    protected void init() {
+    @Safe
+    public void init() {
         STAT_LABELS = parseStatLabels();
-        SlotRenderEvent.EVENT.register(((DrawContext context, ItemStack stack, int slotX, int slotY) -> runSafe(() -> renderText(context, stack, slotX, slotY))));
+        SlotRenderEvent.EVENT.register(this::renderText);
     }
 
     private List<StatLabel> parseStatLabels() {
@@ -38,6 +40,7 @@ public class ConsuTextFeature extends Feature {
         }.getType());
     }
 
+    @Safe
     public void renderText(DrawContext context, ItemStack stack, int slotX, int slotY) {
         Optional<WynnItem> item = Models.Item.getWynnItem(stack);
         if (item.isEmpty()) return;

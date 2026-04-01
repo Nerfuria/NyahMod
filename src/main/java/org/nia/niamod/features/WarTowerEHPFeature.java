@@ -1,10 +1,10 @@
 package org.nia.niamod.features;
 
-import net.minecraft.entity.boss.BossBar;
 import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,6 +15,7 @@ public class WarTowerEHPFeature extends Feature {
             "§3\\[([A-Za-z]{3,4})\\] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
     );
 
+    @Safe(ordinal = 0)
     public Text replaceEHP(Text text) {
         if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
         Matcher matcher = towerRegex.matcher(text.getString());
@@ -40,7 +41,8 @@ public class WarTowerEHPFeature extends Feature {
     }
 
     @Override
-    protected void init() {
-        BossBarNameEvent.MODIFY.register((Text text) -> runSafe(() -> replaceEHP(text), text));
+    @Safe
+    public void init() {
+        BossBarNameEvent.MODIFY.register(this::replaceEHP);
     }
 }

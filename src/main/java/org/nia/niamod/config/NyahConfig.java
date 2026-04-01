@@ -129,7 +129,7 @@ public class NyahConfig {
                 .setSaveConsumer(v -> nyahConfigData.itemScale = v)
                 .build());
         general.addEntry(eb.startBooleanToggle(Text.of("Disable Bobbing"), nyahConfigData.disableHeldBobbing)
-                .setDefaultValue(false)
+                .setDefaultValue(true)
                 .setSaveConsumer(v -> nyahConfigData.disableHeldBobbing = v)
                 .build());
 
@@ -137,7 +137,7 @@ public class NyahConfig {
         war.addEntry(new SeparatorEntry(Text.of("General"), null));
         war.addEntry(eb.startBooleanToggle(Text.of("Replace Tower HP"), nyahConfigData.replaceTowerHP)
                 .setTooltip(Text.of("Replace War tower HP and Defense with EHP"))
-                .setDefaultValue(false)
+                .setDefaultValue(true)
                 .setSaveConsumer(v -> nyahConfigData.replaceTowerHP = v)
                 .build());
         war.addEntry(new SeparatorEntry(Text.of("Consumable Labels"), null));
@@ -204,7 +204,7 @@ public class NyahConfig {
         public String guildName = "Nerfuria";
 
         public boolean encryptionEnabled = true;
-        public String encryptionPrefix = "$";
+        public String encryptionPrefix = "@";
         public String encryptionKey = "six seven";
         public int saltLength = 16;
 

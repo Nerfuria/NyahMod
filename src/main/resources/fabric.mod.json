@@ -14,7 +14,7 @@
       "org.nia.niamod.NiamodClient"
     ],
     "modmenu": [
-        "org.nia.niamod.NiamodModMenu"
+      "org.nia.niamod.NiamodModMenu"
     ]
   },
   "mixins": [
