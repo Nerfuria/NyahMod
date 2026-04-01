@@ -32,7 +32,7 @@ public class ResourceTickFeature {
             Instant currentTime = Instant.now();
             int currentMapTick = calcMapTick();
 
-            if (lastMapTick == null || lastMapTick.equals(currentMapTick)) {
+            if (lastMapTick == null || lastMapTick == currentMapTick) {
                 lastMapTick = currentMapTick;
                 return;
             }
