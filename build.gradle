@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.14-SNAPSHOT'
+    id 'fabric-loom' version '1.15.4'
 }
 
 version = project.mod_version
@@ -16,21 +16,9 @@ repositories {
 
     maven { url "https://maven.shedaniel.me/" }
     maven { url "https://maven.terraformersmc.com/releases/" }
+
+    maven {url = "https://api.modrinth.com/maven" }
 }
-
-
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-
-def downloadWynntils() {
-    def wynntils = projectDir.toPath().resolve("libs").resolve("wynntils-${wynntils_version}.jar")
-    if (!Files.exists(wynntils)) {
-        Files.createDirectories(wynntils.getParent())
-        URI.create("https://github.com/Wynntils/Wynntils/releases/download/v${wynntils_version}/wynntils-${wynntils_version}-fabric+MC-${minecraft_version}.jar").toURL().openStream().withCloseable { input -> Files.copy(input, wynntils, StandardCopyOption.REPLACE_EXISTING)}
-    }
-    return files(wynntils)
-}
-
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -40,7 +28,9 @@ dependencies {
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    modImplementation(downloadWynntils())
+    modImplementation "maven.modrinth:wynntils:v${project.wynntils_version}-fabric"
+    modImplementation "maven.modrinth:wynnextras:${project.wynnextras_version}"
+    modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 
     modApi "me.shedaniel.cloth:cloth-config-fabric:21.11.153"
 }

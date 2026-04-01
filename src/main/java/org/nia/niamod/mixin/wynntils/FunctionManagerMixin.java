@@ -1,8 +1,8 @@
-package org.nia.niamod.mixin;
+package org.nia.niamod.mixin.wynntils;
 
 import com.wynntils.core.consumers.functions.Function;
 import com.wynntils.core.consumers.functions.FunctionManager;
-import org.nia.niamod.features.Features;
+import org.nia.niamod.managers.Features;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;

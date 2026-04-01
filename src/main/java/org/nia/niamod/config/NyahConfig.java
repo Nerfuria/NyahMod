@@ -4,15 +4,13 @@ import com.google.gson.Gson;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.managers.Features;
+import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.models.gui.SeparatorEntry;
 
 import java.io.FileReader;
@@ -21,6 +19,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.nia.niamod.NiamodClient.mc;
@@ -31,24 +31,20 @@ public class NyahConfig {
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve("nyah-mod.json");
     private static final Gson GSON = new Gson();
 
-    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("niamod", "config"));
-    private static final KeyBinding OPEN_CONFIG = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding("Open NiaMod Config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY));
-
     public static NyahConfigData nyahConfigData;
 
     public static void init() {
         loadConfig();
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player != null && OPEN_CONFIG.isPressed()) {
-                client.setScreen(getConfigScreen());
-            }
-        });
+        KeybindManager.registerKeybinding("Open NiaMod Config", GLFW.GLFW_KEY_K, () -> mc.setScreen(getConfigScreen()));
     }
 
     public static Screen getConfigScreen() {
+        return getConfigScreen(NiamodClient.mc.currentScreen);
+    }
+
+    public static Screen getConfigScreen(Screen currentScreen) {
         ConfigBuilder builder = ConfigBuilder.create()
-                .setParentScreen(NiamodClient.mc.currentScreen)
+                .setParentScreen(currentScreen)
                 .setTitle(Text.literal("Nyah Mod"));
         ConfigEntryBuilder eb = builder.entryBuilder();
 
@@ -144,6 +140,19 @@ public class NyahConfig {
                 .setDefaultValue(false)
                 .setSaveConsumer(v -> nyahConfigData.replaceTowerHP = v)
                 .build());
+        war.addEntry(new SeparatorEntry(Text.of("Consumable Labels"), null));
+        war.addEntry(eb.startFloatField(Text.of("Label Scale"), nyahConfigData.idScale)
+                .setDefaultValue(0.7f)
+                .setSaveConsumer(v -> nyahConfigData.idScale = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Label X Offset"), nyahConfigData.idXOffset)
+                .setDefaultValue(1)
+                .setSaveConsumer(v -> nyahConfigData.idXOffset = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Label Y Offset"), nyahConfigData.idYOffset)
+                .setDefaultValue(1)
+                .setSaveConsumer(v -> nyahConfigData.idYOffset = v)
+                .build());
         war.addEntry(new SeparatorEntry(Text.of("Territory Boxes"), null));
         war.addEntry(eb.startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
                 .setTooltip(Text.of("Colour of boxes showing queued territory boundaries"))
@@ -161,6 +170,12 @@ public class NyahConfig {
                 .setSaveConsumer(v -> nyahConfigData.maximumDistance = v)
                 .build());
 
+        ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
+        Features.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
+
+        builder.setSavingRunnable(nyahConfigData::save);
+        builder.setAfterInitConsumer(screen -> Features.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
+
         builder.setSavingRunnable(nyahConfigData::save);
         return builder.build();
     }
@@ -176,6 +191,8 @@ public class NyahConfig {
                 return;
             }
             nyahConfigData = GSON.fromJson(new FileReader(CONFIG_FILE.toFile()), NyahConfigData.class);
+            if (nyahConfigData.favouritePlayers == null) nyahConfigData.favouritePlayers = new ArrayList<>();
+            if (nyahConfigData.avoidedPlayers == null) nyahConfigData.avoidedPlayers = new ArrayList<>();
         } catch (IOException e) {
             NiamodClient.LOGGER.error("Error loading config file!", e);
             nyahConfigData = new NyahConfigData();
@@ -196,6 +213,10 @@ public class NyahConfig {
         public int maximumDistance = 1000;
         public int maximumTerritories = 10;
 
+        public float idScale = 0.7f;
+        public int idXOffset = 1;
+        public int idYOffset = 1;
+
         public int xOffset = 0;
         public int yOffset = 0;
         public int zOffset = 0;
@@ -204,6 +225,9 @@ public class NyahConfig {
         public int zRotation = 0;
         public float itemScale = 1.0f;
         public boolean disableHeldBobbing = true;
+
+        public List<String> favouritePlayers = new ArrayList<>();
+        public List<String> avoidedPlayers = new ArrayList<>();
 
         public void save() {
             try (FileWriter writer = new FileWriter(CONFIG_FILE.toFile())) {

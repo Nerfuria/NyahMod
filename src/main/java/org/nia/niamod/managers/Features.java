@@ -1,4 +1,11 @@
-package org.nia.niamod.features;
+package org.nia.niamod.managers;
+
+import org.nia.niamod.features.ChatEncryptionFeature;
+import org.nia.niamod.features.ConsuTextFeature;
+import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.features.ResourceTickFeature;
+import org.nia.niamod.features.WarTimersFeature;
+import org.nia.niamod.features.WarTowerEHPFeature;
 
 public class Features {
     private static ResourceTickFeature resTickFeature;
@@ -6,6 +13,7 @@ public class Features {
     private static WarTimersFeature warTimersFeature;
     private static IgnoreFeature ignoreFeature;
     private static WarTowerEHPFeature warTowerEHPFeature;
+    private static ConsuTextFeature consuTextFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
@@ -13,9 +21,15 @@ public class Features {
         warTimersFeature = new WarTimersFeature();
         ignoreFeature = new IgnoreFeature();
         warTowerEHPFeature = new WarTowerEHPFeature();
+        consuTextFeature = new ConsuTextFeature();
 
         chatEncryptionFeature.init();
         warTimersFeature.init();
+        consuTextFeature.init();
+    }
+
+    public static void postInit() {
+        ignoreFeature.init();
     }
 
     public static ResourceTickFeature getResTickFeature() {
@@ -36,5 +50,9 @@ public class Features {
 
     public static WarTowerEHPFeature getWarTowerEHPFeature() {
         return warTowerEHPFeature;
+    }
+
+    public static ConsuTextFeature getConsuTextFeature() {
+        return consuTextFeature;
     }
 }

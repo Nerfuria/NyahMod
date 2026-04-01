@@ -73,7 +73,7 @@ public abstract class GameRendererMixin {
     private void cancel(
             HeldItemRenderer instance, float tickProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, ClientPlayerEntity player, int light, Operation<Void> original
     ) {
-        if (!NyahConfig.nyahConfigData.disableHeldBobbing) {
+        if (!NyahConfig.nyahConfigData.disableHeldBobbing || !this.client.options.getBobView().getValue()) {
             original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
         }
     }

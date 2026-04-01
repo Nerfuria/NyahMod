@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "org.nia.niamod.NiamodClient"
+    ],
+    "modmenu": [
+        "org.nia.niamod.NiamodModMenu"
     ]
   },
   "mixins": [
@@ -22,5 +25,13 @@
     "wynntils": ">=${wynntils_version}",
     "minecraft": "${minecraft_version}",
     "cloth-config": ">=21.11.153"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/zysspK8gk8"
+      },
+      "update_checker": false
+    }
   }
 }

@@ -2,7 +2,7 @@ package org.nia.niamod.mixin;
 
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.text.Text;
-import org.nia.niamod.features.Features;
+import org.nia.niamod.managers.Features;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
