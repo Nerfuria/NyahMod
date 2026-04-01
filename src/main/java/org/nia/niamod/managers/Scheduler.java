@@ -1,7 +1,7 @@
 package org.nia.niamod.managers;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import org.nia.niamod.models.records.DelayedTask;
+import org.nia.niamod.models.misc.DelayedTask;
 
 import java.util.LinkedList;
 import java.util.List;

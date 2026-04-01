@@ -37,12 +37,15 @@ public class IgnoreFeature extends Feature {
     private Pattern ignoreRemoveRegex;
 
     protected void init() {
-        entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
         ignored = new HashMap<>();
         globalIgnore = false;
         KeybindManager.registerKeybinding("Ignore All", GLFW.GLFW_KEY_DELETE, this::ignoreAll);
         ignoreAddRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
         ignoreRemoveRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
+    }
+
+    public void postInit() {
+        entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
     }
 
     public void processMessage(Text message) {

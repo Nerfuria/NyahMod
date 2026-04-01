@@ -8,7 +8,6 @@ public abstract class Feature {
     public final void initSafe() {
         runSafe(this::init);
     }
-
     protected abstract void init();
 
     public String getFeatureName() {

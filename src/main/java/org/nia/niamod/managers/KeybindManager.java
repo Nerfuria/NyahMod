@@ -32,8 +32,7 @@ public class KeybindManager {
     }
 
     public static void registerKeybinding(String name, int key, Runnable action) {
-        KeyBinding keyBinding = new KeyBinding(name, InputUtil.Type.KEYSYM, key, CATEGORY);
+        KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(name, InputUtil.Type.KEYSYM, key, CATEGORY));
         keybinds.put(keyBinding, action);
-        KeyBindingHelper.registerKeyBinding(new KeyBinding(name, InputUtil.Type.KEYSYM, key, CATEGORY));
     }
 }

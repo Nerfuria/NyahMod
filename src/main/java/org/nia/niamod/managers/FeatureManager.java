@@ -27,10 +27,11 @@ public class FeatureManager {
         chatEncryptionFeature.initSafe();
         warTimersFeature.initSafe();
         resTickFeature.initSafe();
+        ignoreFeature.initSafe();
     }
 
     public static void postInit() {
-        ignoreFeature.initSafe();
+        ignoreFeature.runSafe(() -> ignoreFeature.postInit());
     }
 
     public static ResourceTickFeature getResTickFeature() {

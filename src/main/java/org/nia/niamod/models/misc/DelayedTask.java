@@ -1,4 +1,4 @@
-package org.nia.niamod.models.records;
+package org.nia.niamod.models.misc;
 
 public class DelayedTask {
     private final Runnable task;
