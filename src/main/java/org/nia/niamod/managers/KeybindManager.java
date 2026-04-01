@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class KeybindManager {
 
-    private static KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("niamod", "config"));
+    private static KeyBinding.Category CATEGORY;
 
     private static HashMap<KeyBinding, Runnable> keybinds;
 
