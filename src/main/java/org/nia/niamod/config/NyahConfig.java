@@ -4,16 +4,14 @@ import com.google.gson.Gson;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
+import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.managers.FeatureManager;
+import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.models.gui.SeparatorEntry;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -21,174 +19,221 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
+import static org.nia.niamod.NiamodClient.mc;
 
 public class NyahConfig {
 
-    private static final Path config_dir = Paths.get(MinecraftClient.getInstance().runDirectory.getPath() + "/config");
-    private static final Path config_file = Paths.get(config_dir + "/nyah-mod.json");
-    private static final KeyBinding.Category niamodConfig = KeyBinding.Category.create(Identifier.of("niamod", "config"));
-    private static final KeyBinding openConfig = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.niamod.open_config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, niamodConfig));
+    private static final Path CONFIG_DIR = Paths.get(mc.runDirectory.getPath(), "config");
+    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("nyah-mod.json");
+    private static final Gson GSON = new Gson();
+
     public static NyahConfigData nyahConfigData;
 
     public static void init() {
-        getConfigData();
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null) return;
-            if (openConfig.isPressed()) {
-                client.setScreen(getConfigScreen());
-            }
-        });
+        loadConfig();
+        KeybindManager.registerKeybinding("Open NiaMod Config", GLFW.GLFW_KEY_K, () -> mc.setScreen(getConfigScreen()));
     }
 
     public static Screen getConfigScreen() {
+        return getConfigScreen(NiamodClient.mc.currentScreen);
+    }
+
+    public static Screen getConfigScreen(Screen currentScreen) {
         ConfigBuilder builder = ConfigBuilder.create()
-                .setParentScreen(NiamodClient.mc.currentScreen)
+                .setParentScreen(currentScreen)
                 .setTitle(Text.literal("Nyah Mod"));
-        ConfigEntryBuilder entryBuilder = builder.entryBuilder();
+        ConfigEntryBuilder eb = builder.entryBuilder();
 
-        ConfigCategory websocket = builder.getOrCreateCategory(Text.of("Websocket"));
-        websocket.addEntry(
-                entryBuilder
-                        .startBooleanToggle(Text.of("Enable"), nyahConfigData.wsEnabled)
-                        .setTooltip(Text.of("Enable or disable the websocket connection"))
-                        .setDefaultValue(false)
-                        .setSaveConsumer(newValue -> nyahConfigData.wsEnabled = newValue)
-                        .build());
-        websocket.addEntry(
-                entryBuilder
-                        .startStrField(Text.of("URL"), nyahConfigData.wsURL)
-                        .setTooltip(Text.of("Server URL to connect to"))
-                        .setDefaultValue("wss://localhost:6767")
-                        .setSaveConsumer(newValue -> nyahConfigData.wsURL = newValue)
-                        .build());
+        ConfigCategory general = builder.getOrCreateCategory(Text.of("General"));
 
-        ConfigCategory encryption = builder.getOrCreateCategory(Text.of("Encryption"));
-        encryption.addEntry(
-                entryBuilder
-                        .startBooleanToggle(Text.of("Enable"), nyahConfigData.encryptionEnabled)
-                        .setTooltip(Text.of("Enable or disable chat encryption"))
-                        .setDefaultValue(true)
-                        .setSaveConsumer(newValue -> nyahConfigData.encryptionEnabled = newValue)
-                        .build());
-        encryption.addEntry(
-                entryBuilder
-                        .startStrField(Text.of("Encryption Prefix"), nyahConfigData.encryptionPrefix)
-                        .setTooltip(Text.of("What messages to be encrypted should be prefaced with"))
-                        .setDefaultValue("@")
-                        .setSaveConsumer(newValue -> nyahConfigData.encryptionPrefix = newValue)
-                        .build());
-        encryption.addEntry(
-                entryBuilder
-                        .startStrField(Text.of("Encryption Key"), nyahConfigData.encryptionKey)
-                        .setErrorSupplier((key) -> key.isEmpty() ? Optional.of(Text.literal("The encryption key cannot be empty!").withColor(0xFF0000)) : Optional.empty())
-                        .setTooltip(Text.of("Encryption Key, should be the same as people you want to secretly message"))
-                        .setDefaultValue("six seven")
-                        .setSaveConsumer(newValue -> nyahConfigData.encryptionKey = newValue)
-                        .build());
-        encryption.addEntry(
-                entryBuilder
-                        .startIntField(Text.of("Salt Length"), nyahConfigData.saltLength)
-                        .setTooltip(Text.of("Salt length in bytes"))
-                        .setDefaultValue(16)
-                        .setSaveConsumer(newValue -> nyahConfigData.saltLength = newValue)
-                        .setMin(0)
-                        .build());
+        general.addEntry(new SeparatorEntry(Text.of("Miscellaneous"), null));
+        general.addEntry(eb.startStrField(Text.of("API URL"), nyahConfigData.apiBase)
+                .setTooltip(Text.of("Base Wynncraft API URL"))
+                .setDefaultValue("https://api.wynncraft.com/v3/")
+                .setSaveConsumer(v -> nyahConfigData.apiBase = v)
+                .build());
+        general.addEntry(eb.startStrField(Text.of("Guild Name"), nyahConfigData.guildName)
+                .setDefaultValue("Nerfuria")
+                .setSaveConsumer(v -> nyahConfigData.guildName = v)
+                .requireRestart()
+                .build());
+
+        general.addEntry(new SeparatorEntry(Text.of("Chat Encryption"), null));
+        general.addEntry(eb.startBooleanToggle(Text.of("Enable"), nyahConfigData.encryptionEnabled)
+                .setDefaultValue(true)
+                .setSaveConsumer(v -> nyahConfigData.encryptionEnabled = v)
+                .build());
+        general.addEntry(eb.startStrField(Text.of("Encryption Prefix"), nyahConfigData.encryptionPrefix)
+                .setTooltip(Text.of("What messages to be encrypted should be prefaced with"))
+                .setDefaultValue("@")
+                .setSaveConsumer(v -> nyahConfigData.encryptionPrefix = v)
+                .build());
+        general.addEntry(eb.startStrField(Text.of("Encryption Key"), nyahConfigData.encryptionKey)
+                .setErrorSupplier(key -> key.isEmpty()
+                        ? Optional.of(Text.literal("The encryption key cannot be empty!").withColor(0xFF0000))
+                        : Optional.empty())
+                .setTooltip(Text.of("Key to use to encrypt your messages"))
+                .setDefaultValue("six seven")
+                .setSaveConsumer(v -> nyahConfigData.encryptionKey = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Salt Length"), nyahConfigData.saltLength)
+                .setTooltip(Text.of("Salt length in bytes"))
+                .setDefaultValue(16)
+                .setMin(0)
+                .setSaveConsumer(v -> nyahConfigData.saltLength = v)
+                .build());
+
+        general.addEntry(new SeparatorEntry(Text.of("Held Item Transformation"), null));
+        general.addEntry(eb.startIntField(Text.of("X Offset"), nyahConfigData.xOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(150)
+                .setSaveConsumer(v -> nyahConfigData.xOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Y Offset"), nyahConfigData.yOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(150)
+                .setSaveConsumer(v -> nyahConfigData.yOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Z Offset"), nyahConfigData.zOffset)
+                .setDefaultValue(0)
+                .setMin(-150)
+                .setMax(50)
+                .setSaveConsumer(v -> nyahConfigData.zOffset = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("X Rotation"), nyahConfigData.xRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.xRotation = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Y Rotation"), nyahConfigData.yRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.yRotation = v)
+                .build());
+        general.addEntry(eb.startIntField(Text.of("Z Rotation"), nyahConfigData.zRotation)
+                .setDefaultValue(0)
+                .setMin(-180)
+                .setMax(180)
+                .setSaveConsumer(v -> nyahConfigData.zRotation = v)
+                .build());
+        general.addEntry(eb.startFloatField(Text.of("Item Scale"), nyahConfigData.itemScale)
+                .setDefaultValue(1.0f)
+                .setSaveConsumer(v -> nyahConfigData.itemScale = v)
+                .build());
+        general.addEntry(eb.startBooleanToggle(Text.of("Disable Bobbing"), nyahConfigData.disableHeldBobbing)
+                .setDefaultValue(true)
+                .setSaveConsumer(v -> nyahConfigData.disableHeldBobbing = v)
+                .build());
 
         ConfigCategory war = builder.getOrCreateCategory(Text.of("War"));
-        war.addEntry(
-                entryBuilder
-                        .startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
-                        .setTooltip(Text.of("Colour of boxes showing queued territory boundaries"))
-                        .setDefaultValue(0xFFFFFF)
-                        .setSaveConsumer(newValue -> nyahConfigData.color = newValue)
-                        .build()
-        );
-        war.addEntry(
-                entryBuilder
-                        .startIntField(Text.of("Maximum Territories"), nyahConfigData.maximumTerritories)
-                        .setTooltip(Text.of("Maximum territory regions to render at once"))
-                        .setDefaultValue(10)
-                        .setSaveConsumer(newValue -> nyahConfigData.maximumTerritories = newValue)
-                        .build()
-        );
-        war.addEntry(
-                entryBuilder
-                        .startIntField(Text.of("Maximum Distance"), nyahConfigData.maximumDistance)
-                        .setTooltip(Text.of("Furthest territory box to render at once"))
-                        .setDefaultValue(1000)
-                        .setSaveConsumer(newValue -> nyahConfigData.maximumDistance = newValue)
-                        .build()
-        );
+        war.addEntry(new SeparatorEntry(Text.of("General"), null));
+        war.addEntry(eb.startBooleanToggle(Text.of("Replace Tower HP"), nyahConfigData.replaceTowerHP)
+                .setTooltip(Text.of("Replace War tower HP and Defense with EHP"))
+                .setDefaultValue(true)
+                .setSaveConsumer(v -> nyahConfigData.replaceTowerHP = v)
+                .build());
+        war.addEntry(new SeparatorEntry(Text.of("Consumable Labels"), null));
+        war.addEntry(eb.startFloatField(Text.of("Label Scale"), nyahConfigData.idScale)
+                .setDefaultValue(0.7f)
+                .setSaveConsumer(v -> nyahConfigData.idScale = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Label X Offset"), nyahConfigData.idXOffset)
+                .setDefaultValue(1)
+                .setSaveConsumer(v -> nyahConfigData.idXOffset = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Label Y Offset"), nyahConfigData.idYOffset)
+                .setDefaultValue(1)
+                .setSaveConsumer(v -> nyahConfigData.idYOffset = v)
+                .build());
+        war.addEntry(new SeparatorEntry(Text.of("Territory Boxes"), null));
+        war.addEntry(eb.startColorField(Text.of("Territory Box Colour"), nyahConfigData.color)
+                .setTooltip(Text.of("Colour of boxes showing queued territory boundaries"))
+                .setDefaultValue(0xFFFFFF)
+                .setSaveConsumer(v -> nyahConfigData.color = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Maximum Territories"), nyahConfigData.maximumTerritories)
+                .setTooltip(Text.of("Maximum territory regions to render at once"))
+                .setDefaultValue(10)
+                .setSaveConsumer(v -> nyahConfigData.maximumTerritories = v)
+                .build());
+        war.addEntry(eb.startIntField(Text.of("Maximum Distance"), nyahConfigData.maximumDistance)
+                .setTooltip(Text.of("Furthest territory box to render at once"))
+                .setDefaultValue(1000)
+                .setSaveConsumer(v -> nyahConfigData.maximumDistance = v)
+                .build());
+
+        ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
+        FeatureManager.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
+
+        builder.setAfterInitConsumer(screen -> FeatureManager.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
 
         builder.setSavingRunnable(nyahConfigData::save);
-
         return builder.build();
     }
 
-    private static void getConfigData() {
+
+    private static void loadConfig() {
         try {
-            if (!Files.exists(config_file)) {
-                Files.createDirectories(config_dir);
-                Files.createFile(config_file);
+            if (!Files.exists(CONFIG_FILE)) {
+                Files.createDirectories(CONFIG_DIR);
+                Files.createFile(CONFIG_FILE);
                 nyahConfigData = new NyahConfigData();
                 nyahConfigData.save();
+                return;
             }
+            nyahConfigData = GSON.fromJson(new FileReader(CONFIG_FILE.toFile()), NyahConfigData.class);
+            if (nyahConfigData.favouritePlayers == null) nyahConfigData.favouritePlayers = new ArrayList<>();
+            if (nyahConfigData.avoidedPlayers == null) nyahConfigData.avoidedPlayers = new ArrayList<>();
         } catch (IOException e) {
-            e.printStackTrace();
-            nyahConfigData = new NyahConfigData();
-        }
-        try {
-            Gson gson = new Gson();
-            FileReader reader = new FileReader(config_file.toFile());
-            nyahConfigData = gson.fromJson(reader, NyahConfigData.class);
-        } catch (IOException e) {
-            e.printStackTrace();
+            NiamodClient.LOGGER.error("Error loading config file!", e);
             nyahConfigData = new NyahConfigData();
         }
     }
 
-
     public static class NyahConfigData {
-        public boolean wsEnabled = false;
-        public String wsURL = "wss://localhost:6767";
+        public String apiBase = "https://api.wynncraft.com/v3/";
+        public String guildName = "Nerfuria";
 
         public boolean encryptionEnabled = true;
-        public String encryptionPrefix = "$";
+        public String encryptionPrefix = "@";
         public String encryptionKey = "six seven";
         public int saltLength = 16;
 
+        public boolean replaceTowerHP = true;
         public int color = 0xFFFFFF;
         public int maximumDistance = 1000;
         public int maximumTerritories = 10;
 
-        public NyahConfigData() {
-        }
+        public float idScale = 0.7f;
+        public int idXOffset = 1;
+        public int idYOffset = 1;
 
-        public NyahConfigData(boolean wsEnabled, String wsURL, boolean encryptionEnabled, String encryptionPrefix, String encryptionKey, int saltLength, int color, int maximumDistance, int maximumTerritories) {
-            this.wsEnabled = wsEnabled;
-            this.wsURL = wsURL;
-            this.encryptionEnabled = encryptionEnabled;
-            this.encryptionPrefix = encryptionPrefix;
-            this.encryptionKey = encryptionKey;
-            this.saltLength = saltLength;
-            this.color = color;
-            this.maximumDistance = maximumDistance;
-            this.maximumTerritories = maximumTerritories;
-        }
+        public int xOffset = 0;
+        public int yOffset = 0;
+        public int zOffset = 0;
+        public int xRotation = 0;
+        public int yRotation = 0;
+        public int zRotation = 0;
+        public float itemScale = 1.0f;
+        public boolean disableHeldBobbing = true;
+
+        public List<String> favouritePlayers = new ArrayList<>();
+        public List<String> avoidedPlayers = new ArrayList<>();
 
         public void save() {
-            try {
-                Gson gson = new Gson();
-                FileWriter writer = new FileWriter(config_file.toFile());
-                gson.toJson(this, writer);
-                writer.flush();
-                writer.close();
+            try (FileWriter writer = new FileWriter(CONFIG_FILE.toFile())) {
+                GSON.toJson(this, writer);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                NiamodClient.LOGGER.error("Failed to save config", e);
             }
         }
     }
-
 }

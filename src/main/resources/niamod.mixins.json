@@ -4,11 +4,17 @@
   "package": "org.nia.niamod.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BossBarHudMixin",
+    "MinecraftClientMixin",
+    "wynnextras.BankOverlayMixin"
   ],
   "client": [
     "ChatListenerMixin",
-    "ClientLoginNetworkHandlerMixin",
-    "FunctionManagerMixin"
+    "GameRendererMixin",
+    "HandledScreenMixin",
+    "HeldItemRendererMixin",
+    "InGameHudMixin",
+    "wynntils.FunctionManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

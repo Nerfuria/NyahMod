@@ -1,8 +1,8 @@
-package org.nia.niamod.mixin;
+package org.nia.niamod.mixin.wynntils;
 
 import com.wynntils.core.consumers.functions.Function;
 import com.wynntils.core.consumers.functions.FunctionManager;
-import org.nia.niamod.features.Features;
+import org.nia.niamod.managers.FeatureManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,6 +16,6 @@ public abstract class FunctionManagerMixin {
 
     @Inject(method = "registerAllFunctions", at = @At("TAIL"))
     private void niamod$afterRegisterAllFunctions(CallbackInfo ci) {
-        invokeRegisterFunction(Features.getResTickFeature().ResTickFunction);
+        invokeRegisterFunction(FeatureManager.getResTickFeature().ResTickFunction);
     }
 }

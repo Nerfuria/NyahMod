@@ -11,79 +11,70 @@ import org.joml.Matrix4f;
 
 public class BoxRenderer {
 
+    private static final int ALPHA_FACE_BOTTOM = 70;
+    private static final int ALPHA_FACE_TOP = 0;
+    private static final int ALPHA_LINE_BOTTOM = 250;
+    private static final int ALPHA_LINE_TOP = 0;
+
     public static void renderBox(WorldRenderContext context, BlockPos corner1, BlockPos corner2, int r, int g, int b) {
         if (corner1 == null || corner2 == null) return;
 
         MatrixStack matrices = context.matrices();
-        Vec3d camPos = context.worldState().cameraRenderState.pos;
+        Vec3d cam = context.worldState().cameraRenderState.pos;
 
-        double minX = Math.min(corner1.getX(), corner2.getX());
-        double minY = Math.min(corner1.getY(), corner2.getY());
-        double minZ = Math.min(corner1.getZ(), corner2.getZ());
-        double maxX = Math.max(corner1.getX(), corner2.getX()) + 1.0;
-        double maxY = Math.max(corner1.getY(), corner2.getY()) + 1.0;
-        double maxZ = Math.max(corner1.getZ(), corner2.getZ()) + 1.0;
-
-        float bx1 = (float) (minX - camPos.x);
-        float bx2 = (float) (maxX - camPos.x);
-        float by1 = (float) (minY - camPos.y);
-        float by2 = (float) (maxY - camPos.y);
-        float bz1 = (float) (minZ - camPos.z);
-        float bz2 = (float) (maxZ - camPos.z);
-
-        VertexConsumerProvider consumers = context.consumers();
+        float x1 = (float) (Math.min(corner1.getX(), corner2.getX()) - cam.x);
+        float x2 = (float) (Math.max(corner1.getX(), corner2.getX()) + 1.0 - cam.x);
+        float y1 = (float) (Math.min(corner1.getY(), corner2.getY()) - cam.y);
+        float y2 = (float) (Math.max(corner1.getY(), corner2.getY()) + 1.0 - cam.y);
+        float z1 = (float) (Math.min(corner1.getZ(), corner2.getZ()) - cam.z);
+        float z2 = (float) (Math.max(corner1.getZ(), corner2.getZ()) + 1.0 - cam.z);
 
         Matrix4f matrix = matrices.peek().getPositionMatrix();
+        VertexConsumerProvider consumers = context.consumers();
 
-        int alphaBottom = 70;
-        int alphaTop = 0;
-        int lineAlphaBottom = 250;
-        int lineAlphaTop = 0;
-
-        VertexConsumer vc = consumers.getBuffer(RenderLayers.debugQuads());
-
-        vc.vertex(matrix, bx1, by2, bz1).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx2, by2, bz1).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx2, by1, bz1).color(r, g, b, alphaBottom);
-        vc.vertex(matrix, bx1, by1, bz1).color(r, g, b, alphaBottom);
-
-        vc.vertex(matrix, bx2, by2, bz2).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx1, by2, bz2).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx1, by1, bz2).color(r, g, b, alphaBottom);
-        vc.vertex(matrix, bx2, by1, bz2).color(r, g, b, alphaBottom);
-
-        vc.vertex(matrix, bx1, by2, bz2).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx1, by2, bz1).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx1, by1, bz1).color(r, g, b, alphaBottom);
-        vc.vertex(matrix, bx1, by1, bz2).color(r, g, b, alphaBottom);
-
-        vc.vertex(matrix, bx2, by2, bz1).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx2, by2, bz2).color(r, g, b, alphaTop);
-        vc.vertex(matrix, bx2, by1, bz2).color(r, g, b, alphaBottom);
-        vc.vertex(matrix, bx2, by1, bz1).color(r, g, b, alphaBottom);
-
-        VertexConsumer lc = consumers.getBuffer(RenderLayers.lines());
-
-        line(lc, matrix, bx1, by1, bz1, lineAlphaBottom, bx1, by2, bz1, lineAlphaTop, r, g, b);
-        line(lc, matrix, bx2, by1, bz1, lineAlphaBottom, bx2, by2, bz1, lineAlphaTop, r, g, b);
-        line(lc, matrix, bx1, by1, bz2, lineAlphaBottom, bx1, by2, bz2, lineAlphaTop, r, g, b);
-        line(lc, matrix, bx2, by1, bz2, lineAlphaBottom, bx2, by2, bz2, lineAlphaTop, r, g, b);
-
-        line(lc, matrix, bx1, by1, bz1, lineAlphaBottom, bx2, by1, bz1, lineAlphaBottom, r, g, b);
-        line(lc, matrix, bx2, by1, bz1, lineAlphaBottom, bx2, by1, bz2, lineAlphaBottom, r, g, b);
-        line(lc, matrix, bx2, by1, bz2, lineAlphaBottom, bx1, by1, bz2, lineAlphaBottom, r, g, b);
-        line(lc, matrix, bx1, by1, bz2, lineAlphaBottom, bx1, by1, bz1, lineAlphaBottom, r, g, b);
+        renderFaces(consumers.getBuffer(RenderLayers.debugQuads()), matrix, x1, y1, z1, x2, y2, z2, r, g, b);
+        renderEdges(consumers.getBuffer(RenderLayers.lines()), matrix, x1, y1, z1, x2, y2, z2, r, g, b);
     }
 
-    private static void line(VertexConsumer lc, Matrix4f matrix,
+    private static void renderFaces(VertexConsumer vc, Matrix4f m,
+                                    float x1, float y1, float z1,
+                                    float x2, float y2, float z2,
+                                    int r, int g, int b) {
+        quad(vc, m, r, g, b, x1, y2, z1, x2, y2, z1, x2, y1, z1, x1, y1, z1);
+        quad(vc, m, r, g, b, x2, y2, z2, x1, y2, z2, x1, y1, z2, x2, y1, z2);
+        quad(vc, m, r, g, b, x1, y2, z2, x1, y2, z1, x1, y1, z1, x1, y1, z2);
+        quad(vc, m, r, g, b, x2, y2, z1, x2, y2, z2, x2, y1, z2, x2, y1, z1);
+    }
+
+    private static void quad(VertexConsumer vc, Matrix4f m, int r, int g, int b,
+                             float tx, float ty, float tz,
+                             float bx1, float by1, float bz1,
+                             float bx2, float by2, float bz2,
+                             float bx3, float by3, float bz3) {
+        vc.vertex(m, tx, ty, tz).color(r, g, b, ALPHA_FACE_TOP);
+        vc.vertex(m, bx1, by1, bz1).color(r, g, b, ALPHA_FACE_TOP);
+        vc.vertex(m, bx2, by2, bz2).color(r, g, b, ALPHA_FACE_BOTTOM);
+        vc.vertex(m, bx3, by3, bz3).color(r, g, b, ALPHA_FACE_BOTTOM);
+    }
+
+    private static void renderEdges(VertexConsumer lc, Matrix4f m,
+                                    float x1, float y1, float z1,
+                                    float x2, float y2, float z2,
+                                    int r, int g, int b) {
+        line(lc, m, r, g, b, x1, y1, z1, ALPHA_LINE_BOTTOM, x1, y2, z1, ALPHA_LINE_TOP);
+        line(lc, m, r, g, b, x2, y1, z1, ALPHA_LINE_BOTTOM, x2, y2, z1, ALPHA_LINE_TOP);
+        line(lc, m, r, g, b, x1, y1, z2, ALPHA_LINE_BOTTOM, x1, y2, z2, ALPHA_LINE_TOP);
+        line(lc, m, r, g, b, x2, y1, z2, ALPHA_LINE_BOTTOM, x2, y2, z2, ALPHA_LINE_TOP);
+    }
+
+    private static void line(VertexConsumer lc, Matrix4f m, int r, int g, int b,
                              float x0, float y0, float z0, int a0,
-                             float x1, float y1, float z1, int a1,
-                             int r, int g, int b) {
+                             float x1, float y1, float z1, int a1) {
         float dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
         float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len == 0) return;
         float nx = dx / len, ny = dy / len, nz = dz / len;
-        lc.vertex(matrix, x0, y0, z0).color(r, g, b, a0).normal(nx, ny, nz).lineWidth(1.0f);
-        lc.vertex(matrix, x1, y1, z1).color(r, g, b, a1).normal(nx, ny, nz).lineWidth(1.0f);
+        lc.vertex(m, x0, y0, z0).color(r, g, b, a0).normal(nx, ny, nz).lineWidth(1.0f);
+        lc.vertex(m, x1, y1, z1).color(r, g, b, a1).normal(nx, ny, nz).lineWidth(1.0f);
     }
 }
