@@ -93,7 +93,7 @@ public class IgnoreFeature extends Feature {
         globalIgnore = !globalIgnore;
         for (int i = 0; i < nyahConfigData.favouritePlayers.size(); i++) {
             String username = nyahConfigData.favouritePlayers.get(i);
-            Scheduler.schedule(() -> ignore(username, globalIgnore), i);
+            Scheduler.schedule(() -> ignore(username, globalIgnore), i * 10);
         }
     }
 

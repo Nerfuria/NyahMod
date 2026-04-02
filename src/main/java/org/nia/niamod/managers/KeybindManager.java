@@ -23,7 +23,7 @@ public class KeybindManager {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player != null) {
                 for (Map.Entry<KeyBinding, Runnable> entry : keybinds.entrySet()) {
-                    if (entry.getKey().isPressed()) {
+                    if (entry.getKey().wasPressed()) {
                         entry.getValue().run();
                     }
                 }
