@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BankOverlay2.class)
 public class BankOverlayMixin {
 
-    @Inject(method = "renderItemOverlays", at = @At("HEAD"))
+    @Inject(method = "renderItemOverlays", at = @At("RETURN"))
     private static void renderOverlay(DrawContext context, ItemStack stack, int x, int y, CallbackInfo ci) {
         SlotRenderEvent.EVENT.invoker().render(context, stack, x, y);
     }
