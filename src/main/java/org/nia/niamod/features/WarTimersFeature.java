@@ -24,7 +24,6 @@ public class WarTimersFeature extends Feature {
     public void init() {
         WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
         WorldRenderEvents.AFTER_ENTITIES.register(this::render);
-        throw new RuntimeException("blah");
     }
 
     @Safe
