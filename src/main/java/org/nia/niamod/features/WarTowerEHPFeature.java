@@ -20,7 +20,6 @@ public class WarTowerEHPFeature extends Feature {
         if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
         Matcher matcher = towerRegex.matcher(text.getString());
         if (matcher.matches()) {
-            System.out.println(text.getString());
             String tag = matcher.group(1);
             String name = matcher.group(2);
             int hp = Integer.parseInt(matcher.group(3));

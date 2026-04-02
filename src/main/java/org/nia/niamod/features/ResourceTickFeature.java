@@ -22,39 +22,10 @@ public class ResourceTickFeature extends Feature {
 
     private static final GuildResource[] RESOURCES = GuildResource.values();
     private static final int resTickOffset = 5;     // The map updates with a delay of 5 seconds for some reason
-    public static boolean enabled = true;
     public Function<?> ResTickFunction = new ResTickFunction();
     private Integer lastMapTick = null;
     private String lastWorld = null;
     private Instant lastResTick = null;
-
-    public ResourceTickFeature() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (!enabled) return;
-
-            Instant currentTime = Instant.now();
-            int currentMapTick = calcMapTick();
-
-            if (lastMapTick == null || lastMapTick == currentMapTick) {
-                lastMapTick = currentMapTick;
-                return;
-            }
-            lastMapTick = currentMapTick;
-
-            String currentWorld = get_world();
-            if (currentWorld == null || !currentWorld.equals(lastWorld)) {
-                lastWorld = currentWorld;
-                return;
-            }
-
-            lastResTick = currentTime.minusSeconds(currentMapTick + resTickOffset);
-
-            if (client.world != null) {
-                long time = client.world.getTime();
-                System.out.println("Map tick changed to " + currentMapTick + " at world time " + time);
-            }
-        });
-    }
 
     private static String get_world() {
         if (!Models.WorldState.onWorld()) {
@@ -115,7 +86,7 @@ public class ResourceTickFeature extends Feature {
     @Safe
     public void init() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (!enabled) return;
+            if (!isEnabled()) return;
 
             Instant currentTime = Instant.now();
             int currentMapTick = calcMapTick();

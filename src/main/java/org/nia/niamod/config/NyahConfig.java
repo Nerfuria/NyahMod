@@ -173,7 +173,6 @@ public class NyahConfig {
         ConfigCategory ignore = builder.getOrCreateCategory(Text.of("Ignore"));
         FeatureManager.getIgnoreFeature().getIgnoreEntries().forEach(ignore::addEntry);
 
-        builder.setSavingRunnable(nyahConfigData::save);
         builder.setAfterInitConsumer(screen -> FeatureManager.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
 
         builder.setSavingRunnable(nyahConfigData::save);
