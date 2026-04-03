@@ -2,7 +2,7 @@ package org.nia.niamod.models.events;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 public interface BossBarNameEvent {
@@ -14,7 +14,7 @@ public interface BossBarNameEvent {
         return title;
     });
 
-    Text modify(Text title);
+    Component modify(Component title);
 
 
 }

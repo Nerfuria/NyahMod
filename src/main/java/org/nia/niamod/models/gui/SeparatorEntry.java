@@ -1,10 +1,10 @@
 package org.nia.niamod.models.gui;
 
 import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -13,40 +13,40 @@ import java.util.function.Supplier;
 
 import static org.nia.niamod.NiamodClient.mc;
 
-public class SeparatorEntry extends TooltipListEntry<Text> {
+public class SeparatorEntry extends TooltipListEntry<Component> {
     private final int separatorLength;
-    private final Text name;
+    private final Component name;
 
-    public SeparatorEntry(Text fieldName, @Nullable Supplier<Optional<Text[]>> tooltipSupplier) {
+    public SeparatorEntry(Component fieldName, @Nullable Supplier<Optional<Component[]>> tooltipSupplier) {
         super(fieldName, tooltipSupplier);
-        separatorLength = mc.textRenderer.getWidth(fieldName);
+        separatorLength = mc.font.width(fieldName);
         this.name = fieldName;
     }
 
     @Override
-    public Optional<Text> getDefaultValue() {
+    public Optional<Component> getDefaultValue() {
         return Optional.empty();
     }
 
     @Override
-    public Text getValue() {
+    public Component getValue() {
         return null;
     }
 
     @Override
-    public List<? extends Selectable> narratables() {
+    public List<? extends NarratableEntry> narratables() {
         return List.of();
     }
 
     @Override
-    public List<? extends Element> children() {
+    public List<? extends GuiEventListener> children() {
         return List.of();
     }
 
     @Override
-    public void render(DrawContext graphics, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
-        graphics.drawText(
-                mc.textRenderer,
+    public void render(GuiGraphics graphics, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
+        graphics.drawString(
+                mc.font,
                 name,
                 x + (entryWidth - separatorLength) / 2,
                 y + 6,

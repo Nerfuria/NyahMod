@@ -1,6 +1,5 @@
 package org.nia.niamod.features;
 
-import net.minecraft.client.MinecraftClient;
 import com.wynntils.core.components.Models;
 import com.wynntils.core.consumers.functions.Function;
 import com.wynntils.core.consumers.functions.arguments.FunctionArguments;
@@ -9,6 +8,7 @@ import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.services.map.pois.TerritoryPoi;
 import com.wynntils.utils.type.CappedValue;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.client.Minecraft;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -42,7 +42,7 @@ public class ResourceTickFeature extends Feature {
     }
 
     @Safe
-    private void onClientTick(MinecraftClient client) {
+    private void onClientTick(Minecraft client) {
         Instant currentTime = Instant.now();
         int currentMapTick = calcMapTick();
 
@@ -60,8 +60,8 @@ public class ResourceTickFeature extends Feature {
 
         lastResTick = currentTime.minusSeconds(currentMapTick + resTickOffset);
 
-        if (client.world != null) {
-            long time = client.world.getTime();
+        if (client.level != null) {
+            long time = client.level.getGameTime();
             NiamodClient.LOGGER.info("Map tick changed to {} at world time {}", currentMapTick, time);
         }
     }
@@ -108,7 +108,7 @@ public class ResourceTickFeature extends Feature {
     public int getTimeUntilResTick() {
         if (lastResTick == null) return -1;
 
-        int secondsSinceResTick = (int) java.time.Duration.between(lastResTick, java.time.Instant.now()).getSeconds();
+        int secondsSinceResTick = (int) java.time.Duration.between(lastResTick, Instant.now()).getSeconds();
 
         return 60 - (secondsSinceResTick % 60);
     }

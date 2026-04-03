@@ -3,13 +3,13 @@ package org.nia.niamod.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.item.HeldItemRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.world.GameMode;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.world.level.GameType;
 import org.joml.Matrix4f;
 import org.nia.niamod.config.NyahConfig;
 import org.spongepowered.asm.mixin.Final;
@@ -24,56 +24,56 @@ public abstract class GameRendererMixin {
 
     @Final
     @Shadow
-    public HeldItemRenderer firstPersonRenderer;
+    public ItemInHandRenderer itemInHandRenderer;
     @Final
     @Shadow
-    private MinecraftClient client;
+    private Minecraft minecraft;
 
     @Inject(
-            method = "renderHand",
+            method = "renderItemInHand",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;bobView(Lnet/minecraft/client/util/math/MatrixStack;F)V",
+                    target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lcom/mojang/blaze3d/vertex/PoseStack;F)V",
                     shift = At.Shift.BEFORE
             )
     )
     private void onBeforeBobView(
             float tickProgress, boolean sleeping, Matrix4f positionMatrix,
             CallbackInfo ci,
-            @Local MatrixStack matrixStack
+            @Local PoseStack matrixStack
     ) {
         if (!NyahConfig.nyahConfigData.disableHeldBobbing) return;
 
-        if (!this.client.options.getPerspective().isFirstPerson()
+        if (!this.minecraft.options.getCameraType().isFirstPerson()
                 || sleeping
-                || this.client.options.hudHidden
-                || this.client.interactionManager.getCurrentGameMode() == GameMode.SPECTATOR) {
+                || this.minecraft.options.hideGui
+                || this.minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR) {
             return;
         }
 
-        int light = this.client.getEntityRenderDispatcher()
-                .getLight(this.client.player, tickProgress);
+        int light = this.minecraft.getEntityRenderDispatcher()
+                .getPackedLightCoords(this.minecraft.player, tickProgress);
 
-        this.firstPersonRenderer.renderItem(
+        this.itemInHandRenderer.renderHandsWithItems(
                 tickProgress,
                 matrixStack,
-                this.client.gameRenderer.getEntityRenderCommandQueue(),
-                this.client.player,
+                this.minecraft.gameRenderer.getSubmitNodeStorage(),
+                this.minecraft.player,
                 light
         );
     }
 
     @WrapOperation(
-            method = "renderHand",
+            method = "renderItemInHand",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/item/HeldItemRenderer;renderItem(FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;Lnet/minecraft/client/network/ClientPlayerEntity;I)V"
+                    target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V"
             )
     )
     private void cancel(
-            HeldItemRenderer instance, float tickProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, ClientPlayerEntity player, int light, Operation<Void> original
+            ItemInHandRenderer instance, float tickProgress, PoseStack matrices, SubmitNodeCollector orderedRenderCommandQueue, LocalPlayer player, int light, Operation<Void> original
     ) {
-        if (!NyahConfig.nyahConfigData.disableHeldBobbing || !this.client.options.getBobView().getValue()) {
+        if (!NyahConfig.nyahConfigData.disableHeldBobbing || !this.minecraft.options.bobView().get()) {
             original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
         }
     }

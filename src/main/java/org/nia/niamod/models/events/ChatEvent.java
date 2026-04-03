@@ -2,7 +2,7 @@ package org.nia.niamod.models.events;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 public interface ChatEvent {
@@ -23,11 +23,11 @@ public interface ChatEvent {
 
     @FunctionalInterface
     interface Recieved {
-        void onMessage(Text message);
+        void onMessage(Component message);
     }
 
     @FunctionalInterface
     interface Modify {
-        Text modifyMessage(Text message);
+        Component modifyMessage(Component message);
     }
 }

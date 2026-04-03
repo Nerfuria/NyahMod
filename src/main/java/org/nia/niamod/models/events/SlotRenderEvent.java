@@ -2,8 +2,8 @@ package org.nia.niamod.models.events;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 public interface SlotRenderEvent {
@@ -15,6 +15,6 @@ public interface SlotRenderEvent {
                 }
             });
 
-    void render(DrawContext context, ItemStack stack, int slotX, int slotY);
+    void render(GuiGraphics context, ItemStack stack, int slotX, int slotY);
 
 }

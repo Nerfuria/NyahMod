@@ -2,8 +2,8 @@ package org.nia.niamod.features;
 
 import me.shedaniel.clothconfig2.api.AbstractConfigEntry;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.NyahConfig;
@@ -59,7 +59,7 @@ public class IgnoreFeature extends Feature {
     }
 
     @Safe
-    public void processMessage(Text message) {
+    public void processMessage(Component message) {
         String text = message.getString();
 
         Matcher ignoreAdd = ignoreAddRegex.matcher(text);
@@ -88,7 +88,7 @@ public class IgnoreFeature extends Feature {
 
     private IgnoreEntry ignoreEntry(String username) {
         return new IgnoreEntry(
-                Text.of(username),
+                Component.nullToEmpty(username),
                 null,
                 btn -> ignore(username, !ignored.getOrDefault(username, false)),
                 btn -> setState(username, State.FAVOURITE, btn),
@@ -107,7 +107,7 @@ public class IgnoreFeature extends Feature {
     }
 
     public void ignore(String username, boolean ignore) {
-        NiamodClient.mc.getNetworkHandler().sendChatCommand("ignore " + (ignore ? "add " : "remove ") + username);
+        NiamodClient.mc.getConnection().sendCommand("ignore " + (ignore ? "add " : "remove ") + username);
         ignored.put(username, ignore);
     }
 
@@ -117,7 +117,7 @@ public class IgnoreFeature extends Feature {
         return State.NORMAL;
     }
 
-    private void setState(String username, State newState, ButtonWidget button) {
+    private void setState(String username, State newState, Button button) {
         nyahConfigData.favouritePlayers.remove(username);
         nyahConfigData.avoidedPlayers.remove(username);
 
@@ -128,7 +128,7 @@ public class IgnoreFeature extends Feature {
             }
         }
 
-        button.setMessage(Text.of(newState.code + "♥"));
+        button.setMessage(Component.nullToEmpty(newState.code + "♥"));
         updated = true;
 
         sortEntries();

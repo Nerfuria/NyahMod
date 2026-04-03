@@ -1,6 +1,5 @@
 package org.nia.niamod.features;
 
-import net.minecraft.text.Text;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
@@ -8,6 +7,7 @@ import org.nia.niamod.models.misc.Safe;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.network.chat.Component;
 
 public class WarTowerEHPFeature extends Feature {
 
@@ -16,7 +16,7 @@ public class WarTowerEHPFeature extends Feature {
     );
 
     @Safe(ordinal = 0)
-    public Text replaceEHP(Text text) {
+    public Component replaceEHP(Component text) {
         if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
         Matcher matcher = towerRegex.matcher(text.getString());
         if (matcher.matches()) {
@@ -30,7 +30,7 @@ public class WarTowerEHPFeature extends Feature {
 
             double ehp = hp / (1 - (percent / 100.0));
 
-            return Text.of(
+            return Component.nullToEmpty(
                     "§3[" + tag + "] §b" + name + "§7 - §4❤ " + (int) ehp +
                             "§7 - §c☠ " + atckLow + "-" + atckHigh +
                             "§7 (§b" + speed + "x§7)");

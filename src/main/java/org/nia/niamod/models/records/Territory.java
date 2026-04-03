@@ -1,6 +1,6 @@
 package org.nia.niamod.models.records;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import org.nia.niamod.NiamodClient;
 
 public record Territory(String name, BlockPos leftCorner, BlockPos rightCorner, BlockPos middle) {
@@ -19,8 +19,8 @@ public record Territory(String name, BlockPos leftCorner, BlockPos rightCorner, 
     }
 
     public int distance() {
-        return (int) middle.getSquaredDistance(
-                NiamodClient.mc.player.getBlockPos().withY(0)
+        return (int) middle.distSqr(
+                NiamodClient.mc.player.blockPosition().atY(0)
         );
     }
 }

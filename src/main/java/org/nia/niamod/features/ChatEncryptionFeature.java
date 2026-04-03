@@ -1,10 +1,10 @@
 package org.nia.niamod.features;
 
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.ChatEvent;
 import org.nia.niamod.models.misc.Feature;
@@ -158,18 +158,18 @@ public class ChatEncryptionFeature extends Feature {
     }
 
     @Safe(ordinal = 0)
-    public Text modifyChat(Text text) {
+    public Component modifyChat(Component text) {
         if (!NyahConfig.nyahConfigData.encryptionEnabled) return text;
-        MutableText copy = Text.empty();
+        MutableComponent copy = Component.empty();
         text.visit((style, string) -> {
             String decoded = decodeMessage(string);
             if (!decoded.equals(string)) {
-                copy.append(Text.literal(string.substring(0, string.indexOf(MSG_START))).fillStyle(style));
+                copy.append(Component.literal(string.substring(0, string.indexOf(MSG_START))).withStyle(style));
                 style = style
-                        .withHoverEvent(new HoverEvent.ShowText(Text.of("This message was encoded with nyah-s :3")))
-                        .withUnderline(true);
+                        .withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty("This message was encoded with nyah-s :3")))
+                        .withUnderlined(true);
             }
-            copy.append(Text.literal(decoded).fillStyle(style));
+            copy.append(Component.literal(decoded).withStyle(style));
             return Optional.empty();
         }, Style.EMPTY);
 

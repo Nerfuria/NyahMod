@@ -2,28 +2,27 @@ package org.nia.niamod.managers;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.HashMap;
 import java.util.Map;
 
 public class KeybindManager {
 
-    private static KeyBinding.Category CATEGORY;
+    private static KeyMapping.Category CATEGORY;
 
-    private static HashMap<KeyBinding, Runnable> keybinds;
+    private static HashMap<KeyMapping, Runnable> keybinds;
 
     public static void init() {
-        CATEGORY = KeyBinding.Category.create(Identifier.of("niamod", "config"));
+        CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("niamod", "config"));
 
         keybinds = new HashMap<>();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player != null) {
-                for (Map.Entry<KeyBinding, Runnable> entry : keybinds.entrySet()) {
-                    if (entry.getKey().wasPressed()) {
+                for (Map.Entry<KeyMapping, Runnable> entry : keybinds.entrySet()) {
+                    if (entry.getKey().consumeClick()) {
                         entry.getValue().run();
                     }
                 }
@@ -32,7 +31,7 @@ public class KeybindManager {
     }
 
     public static void registerKeybinding(String name, int key, Runnable action) {
-        KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(name, InputUtil.Type.KEYSYM, key, CATEGORY));
+        KeyMapping keyBinding = KeyBindingHelper.registerKeyBinding(new KeyMapping(name, InputConstants.Type.KEYSYM, key, CATEGORY));
         keybinds.put(keyBinding, action);
     }
 }

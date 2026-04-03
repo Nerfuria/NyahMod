@@ -12,8 +12,6 @@ import com.wynntils.utils.render.FontRenderer;
 import com.wynntils.utils.render.TextRenderSetting;
 import com.wynntils.utils.render.TextRenderTask;
 import com.wynntils.utils.render.type.TextShadow;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.nia.niamod.models.misc.Feature;
@@ -23,6 +21,8 @@ import org.nia.niamod.util.FileUtils;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 
 public class ConsuTextFeature extends Feature {
 
@@ -41,19 +41,19 @@ public class ConsuTextFeature extends Feature {
     }
 
     @Safe
-    public void renderText(DrawContext context, ItemStack stack, int slotX, int slotY) {
+    public void renderText(GuiGraphics context, ItemStack stack, int slotX, int slotY) {
         Optional<WynnItem> item = Models.Item.getWynnItem(stack);
         if (item.isEmpty()) return;
         WynnItem wynnItem = item.get();
         if (wynnItem instanceof CraftedConsumableItem consu) {
             String id = idsToText(consu.getIdentifications());
             if (id.isEmpty()) return;
-            context.getMatrices().pushMatrix();
-            context.getMatrices().scale(NyahConfig.nyahConfigData.idScale, NyahConfig.nyahConfigData.idScale);
+            context.pose().pushMatrix();
+            context.pose().scale(NyahConfig.nyahConfigData.idScale, NyahConfig.nyahConfigData.idScale);
             float x = (slotX + NyahConfig.nyahConfigData.idXOffset) / NyahConfig.nyahConfigData.idScale;
             float y = (slotY + NyahConfig.nyahConfigData.idYOffset) / NyahConfig.nyahConfigData.idScale;
             FontRenderer.getInstance().renderText(context, x, y, new TextRenderTask(StyledText.fromUnformattedString(id), TextRenderSetting.DEFAULT.withTextShadow(TextShadow.OUTLINE)));
-            context.getMatrices().popMatrix();
+            context.pose().popMatrix();
         }
     }
 

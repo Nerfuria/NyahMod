@@ -4,7 +4,7 @@ import com.wynntils.core.components.Models;
 import com.wynntils.models.territories.TerritoryAttackTimer;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -42,8 +42,8 @@ public class WarTimersFeature extends Feature {
                 .map(TimerEntry::territory)
                 .forEach(t -> BoxRenderer.renderBox(
                         ctx,
-                        t.leftCorner().withY(0),
-                        t.rightCorner().withY(512),
+                        t.leftCorner().atY(0),
+                        t.rightCorner().atY(512),
                         r, g, b
                 ));
     }

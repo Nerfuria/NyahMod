@@ -2,31 +2,31 @@ package org.nia.niamod.models.gui;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.input.MouseInput;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.Consumer;
 
-public class MultiClickButton extends ButtonWidget {
+public class MultiClickButton extends Button {
 
     private static final int LEFT_CLICK = 0;
     private static final int RIGHT_CLICK = 1;
     private static final int MIDDLE_CLICK = 2;
 
-    private final Consumer<ButtonWidget> onLeft;
-    private final Consumer<ButtonWidget> onRight;
-    private final Consumer<ButtonWidget> onMiddle;
+    private final Consumer<Button> onLeft;
+    private final Consumer<Button> onRight;
+    private final Consumer<Button> onMiddle;
     private final boolean background;
 
-    protected MultiClickButton(int x, int y, int width, int height, net.minecraft.text.Text text,
-                               NarrationSupplier narration,
-                               Consumer<ButtonWidget> onLeft,
-                               Consumer<ButtonWidget> onRight,
-                               Consumer<ButtonWidget> onMiddle,
+    protected MultiClickButton(int x, int y, int width, int height, net.minecraft.network.chat.Component text,
+                               CreateNarration narration,
+                               Consumer<Button> onLeft,
+                               Consumer<Button> onRight,
+                               Consumer<Button> onMiddle,
                                boolean background) {
         super(x, y, width, height, text, null, narration);
         this.onLeft = onLeft;
@@ -35,23 +35,23 @@ public class MultiClickButton extends ButtonWidget {
         this.background = background;
     }
 
-    public static Builder builder(net.minecraft.text.Text message,
-                                  Consumer<ButtonWidget> onLeft,
-                                  Consumer<ButtonWidget> onRight,
-                                  Consumer<ButtonWidget> onMiddle,
+    public static Builder builder(net.minecraft.network.chat.Component message,
+                                  Consumer<Button> onLeft,
+                                  Consumer<Button> onRight,
+                                  Consumer<Button> onMiddle,
                                   boolean background) {
         return new Builder(message, onLeft, onRight, onMiddle, background);
     }
 
     @Override
-    protected void drawIcon(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-        if (background) drawButton(context);
-        drawLabel(context.getHoverListener(this, DrawContext.HoverType.NONE));
+    protected void renderContents(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+        if (background) renderDefaultSprite(context);
+        renderDefaultLabel(context.textRendererForWidget(this, GuiGraphics.HoveredTextEffects.NONE));
     }
 
     @Override
-    public void onClick(Click click, boolean doubled) {
-        switch (click.getKeycode()) {
+    public void onClick(MouseButtonEvent click, boolean doubled) {
+        switch (click.input()) {
             case LEFT_CLICK -> onLeft.accept(this);
             case RIGHT_CLICK -> onRight.accept(this);
             case MIDDLE_CLICK -> onMiddle.accept(this);
@@ -59,28 +59,28 @@ public class MultiClickButton extends ButtonWidget {
     }
 
     @Override
-    protected boolean isValidClickButton(MouseInput input) {
-        int k = input.getKeycode();
+    protected boolean isValidClickButton(MouseButtonInfo input) {
+        int k = input.input();
         return k == LEFT_CLICK || k == RIGHT_CLICK || k == MIDDLE_CLICK;
     }
 
     @Environment(EnvType.CLIENT)
     public static class Builder {
-        private final net.minecraft.text.Text message;
-        private final Consumer<ButtonWidget> onLeft;
-        private final Consumer<ButtonWidget> onRight;
-        private final Consumer<ButtonWidget> onMiddle;
-        private NarrationSupplier narration = DEFAULT_NARRATION_SUPPLIER;
+        private final net.minecraft.network.chat.Component message;
+        private final Consumer<Button> onLeft;
+        private final Consumer<Button> onRight;
+        private final Consumer<Button> onMiddle;
+        private CreateNarration narration = DEFAULT_NARRATION;
         private @Nullable Tooltip tooltip;
         private int x, y;
         private int width = 150;
         private int height = 20;
         private boolean background;
 
-        public Builder(net.minecraft.text.Text message,
-                       Consumer<ButtonWidget> onLeft,
-                       Consumer<ButtonWidget> onRight,
-                       Consumer<ButtonWidget> onMiddle,
+        public Builder(net.minecraft.network.chat.Component message,
+                       Consumer<Button> onLeft,
+                       Consumer<Button> onRight,
+                       Consumer<Button> onMiddle,
                        boolean background) {
             this.message = message;
             this.onLeft = onLeft;
@@ -120,7 +120,7 @@ public class MultiClickButton extends ButtonWidget {
             return this;
         }
 
-        public Builder narration(NarrationSupplier narration) {
+        public Builder narration(CreateNarration narration) {
             this.narration = narration;
             return this;
         }
