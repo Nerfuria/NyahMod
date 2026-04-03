@@ -3,7 +3,9 @@ package org.nia.niamod.util;
 import com.wynntils.models.territories.TerritoryInfo;
 import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.utils.type.CappedValue;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class TerritoryUtils {
     public static final GuildResource[] RESOURCES = GuildResource.values();
 

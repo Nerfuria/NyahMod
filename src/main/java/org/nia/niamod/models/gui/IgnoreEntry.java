@@ -1,6 +1,7 @@
 package org.nia.niamod.models.gui;
 
 import com.google.common.collect.Lists;
+import lombok.Setter;
 import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -32,7 +33,8 @@ public class IgnoreEntry extends TooltipListEntry<Component> {
     private final int emojiWidth;
     private final int startWidth;
 
-    public boolean edited = false;
+    @Setter
+    private boolean edited = false;
 
     public IgnoreEntry(
             Component fieldName,
@@ -55,7 +57,7 @@ public class IgnoreEntry extends TooltipListEntry<Component> {
 
         favouriteWidget = MultiClickButton
                 .builder(
-                        Component.nullToEmpty(state.code + "♥"),
+                        Component.nullToEmpty(state.getCode() + "♥"),
                         markThen(onFavourite),
                         markThen(onAvoid),
                         markThen(onReset),
@@ -69,7 +71,7 @@ public class IgnoreEntry extends TooltipListEntry<Component> {
 
     private Consumer<Button> markThen(Consumer<Button> action) {
         return button -> {
-            edited = true;
+            setEdited(true);
             action.accept(button);
         };
     }

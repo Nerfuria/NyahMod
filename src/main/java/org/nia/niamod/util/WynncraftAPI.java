@@ -2,6 +2,7 @@ package org.nia.niamod.util;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import lombok.experimental.UtilityClass;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.api.GuildResponse;
 import org.nia.niamod.models.api.TerritoryResponse;
@@ -9,6 +10,7 @@ import org.nia.niamod.models.api.TerritoryResponse;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+@UtilityClass
 public class WynncraftAPI {
     private static final Gson gson = new Gson();
 

@@ -1,8 +1,9 @@
 package org.nia.niamod.models.events;
 
+import net.minecraft.network.chat.Component;
 import org.nia.niamod.eventbus.EventInfo;
 import org.nia.niamod.eventbus.Preference;
 
 @EventInfo(preference = Preference.CALLER)
-public final class PostInitEvent {
+public record ChatMessageReceivedEvent(Component message) {
 }

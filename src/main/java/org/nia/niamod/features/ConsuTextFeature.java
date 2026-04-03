@@ -15,6 +15,8 @@ import com.wynntils.utils.render.type.TextShadow;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -31,7 +33,7 @@ public class ConsuTextFeature extends Feature {
     @Safe
     public void init() {
         STAT_LABELS = parseStatLabels();
-        SlotRenderEvent.EVENT.register(this::renderText);
+        NiaEventBus.subscribe(this);
     }
 
     private List<StatLabel> parseStatLabels() {
@@ -40,8 +42,13 @@ public class ConsuTextFeature extends Feature {
         }.getType());
     }
 
+    @Subscribe
     @Safe
-    public void renderText(GuiGraphics context, ItemStack stack, int slotX, int slotY) {
+    public void renderText(SlotRenderEvent event) {
+        GuiGraphics context = event.getContext();
+        ItemStack stack = event.getStack();
+        int slotX = event.getSlotX();
+        int slotY = event.getSlotY();
         Optional<WynnItem> item = Models.Item.getWynnItem(stack);
         if (item.isEmpty()) return;
         WynnItem wynnItem = item.get();

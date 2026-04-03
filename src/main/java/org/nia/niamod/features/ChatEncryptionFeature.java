@@ -6,7 +6,9 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.models.events.ChatEvent;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
+import org.nia.niamod.models.events.ChatModifyEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 
@@ -80,7 +82,7 @@ public class ChatEncryptionFeature extends Feature {
     public void init() {
         ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
         ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
-        ChatEvent.MODIFY.register(this::modifyChat);
+        NiaEventBus.subscribe(this);
     }
 
     private byte[] encryptionKey() {
@@ -157,9 +159,11 @@ public class ChatEncryptionFeature extends Feature {
         }
     }
 
-    @Safe(ordinal = 0)
-    public Component modifyChat(Component text) {
-        if (!NyahConfig.nyahConfigData.encryptionEnabled) return text;
+    @Subscribe
+    @Safe
+    public void modifyChat(ChatModifyEvent event) {
+        Component text = event.getMessage();
+        if (!NyahConfig.nyahConfigData.encryptionEnabled) return;
         MutableComponent copy = Component.empty();
         text.visit((style, string) -> {
             String decoded = decodeMessage(string);
@@ -173,6 +177,6 @@ public class ChatEncryptionFeature extends Feature {
             return Optional.empty();
         }, Style.EMPTY);
 
-        return copy;
+        event.setMessage(copy);
     }
 }

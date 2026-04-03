@@ -1,9 +1,12 @@
 package org.nia.niamod.util;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@UtilityClass
 public class MathUtils {
     public static int mode(List<Integer> numbers) {
         if (numbers.isEmpty()) return 0;
