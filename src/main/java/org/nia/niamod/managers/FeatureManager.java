@@ -6,6 +6,7 @@ import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
 import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.features.ResourceTickFeature;
+import org.nia.niamod.features.ShoutFilterFeature;
 import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
 import org.nia.niamod.models.events.PostInitEvent;
@@ -17,6 +18,7 @@ import java.lang.reflect.Method;
 
 import static org.nia.niamod.NiamodClient.LOGGER;
 
+@SuppressWarnings("unused")
 public class FeatureManager {
     private static ResourceTickFeature resTickFeature;
     private static ChatEncryptionFeature chatEncryptionFeature;
@@ -24,6 +26,7 @@ public class FeatureManager {
     private static IgnoreFeature ignoreFeature;
     private static WarTowerEHPFeature warTowerEHPFeature;
     private static ConsuTextFeature consuTextFeature;
+    private static ShoutFilterFeature shoutFilterFeature;
 
     public static void init() {
         resTickFeature = Feature.createSafe(ResourceTickFeature.class);
@@ -32,12 +35,15 @@ public class FeatureManager {
         ignoreFeature = Feature.createSafe(IgnoreFeature.class);
         warTowerEHPFeature = Feature.createSafe(WarTowerEHPFeature.class);
         consuTextFeature = Feature.createSafe(ConsuTextFeature.class);
+        shoutFilterFeature = Feature.createSafe(ShoutFilterFeature.class);
 
-        consuTextFeature.init();
+        resTickFeature.init();
         chatEncryptionFeature.init();
         warTimersFeature.init();
-        resTickFeature.init();
         ignoreFeature.init();
+        warTowerEHPFeature.init();
+        consuTextFeature.init();
+        shoutFilterFeature.init();
 
         PostInitEvent.EVENT.register(FeatureManager::postInit);
     }
@@ -69,4 +75,6 @@ public class FeatureManager {
     public static ConsuTextFeature getConsuTextFeature() {
         return consuTextFeature;
     }
+
+    public static ShoutFilterFeature getShoutFilterFeature() {return shoutFilterFeature;}
 }
