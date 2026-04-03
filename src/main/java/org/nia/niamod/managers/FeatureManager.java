@@ -1,5 +1,7 @@
 package org.nia.niamod.managers;
 
+import lombok.Getter;
+import lombok.experimental.UtilityClass;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
 import org.nia.niamod.features.IgnoreFeature;
@@ -7,17 +9,24 @@ import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.ShoutFilterFeature;
 import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
-import org.nia.niamod.models.events.PostInitEvent;
 import org.nia.niamod.models.misc.Feature;
 
 @SuppressWarnings("unused")
+@UtilityClass
 public class FeatureManager {
+    @Getter
     private static ResourceTickFeature resTickFeature;
+    @Getter
     private static ChatEncryptionFeature chatEncryptionFeature;
+    @Getter
     private static WarTimersFeature warTimersFeature;
+    @Getter
     private static IgnoreFeature ignoreFeature;
+    @Getter
     private static WarTowerEHPFeature warTowerEHPFeature;
+    @Getter
     private static ConsuTextFeature consuTextFeature;
+    @Getter
     private static ShoutFilterFeature shoutFilterFeature;
 
     public static void init() {
@@ -36,39 +45,5 @@ public class FeatureManager {
         warTowerEHPFeature.init();
         consuTextFeature.init();
         shoutFilterFeature.init();
-
-        PostInitEvent.EVENT.register(FeatureManager::postInit);
-    }
-
-    public static void postInit() {
-        ignoreFeature.postInit();
-    }
-
-    public static ResourceTickFeature getResTickFeature() {
-        return resTickFeature;
-    }
-
-    public static ChatEncryptionFeature getChatEncryptionFeature() {
-        return chatEncryptionFeature;
-    }
-
-    public static WarTimersFeature getWarTimersFeature() {
-        return warTimersFeature;
-    }
-
-    public static IgnoreFeature getIgnoreFeature() {
-        return ignoreFeature;
-    }
-
-    public static WarTowerEHPFeature getWarTowerEHPFeature() {
-        return warTowerEHPFeature;
-    }
-
-    public static ConsuTextFeature getConsuTextFeature() {
-        return consuTextFeature;
-    }
-
-    public static ShoutFilterFeature getShoutFilterFeature() {
-        return shoutFilterFeature;
     }
 }

@@ -2,13 +2,17 @@ package org.nia.niamod.features;
 
 import me.shedaniel.clothconfig2.api.AbstractConfigEntry;
 import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
+import lombok.Getter;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
-import org.nia.niamod.models.events.ChatEvent;
+import org.nia.niamod.models.events.ChatMessageReceivedEvent;
+import org.nia.niamod.models.events.PostInitEvent;
 import org.nia.niamod.models.gui.IgnoreEntry;
 import org.nia.niamod.models.gui.SeparatorEntry;
 import org.nia.niamod.models.misc.Feature;
@@ -32,7 +36,8 @@ public class IgnoreFeature extends Feature {
     private ClothConfigScreen screen;
     private boolean updated = true;
     private List<AbstractConfigEntry<AbstractConfigEntry<?>>> cache;
-    private List<IgnoreEntry> entries;
+    @Getter
+    private List<IgnoreEntry> ignoreEntries;
     private HashMap<String, Boolean> ignored;
     private boolean globalIgnore;
 
@@ -46,19 +51,22 @@ public class IgnoreFeature extends Feature {
         KeybindManager.registerKeybinding("Ignore All", GLFW.GLFW_KEY_DELETE, this::ignoreAll);
         ignoreAddRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
         ignoreRemoveRegex = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
-        ChatEvent.RECIEVED.register(this::processMessage);
+        NiaEventBus.subscribe(this);
     }
 
-    public void postInit() {
+    @Subscribe
+    public void postInit(PostInitEvent ignoredEvent) {
         List<String> usernames = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames();
-        entries = usernames.stream().map(this::ignoreEntry).toList();
+        ignoreEntries = usernames.stream().map(this::ignoreEntry).toList();
         nyahConfigData.favouritePlayers.removeIf(name -> !usernames.contains(name));
         nyahConfigData.avoidedPlayers.removeIf(name -> !usernames.contains(name));
         nyahConfigData.save();
     }
 
+    @Subscribe
     @Safe
-    public void processMessage(Component message) {
+    public void processMessage(ChatMessageReceivedEvent event) {
+        Component message = event.message();
         String text = message.getString();
 
         Matcher ignoreAdd = ignoreAddRegex.matcher(text);
@@ -77,12 +85,8 @@ public class IgnoreFeature extends Feature {
         sortEntries();
     }
 
-    public List<IgnoreEntry> getIgnoreEntries() {
-        return entries;
-    }
-
     public void save() {
-        entries.forEach(entry -> entry.edited = false);
+        ignoreEntries.forEach(entry -> entry.setEdited(false));
     }
 
     private IgnoreEntry ignoreEntry(String username) {
@@ -127,7 +131,7 @@ public class IgnoreFeature extends Feature {
             }
         }
 
-        button.setMessage(Component.nullToEmpty(newState.code + "♥"));
+        button.setMessage(Component.nullToEmpty(newState.getCode() + "♥"));
         updated = true;
 
         sortEntries();

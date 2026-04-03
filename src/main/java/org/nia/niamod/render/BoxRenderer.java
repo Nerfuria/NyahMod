@@ -2,6 +2,7 @@ package org.nia.niamod.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import lombok.experimental.UtilityClass;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -9,8 +10,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
+@UtilityClass
 public class BoxRenderer {
-
     private static final int ALPHA_FACE_BOTTOM = 70;
     private static final int ALPHA_FACE_TOP = 0;
     private static final int ALPHA_LINE_BOTTOM = 250;

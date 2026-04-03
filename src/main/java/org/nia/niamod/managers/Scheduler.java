@@ -1,11 +1,13 @@
 package org.nia.niamod.managers;
 
+import lombok.experimental.UtilityClass;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.models.misc.DelayedTask;
 
 import java.util.LinkedList;
 import java.util.List;
 
+@UtilityClass
 public class Scheduler {
     private static List<DelayedTask> tasks;
 

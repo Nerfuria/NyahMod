@@ -2,6 +2,8 @@ package org.nia.niamod.models.misc;
 
 import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.ProxyFactory;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -9,7 +11,9 @@ import java.lang.reflect.Method;
 import static org.nia.niamod.NiamodClient.LOGGER;
 
 public abstract class Feature {
-    private boolean enabled = true;
+    @Getter
+    @Setter
+    protected boolean enabled = true;
 
     /**
      * Handle methods annotated with @Safe
@@ -57,9 +61,5 @@ public abstract class Feature {
 
     public boolean isDisabled() {
         return !enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 }
