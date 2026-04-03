@@ -6,6 +6,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.ChatEvent;
@@ -50,7 +51,11 @@ public class IgnoreFeature extends Feature {
     }
 
     public void postInit() {
-        entries = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames().stream().map(this::ignoreEntry).toList();
+        List<String> usernames = WynncraftAPI.guildResponse(nyahConfigData.guildName).allUsernames();
+        entries = usernames.stream().map(this::ignoreEntry).toList();
+        nyahConfigData.favouritePlayers.removeIf(name -> !usernames.contains(name));
+        nyahConfigData.avoidedPlayers.removeIf(name -> !usernames.contains(name));
+        nyahConfigData.save();
     }
 
     @Safe
@@ -75,6 +80,10 @@ public class IgnoreFeature extends Feature {
 
     public List<IgnoreEntry> getIgnoreEntries() {
         return entries;
+    }
+
+    public void save() {
+        entries.forEach(entry -> entry.edited = false);
     }
 
     private IgnoreEntry ignoreEntry(String username) {

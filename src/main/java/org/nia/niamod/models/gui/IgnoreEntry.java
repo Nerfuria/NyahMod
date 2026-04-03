@@ -32,6 +32,8 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
     private final int emojiWidth;
     private final int startWidth;
 
+    public boolean edited = false;
+
     public IgnoreEntry(
             Text fieldName,
             @Nullable Supplier<Optional<Text[]>> tooltipSupplier,
@@ -54,9 +56,9 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
         favouriteWidget = MultiClickButton
                 .builder(
                         Text.of(state.code + "♥"),
-                        onFavourite,
-                        onAvoid,
-                        onReset,
+                        markThen(onFavourite),
+                        markThen(onAvoid),
+                        markThen(onReset),
                         false)
                 .tooltip(Tooltip.of(Text.of("Left click to favourite, Right click to avoid, Middle click to reset")))
                 .dimensions(0, 0, emojiWidth + 8, 20)
@@ -65,9 +67,16 @@ public class IgnoreEntry extends TooltipListEntry<Text> {
         widgets = Lists.newArrayList(ignoreWidget, favouriteWidget);
     }
 
+    private Consumer<ButtonWidget> markThen(Consumer<ButtonWidget> action) {
+        return button -> {
+            edited = true;
+            action.accept(button);
+        };
+    }
+
     @Override
     public boolean isEdited() {
-        return false;
+        return edited;
     }
 
     @Override

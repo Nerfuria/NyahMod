@@ -43,8 +43,6 @@ public class ResourceTickFeature extends Feature {
 
     @Safe
     private void onClientTick(MinecraftClient client) {
-        if (!isEnabled()) return;
-
         Instant currentTime = Instant.now();
         int currentMapTick = calcMapTick();
 
@@ -106,7 +104,7 @@ public class ResourceTickFeature extends Feature {
         return MathUtils.mode(map_ticks);
     }
 
-    @Safe()
+    @Safe
     public int getTimeUntilResTick() {
         if (lastResTick == null) return -1;
 
@@ -115,7 +113,7 @@ public class ResourceTickFeature extends Feature {
         return 60 - (secondsSinceResTick % 60);
     }
 
-    @Safe()
+    @Safe
     public int getMapTick() {
         if (lastMapTick == null) return -1;
         return lastMapTick;

@@ -175,7 +175,10 @@ public class NyahConfig {
 
         builder.setAfterInitConsumer(screen -> FeatureManager.getIgnoreFeature().setScreen((ClothConfigScreen) screen));
 
-        builder.setSavingRunnable(nyahConfigData::save);
+        builder.setSavingRunnable(() -> {
+            nyahConfigData.save();
+            FeatureManager.getIgnoreFeature().save();
+        });
         return builder.build();
     }
 
