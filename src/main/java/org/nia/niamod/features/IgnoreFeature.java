@@ -6,7 +6,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
-import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.ChatEvent;

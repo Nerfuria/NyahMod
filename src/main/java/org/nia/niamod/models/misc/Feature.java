@@ -11,21 +11,9 @@ import static org.nia.niamod.NiamodClient.LOGGER;
 public abstract class Feature {
     private boolean enabled = true;
 
-    public abstract void init();
-
-    public String getFeatureName() {
-        return getClass().getSimpleName();
-    }
-
-    public boolean isDisabled() {
-        return !enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    /** Handle methods annotated with @Safe **/
+    /**
+     * Handle methods annotated with @Safe
+     **/
     @SuppressWarnings("unchecked")
     public static <T extends Feature> T createSafe(Class<T> clazz) {
         ProxyFactory factory = new ProxyFactory();
@@ -59,5 +47,19 @@ public abstract class Feature {
         int idx = annotation.ordinal();
         if (idx >= 0 && args != null && idx < args.length) return args[idx];
         return null;
+    }
+
+    public abstract void init();
+
+    public String getFeatureName() {
+        return getClass().getSimpleName();
+    }
+
+    public boolean isDisabled() {
+        return !enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

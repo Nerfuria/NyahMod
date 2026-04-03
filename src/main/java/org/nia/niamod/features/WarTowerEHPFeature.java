@@ -1,5 +1,6 @@
 package org.nia.niamod.features;
 
+import net.minecraft.network.chat.Component;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
@@ -7,7 +8,6 @@ import org.nia.niamod.models.misc.Safe;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.network.chat.Component;
 
 public class WarTowerEHPFeature extends Feature {
 

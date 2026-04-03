@@ -1,7 +1,5 @@
 package org.nia.niamod.managers;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
 import org.nia.niamod.features.IgnoreFeature;
@@ -11,12 +9,6 @@ import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
 import org.nia.niamod.models.events.PostInitEvent;
 import org.nia.niamod.models.misc.Feature;
-import org.nia.niamod.models.misc.Safe;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import static org.nia.niamod.NiamodClient.LOGGER;
 
 @SuppressWarnings("unused")
 public class FeatureManager {
@@ -76,5 +68,7 @@ public class FeatureManager {
         return consuTextFeature;
     }
 
-    public static ShoutFilterFeature getShoutFilterFeature() {return shoutFilterFeature;}
+    public static ShoutFilterFeature getShoutFilterFeature() {
+        return shoutFilterFeature;
+    }
 }

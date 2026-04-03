@@ -12,6 +12,8 @@ import com.wynntils.utils.render.FontRenderer;
 import com.wynntils.utils.render.TextRenderSetting;
 import com.wynntils.utils.render.TextRenderTask;
 import com.wynntils.utils.render.type.TextShadow;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.nia.niamod.models.misc.Feature;
@@ -21,8 +23,6 @@ import org.nia.niamod.util.FileUtils;
 
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.world.item.ItemStack;
 
 public class ConsuTextFeature extends Feature {
 

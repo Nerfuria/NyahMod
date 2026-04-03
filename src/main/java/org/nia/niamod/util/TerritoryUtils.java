@@ -33,7 +33,7 @@ public class TerritoryUtils {
     }
 
     public static int getResStorageLevel(TerritoryInfo territoryInfo) {
-        for (GuildResource resource: GuildResource.values()) {
+        for (GuildResource resource : GuildResource.values()) {
             if (!resource.isMaterialResource())
                 continue;
 
