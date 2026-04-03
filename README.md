@@ -21,7 +21,7 @@ General warring/raiding utility mod made by and for Nerfurians. This mod is heav
 - **Snipe team tracking** ❌
 ### Other
 - **Encrypted chat** ✅
-- **Ignore GUI**(WIP)
+- **Ignore GUI** (WIP)
 - **Auto stream** ❌
 - **Emotes** ❌
 - **Party member stats** - shows raid stats of party members ❌
