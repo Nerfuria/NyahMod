@@ -12,7 +12,7 @@ General warring/raiding utility mod made by and for Nerfurians. This mod is heav
 - **Territory borders in world** ✅
 - **Defense reverser** - shows estimated territory defenses based on the resources of that territory ❌
 - **Individual DPS stats after wars** ❌
-- **Consu Textures**
+- **Consu Textures** ❌
 - **Consu Labels** ✅
 - **Tower EHP** ✅
 ### Raids
