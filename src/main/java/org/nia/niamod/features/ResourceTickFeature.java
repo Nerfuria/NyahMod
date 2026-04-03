@@ -1,5 +1,6 @@
 package org.nia.niamod.features;
 
+import net.minecraft.client.MinecraftClient;
 import com.wynntils.core.components.Models;
 import com.wynntils.core.consumers.functions.Function;
 import com.wynntils.core.consumers.functions.arguments.FunctionArguments;
@@ -85,31 +86,34 @@ public class ResourceTickFeature extends Feature {
     @Override
     @Safe
     public void init() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (!isEnabled()) return;
+        ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
+    }
 
-            Instant currentTime = Instant.now();
-            int currentMapTick = calcMapTick();
+    @Safe
+    private void onClientTick(MinecraftClient client) {
+        if (!isEnabled()) return;
 
-            if (lastMapTick == null || lastMapTick == currentMapTick) {
-                lastMapTick = currentMapTick;
-                return;
-            }
+        Instant currentTime = Instant.now();
+        int currentMapTick = calcMapTick();
+
+        if (lastMapTick == null || lastMapTick == currentMapTick) {
             lastMapTick = currentMapTick;
+            return;
+        }
+        lastMapTick = currentMapTick;
 
-            String currentWorld = get_world();
-            if (currentWorld == null || !currentWorld.equals(lastWorld)) {
-                lastWorld = currentWorld;
-                return;
-            }
+        String currentWorld = get_world();
+        if (currentWorld == null || !currentWorld.equals(lastWorld)) {
+            lastWorld = currentWorld;
+            return;
+        }
 
-            lastResTick = currentTime.minusSeconds(currentMapTick + resTickOffset);
+        lastResTick = currentTime.minusSeconds(currentMapTick + resTickOffset);
 
-            if (client.world != null) {
-                long time = client.world.getTime();
-                NiamodClient.LOGGER.info("Map tick changed to {} at world time {}", currentMapTick, time);
-            }
-        });
+        if (client.world != null) {
+            long time = client.world.getTime();
+            NiamodClient.LOGGER.info("Map tick changed to {} at world time {}", currentMapTick, time);
+        }
     }
 
     private int calcMapTick() {
@@ -154,6 +158,7 @@ public class ResourceTickFeature extends Feature {
         return mode(map_ticks);
     }
 
+    @Safe()
     public int getTimeUntilResTick() {
         if (lastResTick == null) return -1;
 

@@ -70,7 +70,7 @@ public class FeatureManager {
         return consuTextFeature;
     }
 
-
+    /** Handle methods annotated with @Safe **/
     @SuppressWarnings("unchecked")
     public static <T extends Feature> T createSafe(Class<T> clazz) {
         ProxyFactory factory = new ProxyFactory();
