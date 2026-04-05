@@ -7,12 +7,13 @@ import org.jetbrains.annotations.NotNull;
 
 public interface ChatEvent {
 
-    Event<@NotNull Modify> MODIFY = EventFactory.createArrayBacked(Modify.class, listeners -> title -> {
+    Event<@NotNull Modify> MODIFY = EventFactory.createArrayBacked(Modify.class, listeners -> message -> {
         for (Modify listener : listeners) {
-            title = listener.modifyMessage(title);
+            message = listener.modifyMessage(message);
+            if (message == null) break;
         }
 
-        return title;
+        return message;
     });
 
     Event<@NotNull Recieved> RECIEVED = EventFactory.createArrayBacked(Recieved.class, listeners -> message -> {

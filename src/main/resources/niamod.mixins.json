@@ -12,6 +12,7 @@
     "ChatComponentAccessor",
     "ChatListenerMixin",
     "ChatScreenMixin",
+    "ClientPacketListenerMixin",
     "GameRendererMixin",
     "HandledScreenMixin",
     "HeldItemRendererMixin",
