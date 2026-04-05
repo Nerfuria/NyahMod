@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChatListener.class)
 public class ChatListenerMixin {
-    @Inject(method="handleSystemMessage", at=@At("HEAD"), cancellable = true)
+    @Inject(method = "handleSystemMessage", at = @At("HEAD"), cancellable = true)
     public void handleMessage(Component component, boolean bl, CallbackInfo ci) {
         if (component == null) ci.cancel();
     }
