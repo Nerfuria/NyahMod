@@ -9,7 +9,9 @@
     "wynnextras.BankOverlayMixin"
   ],
   "client": [
+    "ChatComponentAccessor",
     "ChatListenerMixin",
+    "ChatScreenMixin",
     "GameRendererMixin",
     "HandledScreenMixin",
     "HeldItemRendererMixin",

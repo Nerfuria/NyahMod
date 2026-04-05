@@ -12,6 +12,7 @@ import org.nia.niamod.NiamodClient;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.models.gui.SeparatorEntry;
+import org.nia.niamod.models.misc.ShoutReplacement;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -61,9 +62,18 @@ public class NyahConfig {
                 .setSaveConsumer(v -> nyahConfigData.guildName = v)
                 .requireRestart()
                 .build());
+        general.addEntry(new SeparatorEntry(Component.nullToEmpty("Shout Filter"), null));
+        general.addEntry(eb.startBooleanToggle(Component.nullToEmpty("Enable Filter"), nyahConfigData.replaceShoutMessages)
+                .setDefaultValue(true)
+                .setSaveConsumer(v -> nyahConfigData.replaceShoutMessages = v)
+                .build());
+        general.addEntry(eb.startEnumSelector(Component.nullToEmpty("Filter Mode"), ShoutReplacement.class, nyahConfigData.shoutFilterMode)
+                .setDefaultValue(ShoutReplacement.COLLAPSE)
+                .setSaveConsumer(v -> nyahConfigData.shoutFilterMode = v)
+                .build());
 
         general.addEntry(new SeparatorEntry(Component.nullToEmpty("Chat Encryption"), null));
-        general.addEntry(eb.startBooleanToggle(Component.nullToEmpty("Enable"), nyahConfigData.encryptionEnabled)
+        general.addEntry(eb.startBooleanToggle(Component.nullToEmpty("Enable Encryption"), nyahConfigData.encryptionEnabled)
                 .setDefaultValue(true)
                 .setSaveConsumer(v -> nyahConfigData.encryptionEnabled = v)
                 .build());
@@ -204,6 +214,9 @@ public class NyahConfig {
     public static class NyahConfigData {
         public String apiBase = "https://api.wynncraft.com/v3/";
         public String guildName = "Nerfuria";
+
+        public ShoutReplacement shoutFilterMode = ShoutReplacement.COLLAPSE;
+        public boolean replaceShoutMessages = true;
 
         public boolean encryptionEnabled = true;
         public String encryptionPrefix = "@";
