@@ -26,11 +26,11 @@ public class HeldItemRendererMixin {
     public void onRender(AbstractClientPlayer player, float tickProgress, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector orderedRenderCommandQueue, int light, CallbackInfo ci) {
         if (hand == InteractionHand.MAIN_HAND) {
             matrices.mulPose(new Matrix4f()
-                    .translate(nyahConfigData.xOffset / 100f, nyahConfigData.yOffset / 100f, nyahConfigData.zOffset / 100f)
-                    .rotateX((float) Math.toRadians(nyahConfigData.xRotation))
-                    .rotateY((float) Math.toRadians(nyahConfigData.yRotation))
-                    .rotateZ((float) Math.toRadians(nyahConfigData.zRotation))
-                    .scale(nyahConfigData.itemScale));
+                    .translate(nyahConfigData.getXOffset() / 100f, nyahConfigData.getYOffset() / 100f, nyahConfigData.getZOffset() / 100f)
+                    .rotateX((float) Math.toRadians(nyahConfigData.getXRotation()))
+                    .rotateY((float) Math.toRadians(nyahConfigData.getYRotation()))
+                    .rotateZ((float) Math.toRadians(nyahConfigData.getZRotation()))
+                    .scale(nyahConfigData.getItemScale()));
         }
     }
 }
