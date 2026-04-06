@@ -11,7 +11,7 @@ import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.ChoiceSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
-import org.nia.niamod.config.setting.SettingCategory;
+import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.managers.FeatureManager;
@@ -210,20 +210,6 @@ public class NyahConfig {
                 },
                 FeatureManager::getIgnoreFeature
         ));
-
-        SECTIONS.add(SettingSection.standard(
-                "shout_filter",
-                "Shout Filter",
-                "Reserved module slot for chat filtering logic.",
-                SettingCategory.SOCIAL,
-                nyahConfigData::isShoutFilterFeatureEnabled,
-                value -> {
-                    nyahConfigData.setShoutFilterFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
-                },
-                List.of()
-        ));
     }
 
     public static void save() {
@@ -369,7 +355,7 @@ public class NyahConfig {
     public static class NyahConfigData {
         private String apiBase = "https://api.wynncraft.com/v3/";
         private String guildName = "Nerfuria";
-        private String clickGuiFont = "minecraft_uniform";
+        private String clickGuiFont = "JETBRAINS_MONO";
 
         private boolean shoutReplacementFeatureEnabled = true;
         private boolean resourceTickFeatureEnabled = true;

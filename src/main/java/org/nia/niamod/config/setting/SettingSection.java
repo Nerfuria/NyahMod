@@ -2,6 +2,7 @@ package org.nia.niamod.config.setting;
 
 import lombok.Getter;
 import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.models.config.SettingCategory;
 
 import java.util.List;
 import java.util.function.Consumer;

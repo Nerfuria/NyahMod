@@ -1,4 +1,4 @@
-package org.nia.niamod.config.setting;
+package org.nia.niamod.models.config;
 
 public enum SettingKind {
     BOOLEAN,

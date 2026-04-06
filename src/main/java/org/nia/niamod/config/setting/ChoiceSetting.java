@@ -1,6 +1,7 @@
 package org.nia.niamod.config.setting;
 
 import lombok.Getter;
+import org.nia.niamod.models.config.SettingKind;
 
 import java.util.List;
 import java.util.Locale;

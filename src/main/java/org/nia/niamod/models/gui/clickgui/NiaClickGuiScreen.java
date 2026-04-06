@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.config.setting.SettingCategory;
+import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.render.Render2D;

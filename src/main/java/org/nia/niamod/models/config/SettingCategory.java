@@ -1,4 +1,4 @@
-package org.nia.niamod.config.setting;
+package org.nia.niamod.models.config;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
