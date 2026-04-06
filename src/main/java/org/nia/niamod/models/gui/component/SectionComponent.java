@@ -1,4 +1,4 @@
-package org.nia.niamod.models.gui.clickgui.component;
+package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,11 +9,11 @@ import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.animation.Animation;
+import org.nia.niamod.models.gui.animation.Easing;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.clickgui.animation.Animation;
-import org.nia.niamod.models.gui.clickgui.animation.Easing;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,17 +24,10 @@ public class SectionComponent {
     private static final int SETTING_START_X_OFFSET = 6;
 
     private final SettingSection section;
-
-    public SettingSection getSection() {
-        return section;
-    }
-
     private final List<Object> children = new ArrayList<>();
-
     private final Animation opening = new Animation(Easing.EASE_OUT_EXPO, 200);
     private final Animation settingOpacity = new Animation(Easing.LINEAR, 100);
     private final Animation hoverAnimation = new Animation(Easing.LINEAR, 50);
-
     private boolean expanded;
     private int x, y, width;
     private boolean mouseDown;
@@ -44,9 +37,13 @@ public class SectionComponent {
         opening.setValue(DEFAULT_HEIGHT);
         settingOpacity.setValue(0);
 
-        for (ConfigSetting<?> setting : section.getSettings()) {
+        for (ConfigSetting<?> setting : section.settings()) {
             children.add(createChild(setting));
         }
+    }
+
+    public SettingSection getSection() {
+        return section;
     }
 
     private Object createChild(ConfigSetting<?> setting) {
@@ -102,8 +99,8 @@ public class SectionComponent {
         int nameColor = (enabled && section.hasToggle())
                 ? (0xFF000000 | (theme.getAccentColor() & 0x00FFFFFF))
                 : 0xC8FFFFFF;
-        g.drawString(font, NiaClickGuiScreen.styled(section.getTitle()), x + 6, y + 8, nameColor, false);
-        g.drawString(font, NiaClickGuiScreen.styled(section.getDescription()), x + 6, y + 25, 0x46FFFFFF, false);
+        g.drawString(font, NiaClickGuiScreen.styled(section.title()), x + 6, y + 8, nameColor, false);
+        g.drawString(font, NiaClickGuiScreen.styled(section.description()), x + 6, y + 25, 0x46FFFFFF, false);
 
         int clipTop = y + (int) DEFAULT_HEIGHT;
         int clipBottom = y + totalHeight;

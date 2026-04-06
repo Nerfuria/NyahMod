@@ -11,26 +11,36 @@ import java.util.Set;
 public class NiamodMixinPlugin implements IMixinConfigPlugin {
 
     @Override
-    public void onLoad(String mixinPackage) {}
+    public void onLoad(String mixinPackage) {
+    }
 
     @Override
-    public String getRefMapperConfig() { return null; }
+    public String getRefMapperConfig() {
+        return null;
+    }
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.contains("wynnextras")) { return FabricLoader.getInstance().isModLoaded("wynnextras"); }
+        if (mixinClassName.contains("wynnextras")) {
+            return FabricLoader.getInstance().isModLoaded("wynnextras");
+        }
         return true;
     }
 
     @Override
-    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {}
+    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
+    }
 
     @Override
-    public List<String> getMixins() {return null;}
+    public List<String> getMixins() {
+        return null;
+    }
 
     @Override
-    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
+    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+    }
 
     @Override
-    public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
+    public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+    }
 }

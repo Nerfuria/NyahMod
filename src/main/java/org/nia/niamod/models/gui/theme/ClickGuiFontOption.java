@@ -1,12 +1,12 @@
-package org.nia.niamod.models.gui.clickgui.theme;
+package org.nia.niamod.models.gui.theme;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.resources.Identifier;
 
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 
 @Getter
 @RequiredArgsConstructor
@@ -39,10 +39,6 @@ public enum ClickGuiFontOption {
                 .orElse(MINECRAFT_UNIFORM);
     }
 
-    public Identifier fontDescriptionId() {
-        return Identifier.fromNamespaceAndPath(namespace, fontId);
-    }
-
     public static List<String> keys() {
         return Arrays.stream(values())
                 .map(ClickGuiFontOption::getKey)
@@ -51,5 +47,9 @@ public enum ClickGuiFontOption {
 
     public static String labelFor(String key) {
         return resolve(key).getLabel();
+    }
+
+    public Identifier fontDescriptionId() {
+        return Identifier.fromNamespaceAndPath(namespace, fontId);
     }
 }

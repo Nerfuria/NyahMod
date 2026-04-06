@@ -1,4 +1,4 @@
-package org.nia.niamod.models.gui.clickgui.animation;
+package org.nia.niamod.models.gui.animation;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -35,8 +35,17 @@ public class Animation {
         return value + (destination - value) * progress;
     }
 
+    public void setValue(double value) {
+        this.value = value;
+        this.destination = value;
+        this.finished = true;
+    }
+
     public double getProgress() {
-        if (duration <= 0) { finished = true; return 1; }
+        if (duration <= 0) {
+            finished = true;
+            return 1;
+        }
         double progress = (double) (System.currentTimeMillis() - millis) / duration;
         progress = Math.min(1, Math.max(0, progress));
         if (progress >= 1) finished = true;
@@ -46,11 +55,5 @@ public class Animation {
     public void reset() {
         millis = System.currentTimeMillis();
         finished = false;
-    }
-
-    public void setValue(double value) {
-        this.value = value;
-        this.destination = value;
-        this.finished = true;
     }
 }

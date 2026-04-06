@@ -3,7 +3,7 @@ package org.nia.niamod.render;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import org.nia.niamod.models.gui.clickgui.render.UiRect;
+import org.nia.niamod.models.gui.render.UiRect;
 
 @UtilityClass
 public class Render2D {

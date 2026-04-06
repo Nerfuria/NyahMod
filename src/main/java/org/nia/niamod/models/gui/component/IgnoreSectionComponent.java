@@ -1,16 +1,16 @@
-package org.nia.niamod.models.gui.clickgui.component;
+package org.nia.niamod.models.gui.component;
 
 import lombok.Getter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.animation.Animation;
+import org.nia.niamod.models.gui.animation.Easing;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.models.records.State;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.clickgui.animation.Animation;
-import org.nia.niamod.models.gui.clickgui.animation.Easing;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,12 +28,10 @@ public class IgnoreSectionComponent {
     private final Animation opening = new Animation(Easing.EASE_OUT_EXPO, 300);
     private final Animation settingOpacity = new Animation(Easing.LINEAR, 150);
     private final Animation hoverAnimation = new Animation(Easing.LINEAR, 50);
-
+    private final List<PillAction> pillActions = new ArrayList<>();
     private boolean expanded;
     private int x, y, width;
     private boolean mouseDown;
-
-    private final List<PillAction> pillActions = new ArrayList<>();
 
     public IgnoreSectionComponent(SettingSection section) {
         this.section = section;
@@ -77,8 +75,8 @@ public class IgnoreSectionComponent {
         int nameColor = enabled && section.hasToggle()
                 ? (0xFF000000 | (theme.getAccentColor() & 0x00FFFFFF))
                 : 0xC8FFFFFF;
-        g.drawString(font, NiaClickGuiScreen.styled(section.getTitle()), x + 6, y + 8, nameColor, false);
-        g.drawString(font, NiaClickGuiScreen.styled(section.getDescription()), x + 6, y + 25, 0x46FFFFFF, false);
+        g.drawString(font, NiaClickGuiScreen.styled(section.title()), x + 6, y + 8, nameColor, false);
+        g.drawString(font, NiaClickGuiScreen.styled(section.description()), x + 6, y + 25, 0x46FFFFFF, false);
 
         if (totalHeight > DEFAULT_HEIGHT + 1) {
             IgnoreFeature ignoreFeature = section.getIgnoreFeature();
@@ -235,7 +233,8 @@ public class IgnoreSectionComponent {
         return false;
     }
 
-    private record PillAction(String username, PillType type, int x, int y, int w, int h) {}
-
     private enum PillType {STATE, IGNORE}
+
+    private record PillAction(String username, PillType type, int x, int y, int w, int h) {
+    }
 }

@@ -1,7 +1,6 @@
 package org.nia.niamod.features;
 
 import net.minecraft.network.chat.Component;
-import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.BossBarNameEvent;

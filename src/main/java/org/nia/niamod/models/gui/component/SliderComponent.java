@@ -1,13 +1,13 @@
-package org.nia.niamod.models.gui.clickgui.component;
+package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.Locale;
 

@@ -1,4 +1,4 @@
-package org.nia.niamod.models.gui.clickgui;
+package org.nia.niamod.models.gui;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,16 +10,16 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.models.config.SettingCategory;
+import org.nia.niamod.models.gui.animation.Animation;
+import org.nia.niamod.models.gui.animation.Easing;
+import org.nia.niamod.models.gui.component.IgnoreSectionComponent;
+import org.nia.niamod.models.gui.component.SectionComponent;
+import org.nia.niamod.models.gui.render.UiRect;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.models.gui.clickgui.animation.Animation;
-import org.nia.niamod.models.gui.clickgui.animation.Easing;
-import org.nia.niamod.models.gui.clickgui.component.IgnoreSectionComponent;
-import org.nia.niamod.models.gui.clickgui.component.SectionComponent;
-import org.nia.niamod.models.gui.clickgui.render.UiRect;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -36,28 +36,23 @@ public class NiaClickGuiScreen extends Screen {
     private final Screen parent;
     private final Animation scaleAnim = new Animation(Easing.EASE_OUT_EXPO, 300);
     private final Animation opacityAnim = new Animation(Easing.EASE_OUT_EXPO, 300);
-    private boolean closing;
-    private double animTime;
-
-    private float panelX, panelY;
-    private boolean dragging;
-    private double dragOffX, dragOffY;
-
-    private enum Tab { SEARCH, GENERAL, WAR, SOCIAL }
-    private Tab selectedTab = Tab.GENERAL;
     private final Map<SettingCategory, List<Object>> catComps = new EnumMap<>(SettingCategory.class);
-    private List<Object> activeComps = new ArrayList<>();
     private final List<EditBox> textInputs = new ArrayList<>();
     private final List<TabBtn> tabBtns = new ArrayList<>();
     private final Animation[] tabAnims = new Animation[Tab.values().length];
-
+    private final List<Object> allComps = new ArrayList<>();
+    private final List<Object> searchResults = new ArrayList<>();
+    private boolean closing;
+    private double animTime;
+    private float panelX, panelY;
+    private boolean dragging;
+    private double dragOffX, dragOffY;
+    private Tab selectedTab = Tab.GENERAL;
+    private List<Object> activeComps = new ArrayList<>();
     private boolean searchMode;
     private EditBox searchBox;
     private String searchQuery = "";
-    private List<Object> allComps = new ArrayList<>();
-    private List<Object> searchResults = new ArrayList<>();
     private long tabChangeTime;
-
     private double scrollTarget, scroll;
     private long lastFrameTime;
 
@@ -96,7 +91,10 @@ public class NiaClickGuiScreen extends Screen {
         searchBox.setBordered(false);
         searchBox.setTextColor(0xFFFFFFFF);
         applyClickGuiFont(searchBox, "Search...");
-        searchBox.setResponder(q -> { searchQuery = q; updateSearch(); });
+        searchBox.setResponder(q -> {
+            searchQuery = q;
+            updateSearch();
+        });
         searchBox.setCanLoseFocus(true);
         searchBox.visible = false;
         addRenderableWidget(searchBox);
@@ -128,7 +126,7 @@ public class NiaClickGuiScreen extends Screen {
         for (SettingCategory cat : SettingCategory.values()) {
             List<Object> list = new ArrayList<>();
             for (SettingSection sec : NyahConfig.getSections(cat)) {
-                Object comp = sec.getType() == SettingSection.SectionType.IGNORE_MANAGER
+                Object comp = sec.type() == SettingSection.SectionType.IGNORE_MANAGER
                         ? new IgnoreSectionComponent(sec)
                         : createSection(sec);
                 list.add(comp);
@@ -176,8 +174,9 @@ public class NiaClickGuiScreen extends Screen {
 
     private void updateSearch() {
         searchResults.clear();
-        if (searchQuery.isEmpty()) { searchResults.addAll(allComps); }
-        else {
+        if (searchQuery.isEmpty()) {
+            searchResults.addAll(allComps);
+        } else {
             String q = searchQuery.toLowerCase();
             for (Object c : allComps) {
                 if (matchesSearch(c, q)) searchResults.add(c);
@@ -187,11 +186,11 @@ public class NiaClickGuiScreen extends Screen {
     }
 
     private String compTitle(Object c) {
-        return c instanceof SectionComponent s ? s.getSection().getTitle() : c instanceof IgnoreSectionComponent ? "Ignore Manager" : "";
+        return c instanceof SectionComponent s ? s.getSection().title() : c instanceof IgnoreSectionComponent ? "Ignore Manager" : "";
     }
 
     private String compDesc(Object c) {
-        return c instanceof SectionComponent s ? s.getSection().getDescription() : c instanceof IgnoreSectionComponent ? "Guild-member tools" : "";
+        return c instanceof SectionComponent s ? s.getSection().description() : c instanceof IgnoreSectionComponent ? "Guild-member tools" : "";
     }
 
     private boolean matchesSearch(Object component, String query) {
@@ -200,7 +199,7 @@ public class NiaClickGuiScreen extends Screen {
         }
 
         if (component instanceof SectionComponent sectionComponent) {
-            return sectionComponent.getSection().getSettings().stream().anyMatch(setting ->
+            return sectionComponent.getSection().settings().stream().anyMatch(setting ->
                     containsIgnoreCase(setting.getTitle(), query)
                             || containsIgnoreCase(setting.getDescription(), query)
                             || containsIgnoreCase(setting.getId(), query)
@@ -235,7 +234,6 @@ public class NiaClickGuiScreen extends Screen {
         }
     }
 
-
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float dt) {
         long now = System.currentTimeMillis();
@@ -255,7 +253,10 @@ public class NiaClickGuiScreen extends Screen {
             opacityAnim.run(0);
         }
         animTime = scaleAnim.getValue();
-        if (closing && scaleAnim.isFinished()) { if (minecraft != null) minecraft.setScreen(parent); return; }
+        if (closing && scaleAnim.isFinished()) {
+            if (minecraft != null) minecraft.setScreen(parent);
+            return;
+        }
         if (animTime <= 0) return;
 
         if (dragging) {
@@ -405,14 +406,17 @@ public class NiaClickGuiScreen extends Screen {
         return Math.max(0, totalHeight() - viewH + (searchMode ? 42 : 7));
     }
 
-
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean outside) {
         double mx = click.x(), my = click.y();
         int btn = click.button();
         int px = Math.round(panelX), py = Math.round(panelY);
 
-        for (TabBtn tb : tabBtns) if (mx >= tb.x && mx <= tb.x + tb.w && my >= tb.y && my <= tb.y + tb.h) { selectTab(tb.tab); return true; }
+        for (TabBtn tb : tabBtns)
+            if (mx >= tb.x && mx <= tb.x + tb.w && my >= tb.y && my <= tb.y + tb.h) {
+                selectTab(tb.tab);
+                return true;
+            }
         if (btn == 0 && isDragZone(mx, my, px, py)) {
             dragging = true;
             dragOffX = panelX - mx;
@@ -436,22 +440,31 @@ public class NiaClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (dragging) { dragging = false; return true; }
+        if (dragging) {
+            dragging = false;
+            return true;
+        }
         for (Object c : activeComps) if (compRelease(c, event.x(), event.y(), event.button())) return true;
         return super.mouseReleased(event);
-    }   
+    }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double h, double v) {
         int px = Math.round(panelX), py = Math.round(panelY);
-        if (mx >= px + SIDEBAR_W && mx <= px + PANEL_W && my >= py && my <= py + PANEL_H) { scrollTarget += v * 30; return true; }
+        if (mx >= px + SIDEBAR_W && mx <= px + PANEL_W && my >= py && my <= py + PANEL_H) {
+            scrollTarget += v * 30;
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
-            if (searchMode && !searchQuery.isEmpty()) { searchBox.setValue(""); return true; }
+            if (searchMode && !searchQuery.isEmpty()) {
+                searchBox.setValue("");
+                return true;
+            }
             onClose();
             return true;
         }
@@ -470,13 +483,19 @@ public class NiaClickGuiScreen extends Screen {
         if (!closing) {
             hideAllTextInputs();
             closing = true;
-            scaleAnim.setEasing(Easing.LINEAR); scaleAnim.setDuration(100); scaleAnim.run(0);
-            opacityAnim.setEasing(Easing.LINEAR); opacityAnim.setDuration(100); opacityAnim.run(0);
+            scaleAnim.setEasing(Easing.LINEAR);
+            scaleAnim.setDuration(100);
+            scaleAnim.run(0);
+            opacityAnim.setEasing(Easing.LINEAR);
+            opacityAnim.setDuration(100);
+            opacityAnim.run(0);
         }
     }
 
     @Override
-    public boolean isPauseScreen() { return false; }
+    public boolean isPauseScreen() {
+        return false;
+    }
 
     private boolean isDragZone(double mx, double my, int px, int py) {
         if (mx >= px && mx <= px + PANEL_W && my >= py && my <= py + 8) {
@@ -496,13 +515,34 @@ public class NiaClickGuiScreen extends Screen {
         return true;
     }
 
+    private int getH(Object c) {
+        return c instanceof SectionComponent s ? s.getHeight() : c instanceof IgnoreSectionComponent i ? i.getHeight() : 0;
+    }
 
-    private int getH(Object c) { return c instanceof SectionComponent s ? s.getHeight() : c instanceof IgnoreSectionComponent i ? i.getHeight() : 0; }
-    private void setPos(Object c, int x, int y, int w) { if (c instanceof SectionComponent s) s.setPosition(x, y, w); else if (c instanceof IgnoreSectionComponent i) i.setPosition(x, y, w); }
-    private void renderComp(Object c, GuiGraphics g, Font f, int mx, int my) { if (c instanceof SectionComponent s) s.render(g, f, mx, my, THEME); else if (c instanceof IgnoreSectionComponent i) i.render(g, f, mx, my, THEME); }
-    private boolean compClick(Object c, double mx, double my, int btn) { return c instanceof SectionComponent s ? s.mouseClicked(mx, my, btn) : c instanceof IgnoreSectionComponent i && i.mouseClicked(mx, my, btn); }
-    private boolean compDrag(Object c, double mx, double my, int btn, double dx, double dy) { return c instanceof SectionComponent s ? s.mouseDragged(mx, my, btn, dx, dy) : c instanceof IgnoreSectionComponent i && i.mouseDragged(mx, my, btn, dx, dy); }
-    private boolean compRelease(Object c, double mx, double my, int btn) { return c instanceof SectionComponent s ? s.mouseReleased(mx, my, btn) : c instanceof IgnoreSectionComponent i && i.mouseReleased(mx, my, btn); }
+    private void setPos(Object c, int x, int y, int w) {
+        if (c instanceof SectionComponent s) s.setPosition(x, y, w);
+        else if (c instanceof IgnoreSectionComponent i) i.setPosition(x, y, w);
+    }
 
-    private record TabBtn(Tab tab, int x, int y, int w, int h) {}
+    private void renderComp(Object c, GuiGraphics g, Font f, int mx, int my) {
+        if (c instanceof SectionComponent s) s.render(g, f, mx, my, THEME);
+        else if (c instanceof IgnoreSectionComponent i) i.render(g, f, mx, my, THEME);
+    }
+
+    private boolean compClick(Object c, double mx, double my, int btn) {
+        return c instanceof SectionComponent s ? s.mouseClicked(mx, my, btn) : c instanceof IgnoreSectionComponent i && i.mouseClicked(mx, my, btn);
+    }
+
+    private boolean compDrag(Object c, double mx, double my, int btn, double dx, double dy) {
+        return c instanceof SectionComponent s ? s.mouseDragged(mx, my, btn, dx, dy) : c instanceof IgnoreSectionComponent i && i.mouseDragged(mx, my, btn, dx, dy);
+    }
+
+    private boolean compRelease(Object c, double mx, double my, int btn) {
+        return c instanceof SectionComponent s ? s.mouseReleased(mx, my, btn) : c instanceof IgnoreSectionComponent i && i.mouseReleased(mx, my, btn);
+    }
+
+    private enum Tab {SEARCH, GENERAL, WAR, SOCIAL}
+
+    private record TabBtn(Tab tab, int x, int y, int w, int h) {
+    }
 }

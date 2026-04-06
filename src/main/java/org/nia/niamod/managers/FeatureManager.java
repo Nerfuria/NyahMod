@@ -10,7 +10,6 @@ import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.ShoutFilterFeature;
 import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
-import org.nia.niamod.models.misc.Feature;
 
 @SuppressWarnings("unused")
 @UtilityClass

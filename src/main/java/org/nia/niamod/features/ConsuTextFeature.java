@@ -45,10 +45,10 @@ public class ConsuTextFeature extends Feature {
     @Subscribe
     @Safe
     public void renderText(SlotRenderEvent event) {
-        GuiGraphics context = event.getContext();
-        ItemStack stack = event.getStack();
-        int slotX = event.getSlotX();
-        int slotY = event.getSlotY();
+        GuiGraphics context = event.context();
+        ItemStack stack = event.stack();
+        int slotX = event.slotX();
+        int slotY = event.slotY();
         Optional<WynnItem> item = Models.Item.getWynnItem(stack);
         if (item.isEmpty()) return;
         WynnItem wynnItem = item.get();

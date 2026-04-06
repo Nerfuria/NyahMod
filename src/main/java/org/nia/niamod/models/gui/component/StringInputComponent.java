@@ -1,11 +1,11 @@
-package org.nia.niamod.models.gui.clickgui.component;
+package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import org.nia.niamod.config.setting.StringSetting;
-import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 
 public class StringInputComponent {
     public static final int HEIGHT = 28;

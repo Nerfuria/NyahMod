@@ -3,7 +3,10 @@
     {
       "type": "ttf",
       "file": "niamod:noto_sans_mono.ttf",
-      "shift": [0, 1],
+      "shift": [
+        0,
+        1
+      ],
       "size": 9.5,
       "oversample": 2.0
     }

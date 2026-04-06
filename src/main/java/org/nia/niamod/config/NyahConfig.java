@@ -7,18 +7,18 @@ import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.setting.BooleanSetting;
-import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.ChoiceSetting;
+import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
-import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
-import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.clickgui.theme.ClickGuiFontOption;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -60,7 +60,7 @@ public class NyahConfig {
     }
 
     public static List<SettingSection> getSections(SettingCategory category) {
-        return SECTIONS.stream().filter(section -> section.getCategory() == category).toList();
+        return SECTIONS.stream().filter(section -> section.category() == category).toList();
     }
 
     private static void registerSections() {
@@ -221,18 +221,24 @@ public class NyahConfig {
     }
 
     public static void applyFeatureStates() {
-        if (FeatureManager.getResTickFeature() != null) FeatureManager.getResTickFeature().setEnabled(nyahConfigData.isResourceTickFeatureEnabled());
-        if (FeatureManager.getChatEncryptionFeature() != null) FeatureManager.getChatEncryptionFeature().setEnabled(nyahConfigData.isChatEncryptionFeatureEnabled());
-        if (FeatureManager.getWarTimersFeature() != null) FeatureManager.getWarTimersFeature().setEnabled(nyahConfigData.isWarTimersFeatureEnabled());
+        if (FeatureManager.getResTickFeature() != null)
+            FeatureManager.getResTickFeature().setEnabled(nyahConfigData.isResourceTickFeatureEnabled());
+        if (FeatureManager.getChatEncryptionFeature() != null)
+            FeatureManager.getChatEncryptionFeature().setEnabled(nyahConfigData.isChatEncryptionFeatureEnabled());
+        if (FeatureManager.getWarTimersFeature() != null)
+            FeatureManager.getWarTimersFeature().setEnabled(nyahConfigData.isWarTimersFeatureEnabled());
         if (FeatureManager.getIgnoreFeature() != null) {
             FeatureManager.getIgnoreFeature().setEnabled(nyahConfigData.isIgnoreFeatureEnabled());
             if (FeatureManager.getIgnoreFeature().isEnabled()) {
                 FeatureManager.getIgnoreFeature().syncGuildMembers();
             }
         }
-        if (FeatureManager.getWarTowerEHPFeature() != null) FeatureManager.getWarTowerEHPFeature().setEnabled(nyahConfigData.isWarTowerEhpFeatureEnabled());
-        if (FeatureManager.getConsuTextFeature() != null) FeatureManager.getConsuTextFeature().setEnabled(nyahConfigData.isConsuTextFeatureEnabled());
-        if (FeatureManager.getShoutFilterFeature() != null) FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
+        if (FeatureManager.getWarTowerEHPFeature() != null)
+            FeatureManager.getWarTowerEHPFeature().setEnabled(nyahConfigData.isWarTowerEhpFeatureEnabled());
+        if (FeatureManager.getConsuTextFeature() != null)
+            FeatureManager.getConsuTextFeature().setEnabled(nyahConfigData.isConsuTextFeatureEnabled());
+        if (FeatureManager.getShoutFilterFeature() != null)
+            FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
     }
 
     private static void loadConfig() {
