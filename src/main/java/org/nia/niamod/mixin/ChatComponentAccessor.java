@@ -14,9 +14,6 @@ public interface ChatComponentAccessor {
     @Accessor("allMessages")
     List<GuiMessage> niamod$allMessages();
 
-    @Accessor("allMessages")
-    void niamod$allMessages(List<GuiMessage> allMessages);
-
     @Invoker("refreshTrimmedMessages")
     void niamod$refreshTrimmedMessages();
 

@@ -5,14 +5,13 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "BossBarHudMixin",
+    "ClientPacketListenerMixin",
     "MinecraftClientMixin",
     "wynnextras.BankOverlayMixin"
   ],
   "client": [
     "ChatComponentAccessor",
-    "ChatListenerMixin",
     "ChatScreenMixin",
-    "ClientPacketListenerMixin",
     "GameRendererMixin",
     "HandledScreenMixin",
     "HeldItemRendererMixin",
