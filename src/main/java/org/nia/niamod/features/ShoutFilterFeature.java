@@ -25,7 +25,6 @@ public class ShoutFilterFeature extends Feature {
     public Component modifyChat(Component component) {
         if (!NyahConfig.nyahConfigData.replaceShoutMessages) return component;
         if (!component.getString().startsWith("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE")) return component;
-
         if (NyahConfig.nyahConfigData.shoutFilterMode == ShoutReplacement.REMOVE) return null;
         if (NyahConfig.nyahConfigData.shoutFilterMode == ShoutReplacement.GRAY_OUT) return component.plainCopy()
                 .setStyle(component.getStyle().withColor(TextColor.fromRgb(0x686868)));
