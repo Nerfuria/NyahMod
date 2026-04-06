@@ -1,5 +1,8 @@
 package org.nia.niamod.eventbus;
 
+import org.nia.niamod.models.misc.Feature;
+import org.nia.niamod.models.misc.Safe;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -126,10 +129,23 @@ public final class EventBus implements EventDispatcher {
     }
 
     private void dispatchToListener(Object event, ListenerInfo listenerInfo) {
+        if (listenerInfo.target() instanceof Feature feature && feature.isDisabled()) {
+            return;
+        }
+
         try {
             listenerInfo.method().invoke(listenerInfo.target(), event);
         } catch (IllegalAccessException | InvocationTargetException exception) {
-            LOGGER.log(Level.SEVERE, "Problem invoking listener", exception);
+            Throwable cause = exception instanceof InvocationTargetException invocationTargetException
+                    ? invocationTargetException.getCause()
+                    : exception;
+
+            if (listenerInfo.target() instanceof Feature feature && listenerInfo.method().isAnnotationPresent(Safe.class)) {
+                feature.disableAfterCrash(listenerInfo.method().getName(), cause);
+                return;
+            }
+
+            LOGGER.log(Level.SEVERE, "Problem invoking listener", cause);
         }
     }
 

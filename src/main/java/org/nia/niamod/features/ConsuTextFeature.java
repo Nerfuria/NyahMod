@@ -56,9 +56,9 @@ public class ConsuTextFeature extends Feature {
             String id = idsToText(consu.getIdentifications());
             if (id.isEmpty()) return;
             context.pose().pushMatrix();
-            context.pose().scale(NyahConfig.nyahConfigData.idScale, NyahConfig.nyahConfigData.idScale);
-            float x = (slotX + NyahConfig.nyahConfigData.idXOffset) / NyahConfig.nyahConfigData.idScale;
-            float y = (slotY + NyahConfig.nyahConfigData.idYOffset) / NyahConfig.nyahConfigData.idScale;
+            context.pose().scale(NyahConfig.nyahConfigData.getIdScale(), NyahConfig.nyahConfigData.getIdScale());
+            float x = (slotX + NyahConfig.nyahConfigData.getIdXOffset()) / NyahConfig.nyahConfigData.getIdScale();
+            float y = (slotY + NyahConfig.nyahConfigData.getIdYOffset()) / NyahConfig.nyahConfigData.getIdScale();
             FontRenderer.getInstance().renderText(context, x, y, new TextRenderTask(StyledText.fromUnformattedString(id), TextRenderSetting.DEFAULT.withTextShadow(TextShadow.OUTLINE)));
             context.pose().popMatrix();
         }

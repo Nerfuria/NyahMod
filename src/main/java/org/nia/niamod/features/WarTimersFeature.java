@@ -23,22 +23,24 @@ public class WarTimersFeature extends Feature {
     @Safe
     public void init() {
         WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
-        WorldRenderEvents.AFTER_ENTITIES.register(this::render);
+        WorldRenderEvents.AFTER_ENTITIES.register(context ->
+                runSafe("render", () -> render(context)));
     }
 
     @Safe
     public void render(WorldRenderContext ctx) {
-        int r = NyahConfig.nyahConfigData.color >> 16 & 0xFF, g = NyahConfig.nyahConfigData.color >> 8 & 0xFF, b = NyahConfig.nyahConfigData.color & 0xFF;
+        int color = NyahConfig.nyahConfigData.getColor();
+        int r = color >> 16 & 0xFF, g = color >> 8 & 0xFF, b = color & 0xFF;
         Models.GuildAttackTimer.getUpcomingTimers()
                 .map(timer -> {
                     Territory t = territories.get(timer.territoryName());
                     return new TimerEntry(timer, t, t.distance());
                 })
-                .filter(e -> e.distance() <= NyahConfig.nyahConfigData.maximumDistance * NyahConfig.nyahConfigData.maximumDistance)
+                .filter(e -> e.distance() <= NyahConfig.nyahConfigData.getMaximumDistance() * NyahConfig.nyahConfigData.getMaximumDistance())
                 .sorted(Comparator
                         .comparing(TimerEntry::timer, Comparator.comparing(TerritoryAttackTimer::timerEnd))
                         .thenComparingInt(TimerEntry::distance))
-                .limit(NyahConfig.nyahConfigData.maximumTerritories)
+                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
                 .map(TimerEntry::territory)
                 .forEach(t -> BoxRenderer.renderBox(
                         ctx,

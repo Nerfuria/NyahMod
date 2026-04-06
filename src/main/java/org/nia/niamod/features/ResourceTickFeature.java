@@ -40,7 +40,8 @@ public class ResourceTickFeature extends Feature {
     @Override
     @Safe
     public void init() {
-        ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
+        ClientTickEvents.END_CLIENT_TICK.register(client ->
+                runSafe("onClientTick", () -> onClientTick(client)));
     }
 
     @Safe
@@ -124,8 +125,7 @@ public class ResourceTickFeature extends Feature {
     public class ResTickFunction extends Function<Integer> {
         @Override
         public Integer getValue(FunctionArguments arguments) {
-            return getTimeUntilResTick();
+            return callSafe("getTimeUntilResTick", ResourceTickFeature.this::getTimeUntilResTick, -1);
         }
     }
 }
-

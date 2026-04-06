@@ -2,6 +2,7 @@ package org.nia.niamod.managers;
 
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
+import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
 import org.nia.niamod.features.IgnoreFeature;
@@ -30,20 +31,22 @@ public class FeatureManager {
     private static ShoutFilterFeature shoutFilterFeature;
 
     public static void init() {
-        resTickFeature = Feature.createSafe(ResourceTickFeature.class);
-        chatEncryptionFeature = Feature.createSafe(ChatEncryptionFeature.class);
-        warTimersFeature = Feature.createSafe(WarTimersFeature.class);
-        ignoreFeature = Feature.createSafe(IgnoreFeature.class);
-        warTowerEHPFeature = Feature.createSafe(WarTowerEHPFeature.class);
-        consuTextFeature = Feature.createSafe(ConsuTextFeature.class);
-        shoutFilterFeature = Feature.createSafe(ShoutFilterFeature.class);
+        resTickFeature = new ResourceTickFeature();
+        chatEncryptionFeature = new ChatEncryptionFeature();
+        warTimersFeature = new WarTimersFeature();
+        ignoreFeature = new IgnoreFeature();
+        warTowerEHPFeature = new WarTowerEHPFeature();
+        consuTextFeature = new ConsuTextFeature();
+        shoutFilterFeature = new ShoutFilterFeature();
 
-        resTickFeature.init();
-        chatEncryptionFeature.init();
-        warTimersFeature.init();
-        ignoreFeature.init();
-        warTowerEHPFeature.init();
-        consuTextFeature.init();
-        shoutFilterFeature.init();
+        resTickFeature.runSafe("init", resTickFeature::init);
+        chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
+        warTimersFeature.runSafe("init", warTimersFeature::init);
+        ignoreFeature.runSafe("init", ignoreFeature::init);
+        warTowerEHPFeature.runSafe("init", warTowerEHPFeature::init);
+        consuTextFeature.runSafe("init", consuTextFeature::init);
+        shoutFilterFeature.runSafe("init", shoutFilterFeature::init);
+
+        NyahConfig.onFeaturesInitialized();
     }
 }
