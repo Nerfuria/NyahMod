@@ -42,7 +42,7 @@ public abstract class GameRendererMixin {
             CallbackInfo ci,
             @Local PoseStack matrixStack
     ) {
-        if (!NyahConfig.nyahConfigData.disableHeldBobbing) return;
+        if (!NyahConfig.nyahConfigData.isDisableHeldBobbing()) return;
 
         if (!this.minecraft.options.getCameraType().isFirstPerson()
                 || sleeping
@@ -73,7 +73,7 @@ public abstract class GameRendererMixin {
     private void cancel(
             ItemInHandRenderer instance, float tickProgress, PoseStack matrices, SubmitNodeCollector orderedRenderCommandQueue, LocalPlayer player, int light, Operation<Void> original
     ) {
-        if (!NyahConfig.nyahConfigData.disableHeldBobbing || !this.minecraft.options.bobView().get()) {
+        if (!NyahConfig.nyahConfigData.isDisableHeldBobbing() || !this.minecraft.options.bobView().get()) {
             original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
         }
     }

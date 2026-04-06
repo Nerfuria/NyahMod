@@ -16,6 +16,6 @@ public abstract class FunctionManagerMixin {
 
     @Inject(method = "registerAllFunctions", at = @At("TAIL"))
     private void niamod$afterRegisterAllFunctions(CallbackInfo ci) {
-        invokeRegisterFunction(FeatureManager.getResTickFeature().ResTickFunction);
+        invokeRegisterFunction(FeatureManager.getResTickFeature().getResTickFunction());
     }
 }

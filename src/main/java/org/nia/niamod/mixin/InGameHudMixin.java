@@ -5,6 +5,7 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.models.events.SlotRenderEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,7 +17,7 @@ public class InGameHudMixin {
 
     @Inject(method = "renderSlot", at = @At("RETURN"))
     public void render(GuiGraphics context, int x, int y, DeltaTracker tickCounter, Player player, ItemStack stack, int seed, CallbackInfo ci) {
-        SlotRenderEvent.EVENT.invoker().render(context, stack, x, y);
+        NiaEventBus.dispatch(new SlotRenderEvent(context, stack, x, y));
     }
 
 }

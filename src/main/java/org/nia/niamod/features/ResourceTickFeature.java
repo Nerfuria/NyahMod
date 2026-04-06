@@ -7,6 +7,7 @@ import com.wynntils.models.territories.TerritoryInfo;
 import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.services.map.pois.TerritoryPoi;
 import com.wynntils.utils.type.CappedValue;
+import lombok.Getter;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import org.nia.niamod.NiamodClient;
@@ -21,7 +22,8 @@ import java.util.List;
 
 public class ResourceTickFeature extends Feature {
     private static final int resTickOffset = 5;     // The map updates with a delay of 5 seconds for some reason
-    public Function<?> ResTickFunction = new ResTickFunction();
+    @Getter
+    private final Function<?> resTickFunction = new ResTickFunction();
     private Integer lastMapTick = null;
     private String lastWorld = null;
     private Instant lastResTick = null;
@@ -38,7 +40,8 @@ public class ResourceTickFeature extends Feature {
     @Override
     @Safe
     public void init() {
-        ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
+        ClientTickEvents.END_CLIENT_TICK.register(client ->
+                runSafe("onClientTick", () -> onClientTick(client)));
     }
 
     @Safe
@@ -122,9 +125,7 @@ public class ResourceTickFeature extends Feature {
     public class ResTickFunction extends Function<Integer> {
         @Override
         public Integer getValue(FunctionArguments arguments) {
-            return getTimeUntilResTick();
+            return callSafe("getTimeUntilResTick", ResourceTickFeature.this::getTimeUntilResTick, -1);
         }
     }
 }
-
-

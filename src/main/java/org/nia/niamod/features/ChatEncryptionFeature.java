@@ -6,7 +6,9 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.models.events.ChatEvent;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
+import org.nia.niamod.models.events.ChatModifyEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 
@@ -78,23 +80,25 @@ public class ChatEncryptionFeature extends Feature {
     @Override
     @Safe
     public void init() {
-        ClientSendMessageEvents.MODIFY_CHAT.register(this::processMessage);
-        ClientSendMessageEvents.MODIFY_COMMAND.register(this::processMessage);
-        ChatEvent.MODIFY.register(this::modifyChat);
+        ClientSendMessageEvents.MODIFY_CHAT.register(message ->
+                callSafe("processMessage", () -> processMessage(message), message));
+        ClientSendMessageEvents.MODIFY_COMMAND.register(message ->
+                callSafe("processMessage", () -> processMessage(message), message));
+        NiaEventBus.subscribe(this);
     }
 
     private byte[] encryptionKey() {
-        if (NyahConfig.nyahConfigData.encryptionKey.isEmpty()) return new byte[0];
+        if (NyahConfig.nyahConfigData.getEncryptionKey().isEmpty()) return new byte[0];
         try {
             return MessageDigest.getInstance(HASH_ALGO)
-                    .digest(NyahConfig.nyahConfigData.encryptionKey.getBytes());
+                    .digest(NyahConfig.nyahConfigData.getEncryptionKey().getBytes());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     private GCMParameterSpec gcmSpec(byte[] iv) {
-        int saltLength = NyahConfig.nyahConfigData.saltLength;
+        int saltLength = NyahConfig.nyahConfigData.getSaltLength();
         byte[] effectiveIv = saltLength == 16 ? iv : Arrays.copyOf(iv, 16);
         return new GCMParameterSpec(GCM_TAG_LENGTH, effectiveIv);
     }
@@ -112,7 +116,7 @@ public class ChatEncryptionFeature extends Feature {
 
     private String encryptMessage(String message) {
         try {
-            byte[] iv = new byte[NyahConfig.nyahConfigData.saltLength];
+            byte[] iv = new byte[NyahConfig.nyahConfigData.getSaltLength()];
             new SecureRandom().nextBytes(iv);
             Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, iv);
             byte[] encrypted = cipher.doFinal(message.trim().getBytes());
@@ -125,7 +129,7 @@ public class ChatEncryptionFeature extends Feature {
     private String decrypt(String message) throws AEADBadTagException {
         try {
             byte[] bytes = decode(message);
-            int saltLength = NyahConfig.nyahConfigData.saltLength;
+            int saltLength = NyahConfig.nyahConfigData.getSaltLength();
             byte[] iv = Arrays.copyOfRange(bytes, 0, saltLength);
             Cipher cipher = initCipher(Cipher.DECRYPT_MODE, iv);
             byte[] decrypted = cipher.doFinal(bytes, saltLength, bytes.length - saltLength);
@@ -139,8 +143,7 @@ public class ChatEncryptionFeature extends Feature {
 
     @Safe(ordinal = 0)
     public String processMessage(String message) {
-        if (!NyahConfig.nyahConfigData.encryptionEnabled) return message;
-        String prefix = NyahConfig.nyahConfigData.encryptionPrefix;
+        String prefix = NyahConfig.nyahConfigData.getEncryptionPrefix();
         int idx = message.indexOf(prefix);
         if (idx == -1) return message;
         return message.substring(0, idx) + encryptMessage(message.substring(idx + prefix.length()));
@@ -157,9 +160,10 @@ public class ChatEncryptionFeature extends Feature {
         }
     }
 
-    @Safe(ordinal = 0)
-    public Component modifyChat(Component text) {
-        if (!NyahConfig.nyahConfigData.encryptionEnabled) return text;
+    @Subscribe
+    @Safe
+    public void modifyChat(ChatModifyEvent event) {
+        Component text = event.getMessage();
         MutableComponent copy = Component.empty();
         text.visit((style, string) -> {
             String decoded = decodeMessage(string);
@@ -173,6 +177,6 @@ public class ChatEncryptionFeature extends Feature {
             return Optional.empty();
         }, Style.EMPTY);
 
-        return copy;
+        event.setMessage(copy);
     }
 }

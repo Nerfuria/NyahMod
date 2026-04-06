@@ -2,6 +2,8 @@ package org.nia.niamod.features;
 
 import net.minecraft.network.chat.Component;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -15,9 +17,7 @@ public class WarTowerEHPFeature extends Feature {
             "§3\\[([A-Za-z]{3,4})\\] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
     );
 
-    @Safe(ordinal = 0)
-    public Component replaceEHP(Component text) {
-        if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
+    private Component replaceEHP(Component text) {
         Matcher matcher = towerRegex.matcher(text.getString());
         if (matcher.matches()) {
             String tag = matcher.group(1);
@@ -39,9 +39,15 @@ public class WarTowerEHPFeature extends Feature {
         }
     }
 
+    @Subscribe
+    @Safe
+    public void onBossBarName(BossBarNameEvent event) {
+        event.setTitle(replaceEHP(event.getTitle()));
+    }
+
     @Override
     @Safe
     public void init() {
-        BossBarNameEvent.MODIFY.register(this::replaceEHP);
+        NiaEventBus.subscribe(this);
     }
 }
