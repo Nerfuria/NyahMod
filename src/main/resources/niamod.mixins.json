@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "org.nia.niamod.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "org.nia.niamod.NiamodMixinPlugin",
   "mixins": [
     "BossBarHudMixin",
     "ClientPacketListenerMixin",
