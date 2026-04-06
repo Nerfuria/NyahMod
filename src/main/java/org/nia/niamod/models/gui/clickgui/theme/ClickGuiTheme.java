@@ -1,4 +1,4 @@
-package org.nia.niamod.ui.clickgui.theme;
+package org.nia.niamod.models.gui.clickgui.theme;
 
 import lombok.Builder;
 import lombok.Value;

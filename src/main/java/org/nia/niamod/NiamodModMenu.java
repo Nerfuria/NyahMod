@@ -7,7 +7,6 @@ import org.nia.niamod.config.NyahConfig;
 public class NiamodModMenu implements ModMenuApi {
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-
         return NyahConfig::getConfigScreen;
     }
 }

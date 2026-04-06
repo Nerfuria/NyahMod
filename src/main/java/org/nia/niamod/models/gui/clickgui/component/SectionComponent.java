@@ -1,4 +1,4 @@
-package org.nia.niamod.ui.clickgui.component;
+package org.nia.niamod.models.gui.clickgui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,10 +10,10 @@ import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.ui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.ui.clickgui.animation.Animation;
-import org.nia.niamod.ui.clickgui.animation.Easing;
-import org.nia.niamod.ui.clickgui.theme.ClickGuiTheme;
+import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.clickgui.animation.Animation;
+import org.nia.niamod.models.gui.clickgui.animation.Easing;
+import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.ArrayList;
 import java.util.List;

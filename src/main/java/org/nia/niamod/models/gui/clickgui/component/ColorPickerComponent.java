@@ -1,11 +1,11 @@
-package org.nia.niamod.ui.clickgui.component;
+package org.nia.niamod.models.gui.clickgui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.ui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.ui.clickgui.theme.ClickGuiTheme;
+import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 public class ColorPickerComponent {
     public static final int CLOSED_HEIGHT = 15;

@@ -6,19 +6,19 @@ import lombok.Setter;
 import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.config.setting.BooleanSetting;
 import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.ChoiceSetting;
-import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
 import org.nia.niamod.config.setting.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
-import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
-import org.nia.niamod.ui.clickgui.NiaClickGuiScreen;
-import org.nia.niamod.ui.clickgui.theme.ClickGuiFontOption;
+import org.nia.niamod.models.config.ShoutReplacement;
+import org.nia.niamod.models.gui.clickgui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.clickgui.theme.ClickGuiFontOption;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -27,7 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.nia.niamod.NiamodClient.mc;
 
@@ -69,7 +71,7 @@ public class NyahConfig {
                 "Client",
                 "Core Wynncraft data and shared client preferences.",
                 SettingCategory.GENERAL,
-                null,
+                () -> true,
                 null,
                 List.of(
                         string("api_base", "API URL", "Base Wynncraft API URL.", nyahConfigData::getApiBase, nyahConfigData::setApiBase),
@@ -89,10 +91,25 @@ public class NyahConfig {
                     save();
                 },
                 List.of(
-                        bool("encryption_enabled", "Encrypt Messages", "Master toggle for chat encryption behavior.", nyahConfigData::isEncryptionEnabled, nyahConfigData::setEncryptionEnabled),
                         string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", nyahConfigData::getEncryptionPrefix, nyahConfigData::setEncryptionPrefix),
                         string("encryption_key", "Encryption Key", "Shared AES key material.", nyahConfigData::getEncryptionKey, nyahConfigData::setEncryptionKey),
                         integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, nyahConfigData::getSaltLength, nyahConfigData::setSaltLength)
+                )
+        ));
+
+        SECTIONS.add(SettingSection.standard(
+                "shout_filter",
+                "Shout Filter",
+                "Modify shouts to be less obstructive.",
+                SettingCategory.GENERAL,
+                nyahConfigData::isShoutFilterFeatureEnabled,
+                value -> {
+                    nyahConfigData.setShoutFilterFeatureEnabled(value);
+                    applyFeatureStates();
+                    save();
+                },
+                List.of(
+                        choice("filter_mode", "Shout Filter Mode", "What to replace shouts with", nyahConfigData::getShoutFilterMode, nyahConfigData::setShoutFilterMode, ShoutReplacement.class)
                 )
         ));
 
@@ -177,7 +194,6 @@ public class NyahConfig {
                     save();
                 },
                 List.of(
-                        bool("replace_tower_hp", "Replace Tower HP", "Swap tower HP text for effective HP.", nyahConfigData::isReplaceTowerHP, nyahConfigData::setReplaceTowerHP)
                 )
         ));
 
@@ -277,8 +293,8 @@ public class NyahConfig {
         });
     }
 
-    private static org.nia.niamod.config.setting.BooleanSetting bool(String id, String title, String description, ConfigGetter<Boolean> getter, ConfigSetter<Boolean> setter) {
-        return new org.nia.niamod.config.setting.BooleanSetting(id, title, description, getter::get, value -> {
+    private static BooleanSetting bool(String id, String title, String description, ConfigGetter<Boolean> getter, ConfigSetter<Boolean> setter) {
+        return new BooleanSetting(id, title, description, getter::get, value -> {
             setter.set(value);
             save();
         });
@@ -289,6 +305,24 @@ public class NyahConfig {
             setter.set(value);
             save();
         });
+    }
+
+    private static <T extends Enum<T>> ChoiceSetting choice(
+            String id,
+            String title,
+            String description,
+            ConfigGetter<T> getter,
+            ConfigSetter<T> setter,
+            Class<T> type
+    ) {
+        Function<String, String> labelResolver = raw -> {
+            String lower = raw.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+            return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+        };
+        return new ChoiceSetting(id, title, description, () -> getter.get().name(), value -> {
+            setter.set(T.valueOf(type, value));
+            save();
+        }, Arrays.stream(type.getEnumConstants()).map(Enum::name).toList(), labelResolver);
     }
 
     private static ChoiceSetting choice(
@@ -337,6 +371,7 @@ public class NyahConfig {
         private String guildName = "Nerfuria";
         private String clickGuiFont = "minecraft_uniform";
 
+        private boolean shoutReplacementFeatureEnabled = true;
         private boolean resourceTickFeatureEnabled = true;
         private boolean chatEncryptionFeatureEnabled = true;
         private boolean warTimersFeatureEnabled = true;
@@ -345,7 +380,8 @@ public class NyahConfig {
         private boolean consuTextFeatureEnabled = true;
         private boolean shoutFilterFeatureEnabled = true;
 
-        private boolean encryptionEnabled = true;
+        private ShoutReplacement shoutFilterMode = ShoutReplacement.COLLAPSE;
+
         private String encryptionPrefix = "@";
         private String encryptionKey = "six seven";
         private int saltLength = 16;
@@ -367,7 +403,6 @@ public class NyahConfig {
         private float itemScale = 1.0f;
         private boolean disableHeldBobbing = true;
 
-        private boolean replaceTowerHP = true;
         private List<String> favouritePlayers = new ArrayList<>();
         private List<String> avoidedPlayers = new ArrayList<>();
     }

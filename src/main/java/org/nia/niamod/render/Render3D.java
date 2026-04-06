@@ -18,6 +18,10 @@ public class Render3D {
     private static final int LINE_ALPHA_BOTTOM = 250;
     private static final int LINE_ALPHA_TOP = 0;
 
+    public static void renderBox(WorldRenderContext context, BlockPos corner1, BlockPos corner2, int r, int g, int b) {
+        Render3D.box(context, corner1, corner2, (r << 16) | (g << 8) | b);
+    }
+
     public static void box(WorldRenderContext context, BlockPos start, BlockPos end, int color) {
         if (start == null || end == null) {
             return;

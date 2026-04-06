@@ -143,7 +143,6 @@ public class ChatEncryptionFeature extends Feature {
 
     @Safe(ordinal = 0)
     public String processMessage(String message) {
-        if (!NyahConfig.nyahConfigData.isEncryptionEnabled()) return message;
         String prefix = NyahConfig.nyahConfigData.getEncryptionPrefix();
         int idx = message.indexOf(prefix);
         if (idx == -1) return message;
@@ -165,7 +164,6 @@ public class ChatEncryptionFeature extends Feature {
     @Safe
     public void modifyChat(ChatModifyEvent event) {
         Component text = event.getMessage();
-        if (!NyahConfig.nyahConfigData.isEncryptionEnabled()) return;
         MutableComponent copy = Component.empty();
         text.visit((style, string) -> {
             String decoded = decodeMessage(string);

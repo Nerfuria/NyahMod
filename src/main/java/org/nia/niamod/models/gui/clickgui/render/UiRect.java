@@ -1,4 +1,4 @@
-package org.nia.niamod.ui.clickgui.render;
+package org.nia.niamod.models.gui.clickgui.render;
 
 public record UiRect(int x, int y, int width, int height) {
     public int right() {

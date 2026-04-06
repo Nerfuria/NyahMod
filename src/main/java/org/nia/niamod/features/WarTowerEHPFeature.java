@@ -18,7 +18,6 @@ public class WarTowerEHPFeature extends Feature {
     );
 
     private Component replaceEHP(Component text) {
-        if (!NyahConfig.nyahConfigData.isReplaceTowerHP()) return text;
         Matcher matcher = towerRegex.matcher(text.getString());
         if (matcher.matches()) {
             String tag = matcher.group(1);

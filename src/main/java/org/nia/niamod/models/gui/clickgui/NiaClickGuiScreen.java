@@ -1,4 +1,4 @@
-package org.nia.niamod.ui.clickgui;
+package org.nia.niamod.models.gui.clickgui;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,12 +14,12 @@ import org.nia.niamod.config.setting.SettingCategory;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.render.Render2D;
-import org.nia.niamod.ui.clickgui.animation.Animation;
-import org.nia.niamod.ui.clickgui.animation.Easing;
-import org.nia.niamod.ui.clickgui.component.IgnoreSectionComponent;
-import org.nia.niamod.ui.clickgui.component.SectionComponent;
-import org.nia.niamod.ui.clickgui.render.UiRect;
-import org.nia.niamod.ui.clickgui.theme.ClickGuiTheme;
+import org.nia.niamod.models.gui.clickgui.animation.Animation;
+import org.nia.niamod.models.gui.clickgui.animation.Easing;
+import org.nia.niamod.models.gui.clickgui.component.IgnoreSectionComponent;
+import org.nia.niamod.models.gui.clickgui.component.SectionComponent;
+import org.nia.niamod.models.gui.clickgui.render.UiRect;
+import org.nia.niamod.models.gui.clickgui.theme.ClickGuiTheme;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

@@ -1,4 +1,4 @@
-package org.nia.niamod.ui.clickgui.animation;
+package org.nia.niamod.models.gui.clickgui.animation;
 
 import java.util.function.Function;
 

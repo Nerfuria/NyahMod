@@ -1,4 +1,4 @@
-package org.nia.niamod.models.misc;
+package org.nia.niamod.models.config;
 
 public enum ShoutReplacement {
     REMOVE,

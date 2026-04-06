@@ -10,7 +10,7 @@ import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.models.records.Territory;
 import org.nia.niamod.models.records.TimerEntry;
-import org.nia.niamod.render.BoxRenderer;
+import org.nia.niamod.render.Render3D;
 import org.nia.niamod.util.WynncraftAPI;
 
 import java.util.Comparator;
@@ -42,7 +42,7 @@ public class WarTimersFeature extends Feature {
                         .thenComparingInt(TimerEntry::distance))
                 .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
                 .map(TimerEntry::territory)
-                .forEach(t -> BoxRenderer.renderBox(
+                .forEach(t -> Render3D.renderBox(
                         ctx,
                         t.leftCorner().atY(0),
                         t.rightCorner().atY(512),
