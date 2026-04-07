@@ -15,6 +15,7 @@ import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.models.config.RadianceOverlayMode;
 import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
@@ -197,6 +198,37 @@ public class NyahConfig {
                 )
         ));
 
+        SECTIONS.add(SettingSection.standard(
+                "radiance_sync",
+                "Radiance Sync",
+                "Tracks Radiance with Guard Partners in War",
+                SettingCategory.WAR,
+                nyahConfigData::isRadianceSyncFeatureEnabled,
+                value -> {
+                    nyahConfigData.setRadianceSyncFeatureEnabled(value);
+                    applyFeatureStates();
+                    save();
+                },
+                List.of(
+                        string("group_key", "Group Key", "Shared sync group key (shared with party members).", nyahConfigData::getRadianceSyncGroupKey, nyahConfigData::setRadianceSyncGroupKey),
+                        integer("self_aspect_tier", "Self Aspect Tier", "Your Radiance aspect tier (0 = none, 1-3).", 0, 3, nyahConfigData::getRadianceSyncSelfTier, nyahConfigData::setRadianceSyncSelfTier),
+                        bool("require_war", "Require War", "Only show overlay while in war.", nyahConfigData::isRadianceSyncRequireWar, nyahConfigData::setRadianceSyncRequireWar),
+                        choice("overlay_mode", "Overlay Mode", "cast = cast prompt mode; status = radiance remaining.",
+                                nyahConfigData::getRadianceSyncOverlayMode, nyahConfigData::setRadianceSyncOverlayMode,
+                                RadianceOverlayMode.class),
+                        string("worker_url", "Worker URL", "WebSocket worker URL for Radiance sync.",
+                                nyahConfigData::getRadianceSyncWorkerUrl, nyahConfigData::setRadianceSyncWorkerUrl),
+                        floating("cast_prompt_seconds", "Cast Prompt Seconds", "How long the cast prompt stays visible.", 0.5f, 10.0f,
+                                nyahConfigData::getRadianceSyncCastPromptSeconds, nyahConfigData::setRadianceSyncCastPromptSeconds),
+                        bool("ping_sound", "Ping Sound", "Play a sound when Radiance is ready.", nyahConfigData::isRadianceSyncPingEnabled, nyahConfigData::setRadianceSyncPingEnabled),
+                        floating("ping_volume", "Ping Volume", "Volume of the ping sound.", 0.1f, 2.0f, nyahConfigData::getRadianceSyncPingVolume, nyahConfigData::setRadianceSyncPingVolume),
+                        floating("ping_pitch", "Ping Pitch", "Pitch of the ping sound.", 0.5f, 2.0f, nyahConfigData::getRadianceSyncPingPitch, nyahConfigData::setRadianceSyncPingPitch),
+                        floating("overlay_scale", "Overlay Scale", "Scale of the overlay text.", 0.5f, 3.0f, nyahConfigData::getRadianceSyncOverlayScale, nyahConfigData::setRadianceSyncOverlayScale),
+                        integer("overlay_offset_x", "Overlay X Offset", "Horizontal overlay position offset.", -1000, 1000, nyahConfigData::getRadianceSyncOverlayOffsetX, nyahConfigData::setRadianceSyncOverlayOffsetX),
+                        integer("overlay_offset_y", "Overlay Y Offset", "Vertical overlay position offset.", -1000, 1000, nyahConfigData::getRadianceSyncOverlayOffsetY, nyahConfigData::setRadianceSyncOverlayOffsetY)
+                )
+        ));
+
         SECTIONS.add(SettingSection.ignoreManager(
                 "ignore_manager",
                 "Ignore Manager",
@@ -239,6 +271,8 @@ public class NyahConfig {
             FeatureManager.getConsuTextFeature().setEnabled(nyahConfigData.isConsuTextFeatureEnabled());
         if (FeatureManager.getShoutFilterFeature() != null)
             FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
+        if (FeatureManager.getRadianceSyncFeature() != null)
+            FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncFeatureEnabled());
     }
 
     private static void loadConfig() {
@@ -258,6 +292,9 @@ public class NyahConfig {
             if (nyahConfigData.getFavouritePlayers() == null) nyahConfigData.setFavouritePlayers(new ArrayList<>());
             if (nyahConfigData.getAvoidedPlayers() == null) nyahConfigData.setAvoidedPlayers(new ArrayList<>());
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
+            if (nyahConfigData.getRadianceSyncGroupKey() == null) nyahConfigData.setRadianceSyncGroupKey("");
+            if (nyahConfigData.getRadianceSyncOverlayMode() == null) nyahConfigData.setRadianceSyncOverlayMode(RadianceOverlayMode.CAST);
+            if (nyahConfigData.getRadianceSyncWorkerUrl() == null) nyahConfigData.setRadianceSyncWorkerUrl("https://radiancesync.wavelink.workers.dev");
         } catch (IOException exception) {
             NiamodClient.LOGGER.error("Error loading config file!", exception);
             nyahConfigData = new NyahConfigData();
@@ -371,6 +408,7 @@ public class NyahConfig {
         private boolean warTowerEhpFeatureEnabled = true;
         private boolean consuTextFeatureEnabled = true;
         private boolean shoutFilterFeatureEnabled = true;
+        private boolean radianceSyncFeatureEnabled = true;
 
         private ShoutReplacement shoutFilterMode = ShoutReplacement.COLLAPSE;
 
@@ -397,5 +435,19 @@ public class NyahConfig {
 
         private List<String> favouritePlayers = new ArrayList<>();
         private List<String> avoidedPlayers = new ArrayList<>();
+
+        
+        private boolean radianceSyncRequireWar = true;
+        private int radianceSyncSelfTier = 0;
+        private float radianceSyncCastPromptSeconds = 2.0f;
+        private RadianceOverlayMode radianceSyncOverlayMode = RadianceOverlayMode.CAST;
+        private String radianceSyncWorkerUrl = "https://radiancesync.wavelink.workers.dev";
+        private boolean radianceSyncPingEnabled = false;
+        private float radianceSyncPingVolume = 1.0f;
+        private float radianceSyncPingPitch = 1.0f;
+        private float radianceSyncOverlayScale = 1.0f;
+        private int radianceSyncOverlayOffsetX = 0;
+        private int radianceSyncOverlayOffsetY = -10;
+        private String radianceSyncGroupKey = "";
     }
 }

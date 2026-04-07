@@ -1,0 +1,326 @@
+package org.nia.niamod.features.radiance;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import org.nia.niamod.config.NyahConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class CloudflareSync {
+    private static final Logger LOGGER = LoggerFactory.getLogger("niamod");
+    private static final Gson GSON = new Gson();
+    private static final long RECONNECT_INTERVAL_MS = 5000L;
+    private static final long PING_INTERVAL_MS = 5000L;
+    private static final long MAX_REASONABLE_RTT_MS = 10000L;
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final AtomicReference<Entry> pendingEntry = new AtomicReference<>(null);
+    private final AtomicBoolean connecting = new AtomicBoolean(false);
+
+    private volatile WebSocket webSocket;
+    private volatile String connectedKey;
+    private volatile String connectedPlayerName;
+    private volatile String connectedPlayerUuid;
+    private volatile long lastReconnectAttemptMs;
+    private volatile long lastPingSentMs;
+    private volatile long estimatedRttMs;
+
+    
+    public void tick(String key, String playerName, String playerUuid) {
+        if (!isValidKey(key) || playerName == null || playerName.isEmpty() || playerUuid == null || playerUuid.isEmpty()) {
+            disconnect();
+            return;
+        }
+
+        boolean targetChanged = !key.equals(connectedKey)
+            || !playerName.equals(connectedPlayerName)
+            || !playerUuid.equals(connectedPlayerUuid);
+        if (targetChanged && webSocket != null) {
+            disconnect();
+        }
+
+        long now = System.currentTimeMillis();
+        if (webSocket == null && !connecting.get()) {
+            if (now - lastReconnectAttemptMs >= RECONNECT_INTERVAL_MS) {
+                lastReconnectAttemptMs = now;
+                connect(key, playerName, playerUuid);
+            }
+            return;
+        }
+
+        maybeSendPing(now);
+    }
+
+    private void connect(String key, String playerName, String playerUuid) {
+        if (!connecting.compareAndSet(false, true)) {
+            return;
+        }
+
+        String encodedKey = URLEncoder.encode(key, StandardCharsets.UTF_8);
+        String encodedPlayerName = URLEncoder.encode(playerName, StandardCharsets.UTF_8);
+        String encodedPlayerUuid = URLEncoder.encode(playerUuid, StandardCharsets.UTF_8);
+
+        String workerUrl = NyahConfig.nyahConfigData.getRadianceSyncWorkerUrl();
+        if (workerUrl == null || workerUrl.isBlank()) {
+            workerUrl = "https://radiancesync.wavelink.workers.dev";
+        }
+        String wsUrl = workerUrl.replaceFirst("^https://", "wss://")
+            + "?key=" + encodedKey
+            + "&ign=" + encodedPlayerName
+            + "&uuid=" + encodedPlayerUuid;
+
+        try {
+            httpClient.newWebSocketBuilder()
+                .buildAsync(URI.create(wsUrl), new WebSocket.Listener() {
+                    private final StringBuilder textBuffer = new StringBuilder();
+
+                    @Override
+                    public void onOpen(WebSocket ws) {
+                        webSocket = ws;
+                        connectedKey = key;
+                        connectedPlayerName = playerName;
+                        connectedPlayerUuid = playerUuid;
+                        lastPingSentMs = 0L;
+                        connecting.set(false);
+                        LOGGER.info("[RadianceSync] WebSocket connected");
+                        ws.request(1);
+                    }
+
+                    @Override
+                    public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+                        if (last) {
+                            String payload;
+                            if (textBuffer.length() == 0) {
+                                payload = data.toString();
+                            } else {
+                                textBuffer.append(data);
+                                payload = textBuffer.toString();
+                                textBuffer.setLength(0);
+                            }
+                            handleIncomingMessage(payload);
+                        } else {
+                            textBuffer.append(data);
+                        }
+                        ws.request(1);
+                        return null;
+                    }
+
+                    @Override
+                    public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
+                        LOGGER.info("[RadianceSync] WebSocket closed: {} {}", statusCode, reason);
+                        clearSocketState(ws);
+                        connecting.set(false);
+                        return null;
+                    }
+
+                    @Override
+                    public void onError(WebSocket ws, Throwable error) {
+                        LOGGER.warn("[RadianceSync] WebSocket error: {}", error.getMessage());
+                        clearSocketState(ws);
+                        connecting.set(false);
+                    }
+                })
+                .exceptionally(ex -> {
+                    connecting.set(false);
+                    LOGGER.warn("[RadianceSync] WebSocket connect failed: {}", ex.getMessage());
+                    return null;
+                });
+        } catch (Exception e) {
+            connecting.set(false);
+            LOGGER.warn("[RadianceSync] Failed to start WS connect: {}", e.getMessage());
+        }
+    }
+
+    public void send(int tier, long remainingMs) {
+        if (tier < 0 || tier > 3 || remainingMs <= 0L) {
+            return;
+        }
+        WebSocket ws = webSocket;
+        if (ws == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long senderOneWayMs = getEstimatedOneWayLatencyMs();
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", "cast");
+        payload.addProperty("tier", tier);
+        payload.addProperty("timestamp", now);
+        payload.addProperty("remainingMs", remainingMs);
+        payload.addProperty("senderOneWayMs", senderOneWayMs);
+        sendText(ws, GSON.toJson(payload));
+    }
+
+    public Entry consumePending() {
+        return pendingEntry.getAndSet(null);
+    }
+
+    public boolean isConnected() {
+        return webSocket != null;
+    }
+
+    public long getEstimatedOneWayLatencyMs() {
+        long rttMs = estimatedRttMs;
+        if (rttMs <= 0L) {
+            return 0L;
+        }
+        return rttMs / 2L;
+    }
+
+    private void disconnect() {
+        WebSocket ws = webSocket;
+        webSocket = null;
+        connectedKey = null;
+        connectedPlayerName = null;
+        connectedPlayerUuid = null;
+        lastPingSentMs = 0L;
+        connecting.set(false);
+        if (ws != null) {
+            try {
+                ws.sendClose(WebSocket.NORMAL_CLOSURE, "disconnect");
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public void reset() {
+        disconnect();
+        pendingEntry.set(null);
+        estimatedRttMs = 0L;
+        lastReconnectAttemptMs = 0L;
+    }
+
+    private void maybeSendPing(long now) {
+        WebSocket ws = webSocket;
+        if (ws == null) {
+            return;
+        }
+        if (lastPingSentMs != 0L && now - lastPingSentMs < PING_INTERVAL_MS) {
+            return;
+        }
+        lastPingSentMs = now;
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", "ping");
+        payload.addProperty("clientSentAt", now);
+        sendText(ws, GSON.toJson(payload));
+    }
+
+    private void handleIncomingMessage(String payload) {
+        try {
+            JsonObject message = GSON.fromJson(payload, JsonObject.class);
+            if (message == null) {
+                return;
+            }
+            String type = getString(message, "type");
+            if ("pong".equals(type)) {
+                handlePong(message);
+                return;
+            }
+            Entry entry = parseEntry(message);
+            if (entry != null) {
+                pendingEntry.set(entry);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("[RadianceSync] Failed to parse WS message: {}", e.getMessage());
+        }
+    }
+
+    private void handlePong(JsonObject message) {
+        long clientSentAt = getLong(message, "clientSentAt");
+        if (clientSentAt <= 0L) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long rttMs = now - clientSentAt;
+        if (rttMs <= 0L || rttMs > MAX_REASONABLE_RTT_MS) {
+            return;
+        }
+        if (estimatedRttMs <= 0L) {
+            estimatedRttMs = rttMs;
+            return;
+        }
+        estimatedRttMs = Math.round((estimatedRttMs * 0.75) + (rttMs * 0.25));
+    }
+
+    private Entry parseEntry(JsonObject message) {
+        int tier = getInt(message, "tier");
+        if (tier < 0 || tier > 3) {
+            return null;
+        }
+
+        long remainingMs = getLong(message, "remainingMs");
+        if (remainingMs <= 0L) {
+            return null;
+        }
+
+        return new Entry(tier, remainingMs, System.currentTimeMillis());
+    }
+
+    private void sendText(WebSocket ws, String payload) {
+        ws.sendText(payload, true).exceptionally(ex -> {
+            LOGGER.warn("[RadianceSync] WS send failed: {}", ex.getMessage());
+            clearSocketState(ws);
+            connecting.set(false);
+            return null;
+        });
+    }
+
+    private void clearSocketState(WebSocket ws) {
+        if (webSocket == ws) {
+            webSocket = null;
+            connectedKey = null;
+            connectedPlayerName = null;
+            connectedPlayerUuid = null;
+            lastPingSentMs = 0L;
+        }
+    }
+
+    private static String getString(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return "";
+        }
+        try {
+            return message.get(key).getAsString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static int getInt(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return -1;
+        }
+        try {
+            return message.get(key).getAsInt();
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
+    private static long getLong(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return -1L;
+        }
+        try {
+            return message.get(key).getAsLong();
+        } catch (Exception ignored) {
+            return -1L;
+        }
+    }
+
+    private static boolean isValidKey(String key) {
+        return key != null && !key.isBlank() && key.length() <= 64;
+    }
+
+    public record Entry(int tier, long remainingMs, long receivedAtMs) {}
+}

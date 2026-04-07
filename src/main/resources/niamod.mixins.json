@@ -17,6 +17,7 @@
     "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",
+    "PlayerListHudAccessor",
     "wynntils.FunctionManagerMixin"
   ],
   "injectors": {
