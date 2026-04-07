@@ -1,6 +1,5 @@
 package org.nia.niamod.config.setting;
 
-import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.models.config.SettingCategory;
 
 import java.util.List;
@@ -9,8 +8,7 @@ import java.util.function.Supplier;
 
 public record SettingSection(String id, String title, String description, SettingCategory category,
                              Supplier<Boolean> enabledGetter, Consumer<Boolean> enabledSetter,
-                             List<ConfigSetting<?>> settings, SectionType type,
-                             Supplier<IgnoreFeature> ignoreFeatureSupplier) {
+                             List<ConfigSetting<?>> settings) {
 
     public static SettingSection standard(
             String id,
@@ -21,20 +19,9 @@ public record SettingSection(String id, String title, String description, Settin
             Consumer<Boolean> enabledSetter,
             List<ConfigSetting<?>> settings
     ) {
-        return new SettingSection(id, title, description, category, enabledGetter, enabledSetter, settings, SectionType.STANDARD, null);
+        return new SettingSection(id, title, description, category, enabledGetter, enabledSetter, settings);
     }
 
-    public static SettingSection ignoreManager(
-            String id,
-            String title,
-            String description,
-            SettingCategory category,
-            Supplier<Boolean> enabledGetter,
-            Consumer<Boolean> enabledSetter,
-            Supplier<IgnoreFeature> ignoreFeatureSupplier
-    ) {
-        return new SettingSection(id, title, description, category, enabledGetter, enabledSetter, List.of(), SectionType.IGNORE_MANAGER, ignoreFeatureSupplier);
-    }
 
     public boolean hasToggle() {
         return enabledGetter != null && enabledSetter != null;
@@ -50,12 +37,4 @@ public record SettingSection(String id, String title, String description, Settin
         }
     }
 
-    public IgnoreFeature getIgnoreFeature() {
-        return ignoreFeatureSupplier == null ? null : ignoreFeatureSupplier.get();
-    }
-
-    public enum SectionType {
-        STANDARD,
-        IGNORE_MANAGER
-    }
 }

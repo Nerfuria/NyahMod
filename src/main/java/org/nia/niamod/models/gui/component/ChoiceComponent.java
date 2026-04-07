@@ -1,5 +1,7 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.RequiredArgsConstructor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.nia.niamod.config.setting.ChoiceSetting;
@@ -8,19 +10,20 @@ import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
+@RequiredArgsConstructor
 public class ChoiceComponent {
-    public static final int HEIGHT = 16;
-    private static final int CONTROL_WIDTH = 118;
+    public static final int HEIGHT = 24;
     private static final int ARROW_WIDTH = 16;
+    private static final int MIN_CONTROL_WIDTH = 104;
+    private static final int CONTROL_HEIGHT = 14;
+    private static final int ROW_SIDE_PADDING = 4;
+    private static final int LABEL_GAP = 10;
 
     private final ChoiceSetting setting;
     private int x;
     private int y;
     private int width;
-
-    public ChoiceComponent(ChoiceSetting setting) {
-        this.setting = setting;
-    }
+    private Font lastFont;
 
     public void setPosition(int x, int y, int width) {
         this.x = x;
@@ -33,31 +36,46 @@ public class ChoiceComponent {
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        lastFont = font;
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x, y + 3, textColor, false);
+        int centerY = y + HEIGHT / 2;
+        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x + 1, centerY - font.lineHeight / 2 + 1, textColor, false);
 
-        UiRect control = controlRect();
+        UiRect control = controlRect(font);
         boolean hovered = mouseX >= control.x() && mouseX <= control.right()
                 && mouseY >= control.y() && mouseY <= control.bottom();
 
         int fillColor = hovered
                 ? Render2D.withAlpha(theme.getSecondary(), Math.min(245, opacity + 24))
                 : Render2D.withAlpha(theme.getSecondary(), Math.min(225, opacity));
-        Render2D.roundedRect(g, control.x(), control.y(), control.width(), control.height(), 0, fillColor);
+        int borderColor = hovered
+                ? Render2D.withAlpha(theme.getAccentColor(), Math.min(96, opacity + 18))
+                : Render2D.withAlpha(0xFFFFFF, Math.min(28, textAlpha));
+        Render2D.shaderRoundedSurface(g, control.x(), control.y(), control.width(), control.height(), 5, fillColor, borderColor);
 
         int dividerColor = Render2D.withAlpha(0xFFFFFF, Math.min(36, textAlpha));
         g.fill(control.x() + ARROW_WIDTH, control.y() + 2, control.x() + ARROW_WIDTH + 1, control.bottom() - 2, dividerColor);
         g.fill(control.right() - ARROW_WIDTH - 1, control.y() + 2, control.right() - ARROW_WIDTH, control.bottom() - 2, dividerColor);
 
         int arrowColor = hovered ? 0xFFFFFFFF : 0xC8FFFFFF;
-        g.drawString(font, NiaClickGuiScreen.styled("<"), control.x() + 5, control.y() + 3, arrowColor, false);
-        g.drawString(font, NiaClickGuiScreen.styled(">"), control.right() - 9, control.y() + 3, arrowColor, false);
+        int controlTextY = control.y() + Math.max(0, (control.height() - font.lineHeight) / 2);
+        g.drawString(font, NiaClickGuiScreen.styled("<"), control.x() + 5, controlTextY, arrowColor, false);
+        g.drawString(font, NiaClickGuiScreen.styled(">"), control.right() - 9, controlTextY, arrowColor, false);
 
         String label = setting.displayValue(setting.get());
+        int maxLabelWidth = control.width() - (ARROW_WIDTH * 2) - 4;
+
+        if (NiaClickGuiScreen.styledWidth(font, label) > maxLabelWidth) {
+            while (label.length() > 0 && NiaClickGuiScreen.styledWidth(font, label + "...") > maxLabelWidth) {
+                label = label.substring(0, label.length() - 1);
+            }
+            label += "...";
+        }
+
         int labelWidth = NiaClickGuiScreen.styledWidth(font, label);
         int labelX = control.x() + (control.width() - labelWidth) / 2;
-        g.drawString(font, NiaClickGuiScreen.styled(label), labelX, control.y() + 3, textColor, false);
+        g.drawString(font, NiaClickGuiScreen.styled(label), labelX, controlTextY, textColor, false);
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -65,13 +83,15 @@ public class ChoiceComponent {
             return false;
         }
 
-        UiRect control = controlRect();
+        UiRect control = controlRect(lastFont != null ? lastFont : Minecraft.getInstance().font);
         if (mouseX < control.x() || mouseX > control.right() || mouseY < control.y() || mouseY > control.bottom()) {
             return false;
         }
 
         if (mouseX <= control.x() + ARROW_WIDTH) {
             setting.previous();
+        } else if (mouseX >= control.right() - ARROW_WIDTH) {
+            setting.next();
         } else {
             setting.next();
         }
@@ -86,8 +106,10 @@ public class ChoiceComponent {
         return false;
     }
 
-    private UiRect controlRect() {
-        int controlX = x + Math.max(0, width - CONTROL_WIDTH);
-        return new UiRect(controlX, y, CONTROL_WIDTH, 14);
+    private UiRect controlRect(Font font) {
+        int controlX = x + (int) (width * 0.45f);
+        int controlWidth = Math.max(MIN_CONTROL_WIDTH, x + width - ROW_SIDE_PADDING - controlX);
+        int controlY = y + (HEIGHT - CONTROL_HEIGHT) / 2;
+        return new UiRect(controlX, controlY, controlWidth, CONTROL_HEIGHT);
     }
 }

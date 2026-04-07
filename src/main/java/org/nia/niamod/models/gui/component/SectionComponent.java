@@ -20,8 +20,10 @@ import java.util.List;
 
 public class SectionComponent {
     private static final float DEFAULT_HEIGHT = 38;
-    private static final int MODULE_WIDTH = 283;
     private static final int SETTING_START_X_OFFSET = 6;
+    private static final int CONTENT_TOP_PADDING = 6;
+    private static final int CONTENT_BOTTOM_PADDING = 6;
+    private static final int CHILD_VERTICAL_GAP = 4;
 
     private final SettingSection section;
     private final List<Object> children = new ArrayList<>();
@@ -30,6 +32,8 @@ public class SectionComponent {
     private final Animation hoverAnimation = new Animation(Easing.LINEAR, 50);
     private boolean expanded;
     private int x, y, width;
+    private int viewportClipTop = Integer.MIN_VALUE;
+    private int viewportClipBottom = Integer.MAX_VALUE;
     private boolean mouseDown;
 
     public SectionComponent(SettingSection section) {
@@ -61,6 +65,10 @@ public class SectionComponent {
         for (Object child : children) {
             if (child instanceof StringInputComponent stringComp) {
                 boxes.add(stringComp.createEditBox(font, theme));
+            } else if (child instanceof SliderComponent sliderComp) {
+                boxes.add(sliderComp.createEditBox(font, theme));
+            } else if (child instanceof ColorPickerComponent colorComp) {
+                boxes.add(colorComp.createEditBox(font, theme));
             }
         }
         return boxes;
@@ -76,6 +84,17 @@ public class SectionComponent {
         return (int) Math.round(opening.getValue());
     }
 
+    public void setViewportClip(int top, int bottom) {
+        this.viewportClipTop = top;
+        this.viewportClipBottom = bottom;
+    }
+
+    public void syncStateImmediately() {
+        opening.setValue(expanded ? calculateExpandedHeight() : DEFAULT_HEIGHT);
+        settingOpacity.setValue(expanded ? 255 : 0);
+        hoverAnimation.setValue(0);
+    }
+
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme) {
         float expandedHeight = calculateExpandedHeight();
         opening.setDuration(Math.min((long) expandedHeight * 3, 450));
@@ -85,13 +104,13 @@ public class SectionComponent {
         settingOpacity.run(expanded ? 255 : 0);
 
         int totalHeight = getHeight();
-        Render2D.roundedRect(g, x, y, width, totalHeight, 8, theme.getOverlay());
+        Render2D.shaderRoundedRect(g, x, y, width, totalHeight, 8, theme.getOverlay());
 
         boolean headerHovered = mouseX >= x && mouseX <= x + width
                 && mouseY >= y && mouseY <= y + DEFAULT_HEIGHT;
         hoverAnimation.run(headerHovered ? mouseDown ? 35 : 20 : 0);
         if (hoverAnimation.getValue() > 0.5) {
-            Render2D.roundedRect(g, x, y, width, totalHeight, 8,
+            Render2D.shaderRoundedRect(g, x, y, width, totalHeight, 8,
                     Render2D.withAlpha(0x000000, (int) hoverAnimation.getValue()));
         }
 
@@ -109,15 +128,15 @@ public class SectionComponent {
             int opacity = (int) settingOpacity.getValue();
             g.enableScissor(x, clipTop, x + width, clipBottom);
 
-            float childYOffset = DEFAULT_HEIGHT;
+            float childYOffset = DEFAULT_HEIGHT + CONTENT_TOP_PADDING;
             for (Object child : children) {
                 int childX = x + SETTING_START_X_OFFSET;
-                int childY = y + (int) childYOffset + 1;
+                int childY = y + Math.round(childYOffset);
                 int childW = width - SETTING_START_X_OFFSET * 2;
                 setChildPosition(child, childX, childY, childW);
                 renderChild(child, g, font, mouseX, mouseY, theme, opacity);
                 updateChildClipVisibility(child, clipTop, clipBottom);
-                childYOffset += getChildHeight(child);
+                childYOffset += getChildHeight(child) + CHILD_VERTICAL_GAP;
             }
 
             g.disableScissor();
@@ -127,9 +146,18 @@ public class SectionComponent {
     }
 
     private float calculateExpandedHeight() {
-        float totalChildHeight = DEFAULT_HEIGHT;
-        for (Object child : children) totalChildHeight += getChildHeight(child);
-        return totalChildHeight - 1;
+        if (children.isEmpty()) {
+            return DEFAULT_HEIGHT;
+        }
+
+        float totalChildHeight = DEFAULT_HEIGHT + CONTENT_TOP_PADDING + CONTENT_BOTTOM_PADDING;
+        for (int i = 0; i < children.size(); i++) {
+            totalChildHeight += getChildHeight(children.get(i));
+            if (i < children.size() - 1) {
+                totalChildHeight += CHILD_VERTICAL_GAP;
+            }
+        }
+        return totalChildHeight;
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -178,12 +206,20 @@ public class SectionComponent {
     private void hideAllChildren() {
         for (Object child : children) {
             if (child instanceof StringInputComponent s) s.hide();
+            else if (child instanceof SliderComponent s) s.hide();
+            else if (child instanceof ColorPickerComponent c) c.hide();
         }
     }
 
     private void updateChildClipVisibility(Object child, int clipTop, int clipBottom) {
+        int effectiveClipTop = Math.max(clipTop, viewportClipTop);
+        int effectiveClipBottom = Math.min(clipBottom, viewportClipBottom);
         if (child instanceof StringInputComponent s) {
-            s.updateClipVisibility(clipTop, clipBottom);
+            s.updateClipVisibility(effectiveClipTop, effectiveClipBottom);
+        } else if (child instanceof SliderComponent s) {
+            s.updateClipVisibility(effectiveClipTop, effectiveClipBottom);
+        } else if (child instanceof ColorPickerComponent c) {
+            c.updateClipVisibility(effectiveClipTop, effectiveClipBottom);
         }
     }
 
@@ -196,11 +232,11 @@ public class SectionComponent {
     }
 
     private int getChildHeight(Object child) {
-        if (child instanceof BooleanComponent) return BooleanComponent.HEIGHT;
-        if (child instanceof ChoiceComponent) return ChoiceComponent.HEIGHT;
-        if (child instanceof SliderComponent) return SliderComponent.HEIGHT;
+        if (child instanceof BooleanComponent c) return c.getHeight();
+        if (child instanceof ChoiceComponent c) return c.getHeight();
+        if (child instanceof SliderComponent c) return c.getHeight();
         if (child instanceof ColorPickerComponent c) return c.getHeight();
-        if (child instanceof StringInputComponent) return StringInputComponent.HEIGHT;
+        if (child instanceof StringInputComponent c) return c.getHeight();
         return 0;
     }
 
@@ -235,7 +271,15 @@ public class SectionComponent {
         if (child instanceof ChoiceComponent c) return c.mouseReleased(mx, my, button);
         if (child instanceof SliderComponent c) return c.mouseReleased(mx, my, button);
         if (child instanceof ColorPickerComponent c) return c.mouseReleased(mx, my, button);
-        if (child instanceof StringInputComponent c) return c.mouseReleased(mx, my, button);
         return false;
     }
+
+    public boolean isExpanded() {
+        return expanded;
+    }
+
+    public void setExpanded(boolean expanded) {
+        this.expanded = expanded;
+    }
+
 }

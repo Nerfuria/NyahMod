@@ -2,16 +2,17 @@ package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
 import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.render.GradientQuad;
+import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
 public class ColorPickerComponent {
-    public static final int CLOSED_HEIGHT = 15;
-    public static final int OPENED_HEIGHT = 110;
-    private static final int PICKER_WIDTH = 105;
-    private static final int PICKER_ROUND = 8;
+    public static final int CLOSED_HEIGHT = 18;
+    public static final int OPENED_HEIGHT = 116;
 
     private final ColorSetting setting;
     private boolean expanded;
@@ -20,7 +21,7 @@ public class ColorPickerComponent {
     private boolean draggingHue;
 
     private int x, y, width;
-    private int cachedLabelWidth;
+    private EditBox hexInput;
 
     public ColorPickerComponent(ColorSetting setting) {
         this.setting = setting;
@@ -28,6 +29,38 @@ public class ColorPickerComponent {
         this.hue = hsv[0];
         this.saturation = hsv[1];
         this.value = hsv[2];
+    }
+
+    public EditBox createEditBox(Font font, ClickGuiTheme theme) {
+        int inputHeight = Math.max(16, font.lineHeight + 4);
+        hexInput = new EditBox(font, 0, 0, 46, inputHeight, NiaClickGuiScreen.styled("Hex"));
+        hexInput.setBordered(false);
+        hexInput.setHeight(inputHeight);
+        hexInput.setTextColor(0xFFFFFFFF);
+        NiaClickGuiScreen.applyClickGuiFont(hexInput, "Hex");
+        hexInput.setValue(getHex());
+        hexInput.setResponder(this::onHexChanged);
+        return hexInput;
+    }
+
+    private String getHex() {
+        int currentColor = Render2D.hsvToRgb(hue, saturation, value);
+        return String.format("#%06X", currentColor);
+    }
+
+    private void onHexChanged(String text) {
+        if (draggingHue || draggingSV) return;
+        if (text.startsWith("#")) text = text.substring(1);
+        if (text.length() == 6) {
+            try {
+                int rgb = Integer.parseInt(text, 16);
+                setting.set(rgb);
+                float[] hsv = Render2D.rgbToHsv(rgb);
+                this.hue = hsv[0];
+                this.saturation = hsv[1];
+                this.value = hsv[2];
+            } catch (NumberFormatException ignored) {}
+        }
     }
 
     public void setPosition(int x, int y, int width) {
@@ -43,85 +76,140 @@ public class ColorPickerComponent {
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
+        int centerY = y + CLOSED_HEIGHT / 2;
 
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x, y + 2, textColor, false);
+        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x, centerY - font.lineHeight / 2 + 1, textColor, false);
 
-        cachedLabelWidth = NiaClickGuiScreen.styledWidth(font, setting.getTitle());
-
-        int swatchX = x + cachedLabelWidth + 4;
-        int swatchY = y + 2;
+        int swatchSize = 12;
+        int swatchX = x + width - swatchSize - 4;
+        int swatchY = centerY - swatchSize / 2;
         int currentColor = 0xFF000000 | Render2D.hsvToRgb(hue, saturation, value);
-        Render2D.roundedRect(g, swatchX, swatchY, 15, 7, 3, currentColor);
 
-        if (!expanded) return;
+        Render2D.shaderRoundedSurface(
+                g,
+                swatchX - 1,
+                swatchY - 1,
+                swatchSize + 2,
+                swatchSize + 2,
+                4,
+                Render2D.withAlpha(currentColor, opacity),
+                Render2D.withAlpha(0xFFFFFF, Math.min(72, opacity))
+        );
 
-        int pickerX = x + 10 + cachedLabelWidth + 8;
-        int pickerY = y;
-        int pickerH = OPENED_HEIGHT - 15;
+        int hexWidth = 50;
+        int hexX = swatchX - hexWidth - 8;
+        int hexHeight = hexInput != null ? hexInput.getHeight() : Math.max(18, font.lineHeight + 6);
+        int hexY = centerY - hexHeight / 2;
 
-        Render2D.dropShadow(g, pickerX, pickerY, PICKER_WIDTH, pickerH, 10, 40, PICKER_ROUND);
-        Render2D.roundedRect(g, pickerX - 1, pickerY, PICKER_WIDTH + 1, pickerH, PICKER_ROUND, theme.getSecondary());
-        Render2D.roundedRect(g, pickerX, pickerY + 1, PICKER_WIDTH - 1, pickerH - 2, PICKER_ROUND, theme.getBackground());
+        if (hexInput != null) {
+            int hexBorder = hexInput.isFocused()
+                    ? Render2D.withAlpha(theme.getAccentColor(), Math.min(120, opacity + 30))
+                    : Render2D.withAlpha(0xFFFFFF, Math.min(34, opacity / 6 + 18));
+            Render2D.shaderRoundedSurface(
+                    g,
+                    hexX,
+                    hexY,
+                    hexWidth,
+                    hexHeight,
+                    5,
+                    Render2D.withAlpha(theme.getSecondary(), Math.min(200, opacity)),
+                    hexBorder
+            );
 
-        int gradX = pickerX;
-        int gradY = pickerY;
-        int gradW = PICKER_WIDTH - 1;
-        int gradH = (int) (pickerH * 0.55f);
-        renderSVField(g, gradX, gradY, gradW, gradH);
+            boolean active = opacity > 10;
+            hexInput.visible = active;
+            hexInput.active = active;
+            hexInput.setEditable(active);
+            if (!hexInput.isFocused()) {
+                hexInput.setValue(getHex());
+                hexInput.moveCursorToStart(false);
+            }
+            NiaClickGuiScreen.layoutBorderlessEditBox(hexInput, font, hexX + 6, hexY, hexWidth - 12, hexHeight);
+        }
 
-        int crossX = gradX + Math.round(saturation * gradW);
-        int crossY = gradY + Math.round((1.0f - value) * gradH);
-        Render2D.roundedRect(g, crossX - 3, crossY - 3, 7, 7, 3, 0xFFFFFFFF);
-        Render2D.roundedRect(g, crossX - 3, crossY - 3, 6, 6, 3, 0xFF000000);
-        Render2D.roundedRect(g, crossX - 2, crossY - 2, 5, 5, 2, currentColor);
+        if (!expanded) {
+            return;
+        }
 
-        double padding = 8.5;
-        int hueBarX = (int) (pickerX + padding);
-        int hueBarY = (int) (gradY + padding + gradH - 5 + 2.5);
-        int hueBarW = (int) (PICKER_WIDTH - padding * 2);
-        int hueBarH = 7;
-        renderHueBar(g, hueBarX, hueBarY, hueBarW, hueBarH);
+        int panelX = x + 4;
+        int panelY = y + 20;
+        int panelW = width - 8;
+        int panelH = OPENED_HEIGHT - 24;
 
-        float huePointer = hue / 360.0f * hueBarW;
-        int markerSize = 11;
-        int markerX = hueBarX + Math.round(huePointer) - markerSize / 2;
-        Render2D.roundedRect(g, markerX - 1, hueBarY - 1, markerSize + 2, hueBarH + 2, 4, 0xFF000000);
-        Render2D.roundedRect(g, markerX, hueBarY, markerSize, hueBarH, 3,
-                0xFF000000 | Render2D.hsvToRgb(hue, 1.0f, 1.0f));
+        Render2D.shaderRoundedSurface(
+                g,
+                panelX,
+                panelY,
+                panelW,
+                panelH,
+                6,
+                Render2D.withAlpha(theme.getSecondary(), opacity),
+                Render2D.withAlpha(0xFFFFFF, Math.min(28, opacity / 6 + 16))
+        );
 
-        int previewY = (int) (gradY + gradH + padding + padding + 7 - 11);
-        Render2D.dropShadow(g, (int) (pickerX + padding), previewY, 15, 15, 10, 40, 6);
-        Render2D.roundedRect(g, (int) (pickerX + padding), previewY, 15, 15, 3, currentColor);
+        int svX = panelX + 4;
+        int svY = panelY + 4;
+        int svW = panelW - 8;
+        int svH = 70;
+        renderSVField(g, svX, svY, svW, svH, opacity);
+        Render2D.outline(g, new UiRect(svX - 1, svY - 1, svW + 2, svH + 2), Render2D.withAlpha(0xFFFFFF, Math.min(40, opacity)));
 
-        int r = (currentColor >> 16) & 0xFF;
-        int gr = (currentColor >> 8) & 0xFF;
-        int b = currentColor & 0xFF;
-        int textX = (int) (pickerX + padding * 2 + 15);
-        g.drawString(font, NiaClickGuiScreen.styled(String.valueOf(r)), textX + 9, previewY + 3, 0xDCFFFFFF, false);
-        g.drawString(font, NiaClickGuiScreen.styled(String.valueOf(gr)), textX + 30, previewY + 3, 0xDCFFFFFF, false);
-        g.drawString(font, NiaClickGuiScreen.styled(String.valueOf(b)), textX + 51, previewY + 3, 0xDCFFFFFF, false);
+        int crossX = svX + Math.round(saturation * svW);
+        int crossY = svY + Math.round((1.0f - value) * svH);
+        Render2D.circle(g, crossX, crossY, 6, Render2D.withAlpha(0xFFFFFF, opacity));
+        Render2D.circle(g, crossX, crossY, 4, Render2D.withAlpha(currentColor, opacity));
 
-        String hexText = String.format("#%02X%02X%02X", r, gr, b);
-        g.drawString(font, NiaClickGuiScreen.styled(hexText), textX, previewY + 16, 0xFF373B3D, false);
+        int hueX = panelX + 4;
+        int hueY = svY + svH + 6;
+        int hueW = panelW - 8;
+        int hueH = 8;
+        renderHueBar(g, hueX, hueY, hueW, hueH, opacity);
+        Render2D.outline(g, new UiRect(hueX - 1, hueY - 1, hueW + 2, hueH + 2), Render2D.withAlpha(0xFFFFFF, Math.min(40, opacity)));
+
+        float huePointer = hue / 360.0f * hueW;
+        int markerX = hueX + Math.round(huePointer);
+        Render2D.shaderRoundedRect(g, markerX - 2, hueY - 1, 4, hueH + 2, 2, Render2D.withAlpha(0xFFFFFF, opacity));
     }
 
-    private void renderSVField(GuiGraphics g, int fx, int fy, int fw, int fh) {
-        int step = 2;
-        for (int gx = 0; gx < fw; gx += step) {
-            for (int gy = 0; gy < fh; gy += step) {
-                float s = (float) gx / fw;
-                float v = 1.0f - (float) gy / fh;
-                int color = 0xFF000000 | Render2D.hsvToRgb(hue, s, v);
-                g.fill(fx + gx, fy + gy, fx + gx + step, fy + gy + step, color);
-            }
+    private void renderSVField(GuiGraphics g, int fx, int fy, int fw, int fh, int opacity) {
+        g.guiRenderState.submitGuiElement(new GradientQuad(
+                g.pose(),
+                fx,
+                fx + fw,
+                fy,
+                fy + fh,
+                g.scissorStack.peek(),
+                Render2D.withAlpha(Render2D.hsvToRgb(hue, 1.0f, 1.0f), opacity)
+        ));
+    }
+
+    private void renderHueBar(GuiGraphics g, int bx, int by, int bw, int bh, int opacity) {
+        for (int i = 0; i < bw; i++) {
+            float h = (float) i / bw * 360.0f;
+            int color = Render2D.withAlpha(Render2D.hsvToRgb(h, 1.0f, 1.0f), opacity);
+            g.fill(bx + i, by, bx + i + 1, by + bh, color);
         }
     }
 
-    private void renderHueBar(GuiGraphics g, int bx, int by, int bw, int bh) {
-        for (int i = 0; i < bw; i++) {
-            float h = (float) i / bw * 360.0f;
-            int color = 0xFF000000 | Render2D.hsvToRgb(h, 1.0f, 1.0f);
-            g.fill(bx + i, by, bx + i + 1, by + bh, color);
+    public void updateClipVisibility(int clipTop, int clipBottom) {
+        if (hexInput == null) return;
+        int centerY = y + CLOSED_HEIGHT / 2;
+        int editY = centerY - hexInput.getHeight() / 2;
+        int editBottom = editY + hexInput.getHeight();
+        boolean visible = editY >= clipTop && editBottom <= clipBottom;
+        if (!visible) {
+            hide();
+        }
+    }
+
+    public void hide() {
+        if (hexInput != null) {
+            hexInput.setX(-300);
+            hexInput.setY(-300);
+            hexInput.setFocused(false);
+            hexInput.visible = false;
+            hexInput.active = false;
+            hexInput.setEditable(false);
         }
     }
 
@@ -129,32 +217,44 @@ public class ColorPickerComponent {
         if (button != 0) return false;
 
         if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + CLOSED_HEIGHT) {
+            int swatchSize = 12;
+            int swatchX = x + width - swatchSize - 4;
+            int hexWidth = 50;
+            int hexX = swatchX - hexWidth - 6;
+
+            if (mouseX >= hexX && mouseX <= hexX + hexWidth) {
+                return false;
+            }
+
             expanded = !expanded;
             return true;
         }
 
         if (!expanded) return false;
 
-        int pickerX = x + 10 + cachedLabelWidth + 8;
-        int pickerY = y;
-        int pickerH = OPENED_HEIGHT - 15;
-        int gradW = PICKER_WIDTH - 1;
-        int gradH = (int) (pickerH * 0.55f);
+        int panelX = x + 4;
+        int panelY = y + 20;
+        int panelW = width - 8;
 
-        if (mouseX >= pickerX && mouseX <= pickerX + gradW && mouseY >= pickerY && mouseY <= pickerY + gradH) {
+        int svX = panelX + 4;
+        int svY = panelY + 4;
+        int svW = panelW - 8;
+        int svH = 70;
+
+        if (mouseX >= svX && mouseX <= svX + svW && mouseY >= svY && mouseY <= svY + svH) {
             draggingSV = true;
-            updateSV(mouseX, mouseY, pickerX, pickerY, gradW, gradH);
+            updateSV(mouseX, mouseY, svX, svY, svW, svH);
             return true;
         }
 
-        double padding = 8.5;
-        int hueBarX = (int) (pickerX + padding);
-        int hueBarY = (int) (pickerY + padding + gradH - 5 + 2.5);
-        int hueBarW = (int) (PICKER_WIDTH - padding * 2);
-        int hueBarH = 7;
-        if (mouseX >= hueBarX && mouseX <= hueBarX + hueBarW && mouseY >= hueBarY - 2 && mouseY <= hueBarY + hueBarH + 2) {
+        int hueX = panelX + 4;
+        int hueY = svY + svH + 6;
+        int hueW = panelW - 8;
+        int hueH = 8;
+
+        if (mouseX >= hueX && mouseX <= hueX + hueW && mouseY >= hueY - 2 && mouseY <= hueY + hueH + 2) {
             draggingHue = true;
-            updateHue(mouseX, hueBarX, hueBarW);
+            updateHue(mouseX, hueX, hueW);
             return true;
         }
 
@@ -163,20 +263,22 @@ public class ColorPickerComponent {
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (draggingSV) {
-            int pickerX = x + 10 + cachedLabelWidth + 8;
-            int pickerY = y;
-            int pickerH = OPENED_HEIGHT - 15;
-            int gradW = PICKER_WIDTH - 1;
-            int gradH = (int) (pickerH * 0.55f);
-            updateSV(mouseX, mouseY, pickerX, pickerY, gradW, gradH);
+            int panelX = x + 4;
+            int panelY = y + 20;
+            int panelW = width - 8;
+            int svX = panelX + 4;
+            int svY = panelY + 4;
+            int svW = panelW - 8;
+            int svH = 70;
+            updateSV(mouseX, mouseY, svX, svY, svW, svH);
             return true;
         }
         if (draggingHue) {
-            double padding = 8.5;
-            int pickerX = x + 10 + cachedLabelWidth + 8;
-            int hueBarX = (int) (pickerX + padding);
-            int hueBarW = (int) (PICKER_WIDTH - padding * 2);
-            updateHue(mouseX, hueBarX, hueBarW);
+            int panelX = x + 4;
+            int panelW = width - 8;
+            int hueX = panelX + 4;
+            int hueW = panelW - 8;
+            updateHue(mouseX, hueX, hueW);
             return true;
         }
         return false;

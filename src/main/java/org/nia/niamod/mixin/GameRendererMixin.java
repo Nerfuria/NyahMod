@@ -4,30 +4,37 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.world.level.GameType;
 import org.joml.Matrix4f;
-import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.models.events.HeldItemBobbingEvent;
+import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
-
     @Final
     @Shadow
     public ItemInHandRenderer itemInHandRenderer;
+
     @Final
     @Shadow
     private Minecraft minecraft;
+
+    @Unique
+    private boolean niamod$skipVanillaHandRender = false;
 
     @Inject(
             method = "renderItemInHand",
@@ -37,30 +44,24 @@ public abstract class GameRendererMixin {
                     shift = At.Shift.BEFORE
             )
     )
-    private void onBeforeBobView(
-            float tickProgress, boolean sleeping, Matrix4f positionMatrix,
+    private void niamod$onBeforeBobView(
+            float tickProgress,
+            boolean sleeping,
+            Matrix4f positionMatrix,
             CallbackInfo ci,
             @Local PoseStack matrixStack
     ) {
-        if (!NyahConfig.nyahConfigData.isDisableHeldBobbing()) return;
+        niamod$skipVanillaHandRender = false;
 
-        if (!this.minecraft.options.getCameraType().isFirstPerson()
-                || sleeping
-                || this.minecraft.options.hideGui
-                || this.minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR) {
-            return;
-        }
-
-        int light = this.minecraft.getEntityRenderDispatcher()
-                .getPackedLightCoords(this.minecraft.player, tickProgress);
-
-        this.itemInHandRenderer.renderHandsWithItems(
+        HeldItemBobbingEvent event = new HeldItemBobbingEvent(
+                this.minecraft,
+                this.itemInHandRenderer,
                 tickProgress,
-                matrixStack,
-                this.minecraft.gameRenderer.getSubmitNodeStorage(),
-                this.minecraft.player,
-                light
+                sleeping,
+                matrixStack
         );
+
+        NiaEventBus.dispatch(event, canceled -> niamod$skipVanillaHandRender = true);
     }
 
     @WrapOperation(
@@ -70,11 +71,39 @@ public abstract class GameRendererMixin {
                     target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V"
             )
     )
-    private void cancel(
-            ItemInHandRenderer instance, float tickProgress, PoseStack matrices, SubmitNodeCollector orderedRenderCommandQueue, LocalPlayer player, int light, Operation<Void> original
+    private void niamod$skipRender(
+            ItemInHandRenderer instance,
+            float tickProgress,
+            PoseStack matrices,
+            SubmitNodeCollector orderedRenderCommandQueue,
+            LocalPlayer player,
+            int light,
+            Operation<Void> original
     ) {
-        if (!NyahConfig.nyahConfigData.isDisableHeldBobbing() || !this.minecraft.options.bobView().get()) {
-            original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
+        if (niamod$skipVanillaHandRender) {
+            niamod$skipVanillaHandRender = false;
+            return;
+        }
+        original.call(instance, tickProgress, matrices, orderedRenderCommandQueue, player, light);
+    }
+
+    @Inject(
+            method = "render",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V",
+                    shift = At.Shift.BEFORE
+            )
+    )
+    private void niamod$prepareClickGuiAnimation(
+            DeltaTracker deltaTracker,
+            boolean renderLevel,
+            CallbackInfo ci,
+            @Local GuiGraphics guiGraphics
+    ) {
+        if (this.minecraft.screen instanceof NiaClickGuiScreen clickGuiScreen && clickGuiScreen.shouldPreparePortalSnapshot()) {
+            clickGuiScreen.preparePortalSnapshotOffscreen();
+            clickGuiScreen.renderPortalTransition(guiGraphics);
         }
     }
 }
