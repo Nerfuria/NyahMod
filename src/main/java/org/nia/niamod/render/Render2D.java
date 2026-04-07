@@ -1,9 +1,15 @@
 package org.nia.niamod.render;
 
 import lombok.experimental.UtilityClass;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.FilterMode;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.state.GuiRenderState;
 import org.nia.niamod.models.gui.render.UiRect;
+import org.nia.niamod.mixin.GuiGraphicsAccessor;
 
 @UtilityClass
 public class Render2D {
@@ -183,5 +189,245 @@ public class Render2D {
                 | (Math.round(aR + (bR - aR) * t) << 16)
                 | (Math.round(aG + (bG - aG) * t) << 8)
                 | Math.round(aB + (bB - aB) * t);
+    }
+
+    public static void shaderRoundedRect(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+        if (!submitGuiShaderRect(g, NiaPipelines.GUI_ROUNDED_RECT, x, y, w, h, color, radius, 0)) {
+            roundedRect(g, x, y, w, h, radius, color);
+        }
+    }
+
+    public static void shaderRoundedSurface(GuiGraphics g, int x, int y, int w, int h, int radius, int fillColor, int borderColor) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+
+        if (((borderColor >>> 24) & 0xFF) > 0) {
+            shaderRoundedRect(g, x, y, w, h, radius, borderColor);
+            if (w <= 2 || h <= 2) {
+                return;
+            }
+            shaderRoundedRect(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1), fillColor);
+            return;
+        }
+
+        shaderRoundedRect(g, x, y, w, h, radius, fillColor);
+    }
+
+    public static void shaderPortalOverlay(GuiGraphics g, int x, int y, int w, int h, int color, float progress) {
+        int encodedProgress = Math.max(0, Math.min(1000, Math.round(progress * 1000.0f)));
+        int time = (int) ((System.currentTimeMillis() / 4L) % 60000L);
+        if (!submitGuiShaderRect(g, NiaPipelines.GUI_PORTAL_OVERLAY, x, y, w, h, color, encodedProgress, time)) {
+            int alpha = Math.max(0, Math.min(255, Math.round(((color >>> 24) & 0xFF) * progress)));
+            roundedRect(g, x, y, w, h, Math.max(6, Math.min(w, h) / 5), withAlpha(color, alpha));
+        }
+    }
+
+    public static void shaderPortalCapture(
+            GuiGraphics g,
+            NiaRenderTarget snapshot,
+            int x,
+            int y,
+            int w,
+            int h,
+            float progress,
+            float seedX,
+            float seedY,
+            int color,
+            int sourceX,
+            int sourceY,
+            int sourceWidth,
+            int sourceHeight
+    ) {
+        shaderWindowCapture(
+                g,
+                NiaPipelines.GUI_PORTAL_CAPTURE,
+                snapshot,
+                x,
+                y,
+                w,
+                h,
+                progress,
+                seedX,
+                seedY,
+                color,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight
+        );
+    }
+
+    public static void shaderIncinerateCapture(
+            GuiGraphics g,
+            NiaRenderTarget snapshot,
+            int x,
+            int y,
+            int w,
+            int h,
+            float progress,
+            float seedX,
+            float seedY,
+            int color,
+            int sourceX,
+            int sourceY,
+            int sourceWidth,
+            int sourceHeight
+    ) {
+        shaderWindowCapture(
+                g,
+                NiaPipelines.GUI_INCINERATE_CAPTURE,
+                snapshot,
+                x,
+                y,
+                w,
+                h,
+                progress,
+                seedX,
+                seedY,
+                color,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight
+        );
+    }
+
+    public static void shaderMushroomCapture(
+            GuiGraphics g,
+            NiaRenderTarget snapshot,
+            int x,
+            int y,
+            int w,
+            int h,
+            float progress,
+            float seedX,
+            float seedY,
+            int color,
+            int sourceX,
+            int sourceY,
+            int sourceWidth,
+            int sourceHeight
+    ) {
+        shaderWindowCapture(
+                g,
+                NiaPipelines.GUI_MUSHROOM_CAPTURE,
+                snapshot,
+                x,
+                y,
+                w,
+                h,
+                progress,
+                seedX,
+                seedY,
+                color,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight
+        );
+    }
+
+    private static void shaderWindowCapture(
+            GuiGraphics g,
+            com.mojang.blaze3d.pipeline.RenderPipeline pipeline,
+            NiaRenderTarget snapshot,
+            int x,
+            int y,
+            int w,
+            int h,
+            float progress,
+            float seedX,
+            float seedY,
+            int color,
+            int sourceX,
+            int sourceY,
+            int sourceWidth,
+            int sourceHeight
+    ) {
+        if (snapshot == null || snapshot.getColorTextureView() == null) {
+            return;
+        }
+
+        TextureSetup textureSetup = TextureSetup.singleTexture(
+                snapshot.getColorTextureView(),
+                RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)
+        );
+
+        if (!(g instanceof GuiGraphicsAccessor accessor)) {
+            return;
+        }
+
+        GuiRenderState renderState = accessor.niamod$getGuiRenderState();
+        if (renderState == null) {
+            return;
+        }
+        ScreenRectangle scissorArea = currentScissorArea(accessor);
+
+        renderState.submitGuiElement(new GuiPortalRectRenderState(
+                pipeline,
+                textureSetup,
+                g.pose(),
+                x,
+                y,
+                w,
+                h,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight,
+                color,
+                progress,
+                seedX,
+                seedY,
+                g.guiWidth(),
+                g.guiHeight(),
+                scissorArea
+        ));
+    }
+
+    private static boolean submitGuiShaderRect(
+            GuiGraphics g,
+            com.mojang.blaze3d.pipeline.RenderPipeline pipeline,
+            int x,
+            int y,
+            int w,
+            int h,
+            int color,
+            int param0,
+            int param1
+    ) {
+        if (!(g instanceof GuiGraphicsAccessor accessor) || w <= 0 || h <= 0) {
+            return false;
+        }
+
+        GuiRenderState renderState = accessor.niamod$getGuiRenderState();
+        if (renderState == null) {
+            return false;
+        }
+        ScreenRectangle scissorArea = currentScissorArea(accessor);
+
+        renderState.submitGuiElement(new GuiShaderRectRenderState(
+                pipeline,
+                g.pose(),
+                x,
+                y,
+                w,
+                h,
+                color,
+                param0,
+                param1,
+                g.guiWidth(),
+                g.guiHeight(),
+                scissorArea
+        ));
+        return true;
+    }
+
+    private static ScreenRectangle currentScissorArea(GuiGraphicsAccessor accessor) {
+        if (accessor instanceof GuiGraphicsScissorState scissorState) {
+            return scissorState.niamod$getCurrentScissorArea();
+        }
+        return null;
     }
 }

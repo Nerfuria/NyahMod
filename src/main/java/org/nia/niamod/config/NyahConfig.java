@@ -15,10 +15,12 @@ import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.models.config.ClickGuiAnimationMode;
 import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
+import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -72,10 +74,44 @@ public class NyahConfig {
                 "Core Wynncraft data and shared client preferences.",
                 SettingCategory.GENERAL,
                 () -> true,
-                null,
+                (a) -> {
+                },
                 List.of(
-                        string("api_base", "API URL", "Base Wynncraft API URL.", nyahConfigData::getApiBase, nyahConfigData::setApiBase),
-                        string("guild_name", "Guild Name", "Guild used by social tools like Ignore.", nyahConfigData::getGuildName, NyahConfig::setGuildName)
+                        string("api_base", "API URL", "Base Wynncraft API URL.", () -> nyahConfigData.getApiBase(), val -> nyahConfigData.setApiBase(val)),
+                        string("guild_name", "Guild Name", "Guild used by social tools like Ignore.", () -> nyahConfigData.getGuildName(), NyahConfig::setGuildName)
+                )
+        ));
+
+        SECTIONS.add(SettingSection.standard(
+                "gui",
+                "GUI Settings",
+                "Visual customizations for the Click GUI.",
+                SettingCategory.GENERAL,
+                () -> true,
+                (a) -> {
+                },
+                List.of(
+                        choice("click_gui_theme", "GUI Theme", "Color scheme for the Click GUI.", NyahConfig::getClickGuiThemeEnum, NyahConfig::setClickGuiThemeEnum, ClickGuiThemeOption.class),
+                        choice("click_gui_font", "GUI Font", "Font used in the Click GUI.", NyahConfig::getClickGuiFontEnum, NyahConfig::setClickGuiFontEnum, ClickGuiFontOption.class),
+                        choice("click_gui_animation", "GUI Animation", "Opening and closing effect for the Click GUI.",
+                                nyahConfigData::getClickGuiAnimation, nyahConfigData::setClickGuiAnimation, ClickGuiAnimationMode.class),
+                        integer("animation_time", "Animation Time", "Time for config animation.", 100, 2000, () -> nyahConfigData.getAnimationTime(), val -> nyahConfigData.setAnimationTime(val)),
+                        floating("gui_opacity", "GUI Opacity", "Overall background transparency.", 0.1f, 1.0f, () -> nyahConfigData.getGuiOpacity(), val -> nyahConfigData.setGuiOpacity(val)),
+                        color("custom_gui_background", "Custom Background", "Background color for the Custom theme.", NyahConfig::getActiveThemeBackground, val -> {
+                            nyahConfigData.setCustomGuiBackground(val);
+                            if (val != getActiveThemeBackground()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            save();
+                        }),
+                        color("custom_gui_secondary", "Custom Secondary", "Secondary color for the Custom theme.", NyahConfig::getActiveThemeSecondary, val -> {
+                            nyahConfigData.setCustomGuiSecondary(val);
+                            if (val != getActiveThemeSecondary()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            save();
+                        }),
+                        color("custom_gui_accent", "Custom Accent", "Accent color for the Custom theme.", NyahConfig::getActiveThemeAccent, val -> {
+                            nyahConfigData.setCustomGuiAccent(val);
+                            if (val != getActiveThemeAccent()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            save();
+                        })
                 )
         ));
 
@@ -84,51 +120,39 @@ public class NyahConfig {
                 "Chat Encryption",
                 "Encrypt and decode guild messages with a shared key.",
                 SettingCategory.GENERAL,
-                nyahConfigData::isChatEncryptionFeatureEnabled,
+                () -> nyahConfigData.isChatEncryptionFeatureEnabled(),
                 value -> {
                     nyahConfigData.setChatEncryptionFeatureEnabled(value);
                     applyFeatureStates();
                     save();
                 },
                 List.of(
-                        string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", nyahConfigData::getEncryptionPrefix, nyahConfigData::setEncryptionPrefix),
-                        string("encryption_key", "Encryption Key", "Shared AES key material.", nyahConfigData::getEncryptionKey, nyahConfigData::setEncryptionKey),
-                        integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, nyahConfigData::getSaltLength, nyahConfigData::setSaltLength)
-                )
-        ));
-
-        SECTIONS.add(SettingSection.standard(
-                "shout_filter",
-                "Shout Filter",
-                "Modify shouts to be less obstructive.",
-                SettingCategory.GENERAL,
-                nyahConfigData::isShoutFilterFeatureEnabled,
-                value -> {
-                    nyahConfigData.setShoutFilterFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
-                },
-                List.of(
-                        choice("filter_mode", "Shout Filter Mode", "What to replace shouts with", nyahConfigData::getShoutFilterMode, nyahConfigData::setShoutFilterMode, ShoutReplacement.class)
+                        string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", () -> nyahConfigData.getEncryptionPrefix(), val -> nyahConfigData.setEncryptionPrefix(val)),
+                        string("encryption_key", "Encryption Key", "Shared AES key material.", () -> nyahConfigData.getEncryptionKey(), val -> nyahConfigData.setEncryptionKey(val)),
+                        integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, () -> nyahConfigData.getSaltLength(), val -> nyahConfigData.setSaltLength(val))
                 )
         ));
 
         SECTIONS.add(SettingSection.standard(
                 "view_model",
                 "View Model",
-                "Hand offsets, rotations and held-item bobbing.",
+                "Hand offsets, rotations",
                 SettingCategory.GENERAL,
-                null,
-                null,
+                () -> nyahConfigData.isViewModelFeatureEnabled(),
+                value -> {
+                    nyahConfigData.setViewModelFeatureEnabled(value);
+                    applyFeatureStates();
+                    save();
+                },
                 List.of(
-                        integer("x_offset", "X Offset", "Horizontal offset in hundredths.", -150, 150, nyahConfigData::getXOffset, nyahConfigData::setXOffset),
-                        integer("y_offset", "Y Offset", "Vertical offset in hundredths.", -150, 150, nyahConfigData::getYOffset, nyahConfigData::setYOffset),
-                        integer("z_offset", "Z Offset", "Depth offset in hundredths.", -150, 50, nyahConfigData::getZOffset, nyahConfigData::setZOffset),
-                        integer("x_rotation", "X Rotation", "Pitch rotation.", -180, 180, nyahConfigData::getXRotation, nyahConfigData::setXRotation),
-                        integer("y_rotation", "Y Rotation", "Yaw rotation.", -180, 180, nyahConfigData::getYRotation, nyahConfigData::setYRotation),
-                        integer("z_rotation", "Z Rotation", "Roll rotation.", -180, 180, nyahConfigData::getZRotation, nyahConfigData::setZRotation),
-                        floating("item_scale", "Item Scale", "Held item scale multiplier.", 0.1f, 3.0f, nyahConfigData::getItemScale, nyahConfigData::setItemScale),
-                        bool("disable_held_bobbing", "Disable Bobbing", "Renders hands without vanilla bobbing.", nyahConfigData::isDisableHeldBobbing, nyahConfigData::setDisableHeldBobbing)
+                        integer("x_offset", "X Offset", "Horizontal offset in hundredths.", -150, 150, () -> nyahConfigData.getXOffset(), val -> nyahConfigData.setXOffset(val)),
+                        integer("y_offset", "Y Offset", "Vertical offset in hundredths.", -150, 150, () -> nyahConfigData.getYOffset(), val -> nyahConfigData.setYOffset(val)),
+                        integer("z_offset", "Z Offset", "Depth offset in hundredths.", -150, 50, () -> nyahConfigData.getZOffset(), val -> nyahConfigData.setZOffset(val)),
+                        integer("x_rotation", "X Rotation", "Pitch rotation.", -180, 180, () -> nyahConfigData.getXRotation(), val -> nyahConfigData.setXRotation(val)),
+                        integer("y_rotation", "Y Rotation", "Yaw rotation.", -180, 180, () -> nyahConfigData.getYRotation(), val -> nyahConfigData.setYRotation(val)),
+                        integer("z_rotation", "Z Rotation", "Roll rotation.", -180, 180, () -> nyahConfigData.getZRotation(), val -> nyahConfigData.setZRotation(val)),
+                        floating("item_scale", "Item Scale", "Held item scale multiplier.", 0.1f, 3.0f, () -> nyahConfigData.getItemScale(), val -> nyahConfigData.setItemScale(val)),
+                        bool("disable_held_bobbing", "Disable Bobbing", "Renders hands without vanilla bobbing.", () -> nyahConfigData.isDisableHeldBobbing(), val -> nyahConfigData.setDisableHeldBobbing(val))
                 )
         ));
 
@@ -137,7 +161,7 @@ public class NyahConfig {
                 "Resource Tick",
                 "Tracks the current guild resource tick from territory data.",
                 SettingCategory.WAR,
-                nyahConfigData::isResourceTickFeatureEnabled,
+                () -> nyahConfigData.isResourceTickFeatureEnabled(),
                 value -> {
                     nyahConfigData.setResourceTickFeatureEnabled(value);
                     applyFeatureStates();
@@ -151,16 +175,17 @@ public class NyahConfig {
                 "Territory Boxes",
                 "Draws upcoming attack territories directly in-world.",
                 SettingCategory.WAR,
-                nyahConfigData::isWarTimersFeatureEnabled,
+                () -> nyahConfigData.isWarTimersFeatureEnabled(),
                 value -> {
                     nyahConfigData.setWarTimersFeatureEnabled(value);
                     applyFeatureStates();
                     save();
                 },
                 List.of(
-                        color("territory_color", "Box Color", "Color used for queued territory outlines.", nyahConfigData::getColor, nyahConfigData::setColor),
-                        integer("maximum_territories", "Max Territories", "Maximum queued territories to render.", 1, 30, nyahConfigData::getMaximumTerritories, nyahConfigData::setMaximumTerritories),
-                        integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, nyahConfigData::getMaximumDistance, nyahConfigData::setMaximumDistance)
+                        color("territory_color", "Box Color", "Color used for queued territory outlines.", () -> nyahConfigData.getColor(), val -> nyahConfigData.setColor(val)),
+                        color("unqueued_territory_color", "Unqueued Box Color", "Color used for unqueued territory outlines.", () -> nyahConfigData.getNotQColor(), val -> nyahConfigData.setNotQColor(val)),
+                        integer("maximum_territories", "Max Territories", "Maximum queued territories to render.", 1, 30, () -> nyahConfigData.getMaximumTerritories(), val -> nyahConfigData.setMaximumTerritories(val)),
+                        integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, () -> nyahConfigData.getMaximumDistance(), val -> nyahConfigData.setMaximumDistance(val))
                 )
         ));
 
@@ -169,16 +194,16 @@ public class NyahConfig {
                 "Consumable Labels",
                 "Compact crafted-consumable identifiers in inventories.",
                 SettingCategory.WAR,
-                nyahConfigData::isConsuTextFeatureEnabled,
+                () -> nyahConfigData.isConsuTextFeatureEnabled(),
                 value -> {
                     nyahConfigData.setConsuTextFeatureEnabled(value);
                     applyFeatureStates();
                     save();
                 },
                 List.of(
-                        floating("label_scale", "Label Scale", "Overlay text scale.", 0.25f, 2.5f, nyahConfigData::getIdScale, nyahConfigData::setIdScale),
-                        integer("label_x_offset", "Label X Offset", "Horizontal label offset.", -16, 16, nyahConfigData::getIdXOffset, nyahConfigData::setIdXOffset),
-                        integer("label_y_offset", "Label Y Offset", "Vertical label offset.", -16, 16, nyahConfigData::getIdYOffset, nyahConfigData::setIdYOffset)
+                        floating("label_scale", "Label Scale", "Overlay text scale.", 0.25f, 2.5f, () -> nyahConfigData.getIdScale(), val -> nyahConfigData.setIdScale(val)),
+                        integer("label_x_offset", "Label X Offset", "Horizontal label offset.", -16, 16, () -> nyahConfigData.getIdXOffset(), val -> nyahConfigData.setIdXOffset(val)),
+                        integer("label_y_offset", "Label Y Offset", "Vertical label offset.", -16, 16, () -> nyahConfigData.getIdYOffset(), val -> nyahConfigData.setIdYOffset(val))
                 )
         ));
 
@@ -187,29 +212,46 @@ public class NyahConfig {
                 "Tower EHP",
                 "Replaces tower boss-bar HP with effective HP.",
                 SettingCategory.WAR,
-                nyahConfigData::isWarTowerEhpFeatureEnabled,
+                () -> nyahConfigData.isWarTowerEhpFeatureEnabled(),
                 value -> {
                     nyahConfigData.setWarTowerEhpFeatureEnabled(value);
                     applyFeatureStates();
                     save();
                 },
-                List.of(
-                )
+                List.of()
         ));
 
-        SECTIONS.add(SettingSection.ignoreManager(
-                "ignore_manager",
-                "Ignore Manager",
-                "Guild-member favorites, avoids and bulk ignore tools.",
+        SECTIONS.add(SettingSection.standard(
+                "shout_filter",
+                "Shout Filter",
+                "Modify shouts to be less obstructive.",
                 SettingCategory.SOCIAL,
-                nyahConfigData::isIgnoreFeatureEnabled,
+                () -> nyahConfigData.isShoutFilterFeatureEnabled(),
                 value -> {
-                    nyahConfigData.setIgnoreFeatureEnabled(value);
+                    nyahConfigData.setShoutFilterFeatureEnabled(value);
                     applyFeatureStates();
                     save();
                 },
-                FeatureManager::getIgnoreFeature
+                List.of(
+                        choice("filter_mode", "Shout Filter Mode", "What to replace shouts with", () -> nyahConfigData.getShoutFilterMode(), val -> nyahConfigData.setShoutFilterMode(val), ShoutReplacement.class)
+                )
         ));
+
+        SECTIONS.add(SettingSection.standard(
+                "global_chat",
+                "Attacker Com Chat",
+                "In game chat between attacker community members",
+                SettingCategory.SOCIAL,
+                () -> nyahConfigData.isChatEncryptionFeatureEnabled(),
+                value -> {
+                    nyahConfigData.setChatEncryptionFeatureEnabled(value);
+                    applyFeatureStates();
+                    save();
+                },
+                List.of(
+                        string("url", "Chat WS URL", "URL of websocket for chat", () -> nyahConfigData.getGlobalChatURL(), val -> nyahConfigData.setGlobalChatURL(val))
+                ))
+        );
     }
 
     public static void save() {
@@ -227,18 +269,15 @@ public class NyahConfig {
             FeatureManager.getChatEncryptionFeature().setEnabled(nyahConfigData.isChatEncryptionFeatureEnabled());
         if (FeatureManager.getWarTimersFeature() != null)
             FeatureManager.getWarTimersFeature().setEnabled(nyahConfigData.isWarTimersFeatureEnabled());
-        if (FeatureManager.getIgnoreFeature() != null) {
-            FeatureManager.getIgnoreFeature().setEnabled(nyahConfigData.isIgnoreFeatureEnabled());
-            if (FeatureManager.getIgnoreFeature().isEnabled()) {
-                FeatureManager.getIgnoreFeature().syncGuildMembers();
-            }
-        }
         if (FeatureManager.getWarTowerEHPFeature() != null)
             FeatureManager.getWarTowerEHPFeature().setEnabled(nyahConfigData.isWarTowerEhpFeatureEnabled());
         if (FeatureManager.getConsuTextFeature() != null)
             FeatureManager.getConsuTextFeature().setEnabled(nyahConfigData.isConsuTextFeatureEnabled());
         if (FeatureManager.getShoutFilterFeature() != null)
             FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
+        if (FeatureManager.getViewModelTransformationFeature() != null) {
+            FeatureManager.getViewModelTransformationFeature().setEnabled(nyahConfigData.isViewModelFeatureEnabled());
+        }
     }
 
     private static void loadConfig() {
@@ -257,7 +296,9 @@ public class NyahConfig {
             }
             if (nyahConfigData.getFavouritePlayers() == null) nyahConfigData.setFavouritePlayers(new ArrayList<>());
             if (nyahConfigData.getAvoidedPlayers() == null) nyahConfigData.setAvoidedPlayers(new ArrayList<>());
-            nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
+            nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).name());
+            nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.resolve(nyahConfigData.getClickGuiTheme()).name());
+            if (nyahConfigData.getClickGuiAnimation() == null) nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.PORTAL);
         } catch (IOException exception) {
             NiamodClient.LOGGER.error("Error loading config file!", exception);
             nyahConfigData = new NyahConfigData();
@@ -308,6 +349,10 @@ public class NyahConfig {
             Class<T> type
     ) {
         Function<String, String> labelResolver = raw -> {
+            try {
+                if (type == ClickGuiThemeOption.class) return ClickGuiThemeOption.valueOf(raw).getLabel();
+                if (type == ClickGuiFontOption.class) return ClickGuiFontOption.valueOf(raw).getLabel();
+            } catch (Exception ignored) {}
             String lower = raw.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
             return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
         };
@@ -335,15 +380,47 @@ public class NyahConfig {
     private static void setGuildName(String guildName) {
         nyahConfigData.setGuildName(guildName);
         save();
+    }
 
-        if (FeatureManager.getIgnoreFeature() != null && FeatureManager.getIgnoreFeature().isEnabled()) {
-            FeatureManager.getIgnoreFeature().syncGuildMembers();
+    private static ClickGuiThemeOption getClickGuiThemeEnum() {
+        try {
+            return ClickGuiThemeOption.valueOf(nyahConfigData.getClickGuiTheme());
+        } catch (Exception e) {
+            return ClickGuiThemeOption.DEFAULT;
         }
     }
 
-    private static void setClickGuiFont(String fontId) {
-        nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(fontId).getKey());
+    private static void setClickGuiThemeEnum(ClickGuiThemeOption theme) {
+        nyahConfigData.setClickGuiTheme(theme.name());
         save();
+    }
+
+    private static ClickGuiFontOption getClickGuiFontEnum() {
+        try {
+            return ClickGuiFontOption.valueOf(nyahConfigData.getClickGuiFont());
+        } catch (Exception e) {
+            return ClickGuiFontOption.JETBRAINS_MONO;
+        }
+    }
+
+    private static void setClickGuiFontEnum(ClickGuiFontOption font) {
+        nyahConfigData.setClickGuiFont(font.name());
+        save();
+    }
+
+    private static int getActiveThemeBackground() {
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getBackground() & 0xFFFFFF;
+        return nyahConfigData.getCustomGuiBackground() & 0xFFFFFF;
+    }
+
+    private static int getActiveThemeSecondary() {
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getSecondary() & 0xFFFFFF;
+        return nyahConfigData.getCustomGuiSecondary() & 0xFFFFFF;
+    }
+
+    private static int getActiveThemeAccent() {
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getAccentColor() & 0xFFFFFF;
+        return nyahConfigData.getCustomGuiAccent() & 0xFFFFFF;
     }
 
     @FunctionalInterface
@@ -361,7 +438,18 @@ public class NyahConfig {
     public static class NyahConfigData {
         private String apiBase = "https://api.wynncraft.com/v3/";
         private String guildName = "Nerfuria";
-        private String clickGuiFont = "JETBRAINS_MONO";
+        private String clickGuiTheme = "DEFAULT";
+        private String clickGuiFont = "MINECRAFT_DEFAULT";
+        private ClickGuiAnimationMode clickGuiAnimation = ClickGuiAnimationMode.PORTAL;
+        private int animationTime = 1000;
+        private float guiOpacity = 0.9f;
+
+        private int customGuiBackground = 0x171A21;
+        private int customGuiSecondary = 0x11141B;
+        private int customGuiAccent = 0x4794FD;
+
+        private int guiWidth = 500;
+        private int guiHeight = 350;
 
         private boolean shoutReplacementFeatureEnabled = true;
         private boolean resourceTickFeatureEnabled = true;
@@ -371,6 +459,10 @@ public class NyahConfig {
         private boolean warTowerEhpFeatureEnabled = true;
         private boolean consuTextFeatureEnabled = true;
         private boolean shoutFilterFeatureEnabled = true;
+        private boolean isViewModelFeatureEnabled = true;
+        private boolean isGlobalChatEnabled = true;
+
+        private String globalChatURL = "wss://niamod.d0cr.dev/gcom";
 
         private ShoutReplacement shoutFilterMode = ShoutReplacement.COLLAPSE;
 
@@ -379,6 +471,7 @@ public class NyahConfig {
         private int saltLength = 16;
 
         private int color = 0xFFFFFF;
+        private int notQColor = 0xFFFFFF;
         private int maximumDistance = 1000;
         private int maximumTerritories = 10;
 

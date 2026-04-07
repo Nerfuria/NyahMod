@@ -13,7 +13,13 @@
   "client": [
     "ChatComponentAccessor",
     "ChatScreenMixin",
+    "ClientLoginNetworkHandlerMixin",
+    "EditBoxAccessor",
+    "GameRendererAccessor",
     "GameRendererMixin",
+    "GuiGraphicsAccessor",
+    "GuiGraphicsMixin",
+    "GuiRendererMixin",
     "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",

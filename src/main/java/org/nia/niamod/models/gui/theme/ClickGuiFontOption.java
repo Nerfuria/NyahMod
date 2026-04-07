@@ -26,7 +26,7 @@ public enum ClickGuiFontOption {
 
     public static ClickGuiFontOption resolve(String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            return MINECRAFT_UNIFORM;
+            return MINECRAFT_DEFAULT;
         }
 
         String normalized = rawValue.trim().toLowerCase(Locale.ROOT)
@@ -36,7 +36,7 @@ public enum ClickGuiFontOption {
         return Arrays.stream(values())
                 .filter(option -> option.key.equals(normalized))
                 .findFirst()
-                .orElse(MINECRAFT_UNIFORM);
+                .orElse(MINECRAFT_DEFAULT);
     }
 
     public static List<String> keys() {
