@@ -6,8 +6,19 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class StringSetting extends ConfigSetting<String> {
+    private final int maxLength;
+
     public StringSetting(String id, String title, String description, Supplier<String> getter, Consumer<String> setter) {
+        this(id, title, description, getter, setter, 256);
+    }
+
+    public StringSetting(String id, String title, String description, Supplier<String> getter, Consumer<String> setter, int maxLength) {
         super(id, title, description, SettingKind.STRING, getter, setter);
+        this.maxLength = maxLength;
+    }
+
+    public int getMaxLength() {
+        return maxLength;
     }
 
     @Override

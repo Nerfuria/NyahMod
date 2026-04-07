@@ -20,6 +20,7 @@ public class StringInputComponent {
 
     public EditBox createEditBox(Font font, ClickGuiTheme theme) {
         editBox = new EditBox(font, 0, 0, 230, 14, NiaClickGuiScreen.styled(setting.getTitle()));
+        editBox.setMaxLength(setting.getMaxLength());
         editBox.setBordered(false);
         editBox.setTextColor(0xFFFFFFFF);
         editBox.setTextColorUneditable(0x82FFFFFF);
