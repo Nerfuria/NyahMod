@@ -15,6 +15,7 @@ import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.models.config.RadianceOverlayMode;
 import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
@@ -214,8 +215,9 @@ public class NyahConfig {
                         bool("require_war", "Require War", "Only show overlay while in war.", nyahConfigData::isRadianceSyncRequireWar, nyahConfigData::setRadianceSyncRequireWar),
                         choice("overlay_mode", "Overlay Mode", "cast = cast prompt mode; status = radiance remaining.",
                                 nyahConfigData::getRadianceSyncOverlayMode, nyahConfigData::setRadianceSyncOverlayMode,
-                                List.of("cast", "status"),
-                                raw -> Character.toUpperCase(raw.charAt(0)) + raw.substring(1).toLowerCase(java.util.Locale.ROOT)),
+                                RadianceOverlayMode.class),
+                        string("worker_url", "Worker URL", "WebSocket worker URL for Radiance sync.",
+                                nyahConfigData::getRadianceSyncWorkerUrl, nyahConfigData::setRadianceSyncWorkerUrl),
                         floating("cast_prompt_seconds", "Cast Prompt Seconds", "How long the cast prompt stays visible.", 0.5f, 10.0f,
                                 nyahConfigData::getRadianceSyncCastPromptSeconds, nyahConfigData::setRadianceSyncCastPromptSeconds),
                         bool("ping_sound", "Ping Sound", "Play a sound when Radiance is ready.", nyahConfigData::isRadianceSyncPingEnabled, nyahConfigData::setRadianceSyncPingEnabled),
@@ -291,7 +293,8 @@ public class NyahConfig {
             if (nyahConfigData.getAvoidedPlayers() == null) nyahConfigData.setAvoidedPlayers(new ArrayList<>());
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
             if (nyahConfigData.getRadianceSyncGroupKey() == null) nyahConfigData.setRadianceSyncGroupKey("");
-            if (nyahConfigData.getRadianceSyncOverlayMode() == null) nyahConfigData.setRadianceSyncOverlayMode("cast");
+            if (nyahConfigData.getRadianceSyncOverlayMode() == null) nyahConfigData.setRadianceSyncOverlayMode(RadianceOverlayMode.CAST);
+            if (nyahConfigData.getRadianceSyncWorkerUrl() == null) nyahConfigData.setRadianceSyncWorkerUrl("https://radiancesync.wavelink.workers.dev");
         } catch (IOException exception) {
             NiamodClient.LOGGER.error("Error loading config file!", exception);
             nyahConfigData = new NyahConfigData();
@@ -437,7 +440,8 @@ public class NyahConfig {
         private boolean radianceSyncRequireWar = true;
         private int radianceSyncSelfTier = 0;
         private float radianceSyncCastPromptSeconds = 2.0f;
-        private String radianceSyncOverlayMode = "cast";
+        private RadianceOverlayMode radianceSyncOverlayMode = RadianceOverlayMode.CAST;
+        private String radianceSyncWorkerUrl = "https://radiancesync.wavelink.workers.dev";
         private boolean radianceSyncPingEnabled = false;
         private float radianceSyncPingVolume = 1.0f;
         private float radianceSyncPingPitch = 1.0f;
