@@ -2,6 +2,7 @@ package org.nia.niamod.features.radiance;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import org.nia.niamod.config.NyahConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CloudflareSync {
-    private static final String WORKER_LINK = "https://radiancesync.wavelink.workers.dev";
     private static final Logger LOGGER = LoggerFactory.getLogger("niamod");
     private static final Gson GSON = new Gson();
     private static final long RECONNECT_INTERVAL_MS = 5000L;
@@ -69,7 +69,11 @@ public class CloudflareSync {
         String encodedPlayerName = URLEncoder.encode(playerName, StandardCharsets.UTF_8);
         String encodedPlayerUuid = URLEncoder.encode(playerUuid, StandardCharsets.UTF_8);
 
-        String wsUrl = WORKER_LINK.replaceFirst("^https://", "wss://")
+        String workerUrl = NyahConfig.nyahConfigData.getRadianceSyncWorkerUrl();
+        if (workerUrl == null || workerUrl.isBlank()) {
+            workerUrl = "https://radiancesync.wavelink.workers.dev";
+        }
+        String wsUrl = workerUrl.replaceFirst("^https://", "wss://")
             + "?key=" + encodedKey
             + "&ign=" + encodedPlayerName
             + "&uuid=" + encodedPlayerUuid;
