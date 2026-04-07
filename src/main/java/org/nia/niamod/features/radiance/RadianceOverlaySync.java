@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.mixin.PlayerListHudAccessor;
+import org.nia.niamod.models.config.RadianceOverlayMode;
 
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -86,13 +87,13 @@ public class RadianceOverlaySync {
         NyahConfig.save();
     }
 
-    public String getOverlayMode() {
-        String mode = NyahConfig.nyahConfigData.getRadianceSyncOverlayMode();
-        return mode == null ? "cast" : mode;
+    public RadianceOverlayMode getOverlayMode() {
+        RadianceOverlayMode mode = NyahConfig.nyahConfigData.getRadianceSyncOverlayMode();
+        return mode == null ? RadianceOverlayMode.CAST : mode;
     }
 
     public boolean isStatusOverlayMode() {
-        return getOverlayMode().equalsIgnoreCase("status");
+        return getOverlayMode() == RadianceOverlayMode.STATUS;
     }
 
     public String getGroupKey() {
