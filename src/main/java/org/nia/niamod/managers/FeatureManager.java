@@ -6,6 +6,7 @@ import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
 import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.features.RadianceSyncFeature;
 import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.ShoutFilterFeature;
 import org.nia.niamod.features.WarTimersFeature;
@@ -28,6 +29,8 @@ public class FeatureManager {
     private static ConsuTextFeature consuTextFeature;
     @Getter
     private static ShoutFilterFeature shoutFilterFeature;
+    @Getter
+    private static RadianceSyncFeature radianceSyncFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
@@ -37,6 +40,7 @@ public class FeatureManager {
         warTowerEHPFeature = new WarTowerEHPFeature();
         consuTextFeature = new ConsuTextFeature();
         shoutFilterFeature = new ShoutFilterFeature();
+        radianceSyncFeature = new RadianceSyncFeature();
 
         resTickFeature.runSafe("init", resTickFeature::init);
         chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
@@ -45,6 +49,7 @@ public class FeatureManager {
         warTowerEHPFeature.runSafe("init", warTowerEHPFeature::init);
         consuTextFeature.runSafe("init", consuTextFeature::init);
         shoutFilterFeature.runSafe("init", shoutFilterFeature::init);
+        radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
 
         NyahConfig.onFeaturesInitialized();
     }

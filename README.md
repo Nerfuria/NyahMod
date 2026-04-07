@@ -5,7 +5,9 @@ General warring/raiding utility mod made by and for Nerfurians. This mod is heav
 ## Planned Features
 (❌ = Not implemented, ✅ = Implemented)
 ### War
-- **Res tick timer** - function that returns the current resource tick even without any owned territories ✅
+- **Res tick timer** - function that returns the current resource tick even without any owned 
+territories ✅
+- **Radiance Tracker** - Syncs your Radiance Timer with your partner ✅
 - **Support for `/gu territory` in wars** ❌
 - **Pre-snipe consu checker** - double checks if you have the consus you need ❌
 - **Queue timer overlay on map** ❌
