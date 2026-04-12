@@ -58,7 +58,7 @@ public class WarTimersFeature extends Feature {
             territories.values()
                     .stream()
                     .map(territory -> new TimerEntry(null, territory, territory.distance()))
-                    .filter(t -> t.distance() <= NyahConfig.nyahConfigData.getMaximumDistance()*NyahConfig.nyahConfigData.getMaximumDistance())
+                    .filter(t -> t.distance() <= NyahConfig.nyahConfigData.getMaximumDistance() * NyahConfig.nyahConfigData.getMaximumDistance())
                     .sorted(Comparator.comparing(TimerEntry::distance))
                     .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
                     .forEach(t -> Render3D.renderBox(

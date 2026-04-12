@@ -1,15 +1,15 @@
 package org.nia.niamod.render;
 
-import lombok.experimental.UtilityClass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
+import lombok.experimental.UtilityClass;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.state.GuiRenderState;
-import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.mixin.GuiGraphicsAccessor;
+import org.nia.niamod.models.gui.render.UiRect;
 
 @UtilityClass
 public class Render2D {
@@ -85,11 +85,10 @@ public class Render2D {
 
     public static void dropShadow(GuiGraphics g, int x, int y, int w, int h, int loops, int opacity, int edgeRadius) {
         for (int i = 0; i <= loops; i++) {
-            float margin = i;
-            float alpha = Math.max(0.5f, (opacity - margin * 1.2f) / 5.5f);
+            float alpha = Math.max(0.5f, (opacity - (float) i * 1.2f) / 5.5f);
             int a = Math.max(0, Math.min(255, Math.round(alpha)));
-            if (a <= 0) continue;
-            int halfMargin = Math.round(margin / 2.0f);
+            if (a == 0) continue;
+            int halfMargin = Math.round((float) i / 2.0f);
             int color = (a << 24);
             roundedRect(g, x - halfMargin, y - halfMargin, w + halfMargin * 2, h + halfMargin * 2, edgeRadius, color);
         }

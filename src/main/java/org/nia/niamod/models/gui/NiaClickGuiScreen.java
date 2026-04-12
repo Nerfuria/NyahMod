@@ -41,15 +41,10 @@ import java.util.Map;
 
 public class NiaClickGuiScreen extends Screen {
     private static final int PORTAL_COLOR = 0xFF79E918;
-
-    private int panelW;
-    private int panelH;
     private static final int SIDEBAR_W = 100;
     private static final int ROUND = 12;
     private static final int MODULE_GAP = 7;
-    private int moduleW;
     private static final int SEARCH_BAR_HEIGHT = 24;
-
     private final Screen parent;
     private final Animation openAnim = new Animation(Easing.LINEAR, NyahConfig.nyahConfigData.getAnimationTime());
     private final Animation closeAnim = new Animation(Easing.LINEAR, NyahConfig.nyahConfigData.getAnimationTime());
@@ -61,6 +56,9 @@ public class NiaClickGuiScreen extends Screen {
     private final Animation[] tabAnims = new Animation[Tab.values().length];
     private final List<SectionComponent> allComps = new ArrayList<>();
     private final List<SectionComponent> searchResults = new ArrayList<>();
+    private int panelW;
+    private int panelH;
+    private int moduleW;
     private boolean opening;
     private boolean closing;
     private float panelX;
@@ -93,6 +91,40 @@ public class NiaClickGuiScreen extends Screen {
     public NiaClickGuiScreen(Screen parent) {
         super(Component.literal("NiaMod"));
         this.parent = parent;
+    }
+
+    public static Component styled(String text) {
+        return Component.literal(text).withStyle(currentFontStyle());
+    }
+
+    public static int styledWidth(Font font, String text) {
+        return font.width(styled(text));
+    }
+
+    private static Style currentFontStyle() {
+        try {
+            ClickGuiFontOption option = ClickGuiFontOption.resolve(NyahConfig.nyahConfigData.getClickGuiFont());
+            return Style.EMPTY.withFont(new FontDescription.Resource(option.fontDescriptionId()));
+        } catch (Exception e) {
+            return Style.EMPTY;
+        }
+    }
+
+    public static void applyClickGuiFont(EditBox editBox, String hintText) {
+        editBox.addFormatter((text, cursor) -> styled(text).getVisualOrderText());
+        if (hintText != null) {
+            editBox.setHint(styled(hintText));
+        }
+    }
+
+    public static void layoutBorderlessEditBox(EditBox editBox, Font font, int x, int y, int width, int height) {
+        editBox.setX(x);
+        editBox.setY(y);
+        editBox.setWidth(width);
+        editBox.setHeight(height);
+        if (editBox instanceof EditBoxAccessor accessor) {
+            accessor.niamod$setTextY(y + Math.max(0, (height - font.lineHeight) / 2));
+        }
     }
 
     private ClickGuiTheme getTheme() {
@@ -136,40 +168,6 @@ public class NiaClickGuiScreen extends Screen {
                     .build();
         } catch (Exception e) {
             return ClickGuiTheme.defaultTheme();
-        }
-    }
-
-    public static Component styled(String text) {
-        return Component.literal(text).withStyle(currentFontStyle());
-    }
-
-    public static int styledWidth(Font font, String text) {
-        return font.width(styled(text));
-    }
-
-    private static Style currentFontStyle() {
-        try {
-            ClickGuiFontOption option = ClickGuiFontOption.resolve(NyahConfig.nyahConfigData.getClickGuiFont());
-            return Style.EMPTY.withFont(new FontDescription.Resource(option.fontDescriptionId()));
-        } catch (Exception e) {
-            return Style.EMPTY;
-        }
-    }
-
-    public static void applyClickGuiFont(EditBox editBox, String hintText) {
-        editBox.addFormatter((text, cursor) -> styled(text).getVisualOrderText());
-        if (hintText != null) {
-            editBox.setHint(styled(hintText));
-        }
-    }
-
-    public static void layoutBorderlessEditBox(EditBox editBox, Font font, int x, int y, int width, int height) {
-        editBox.setX(x);
-        editBox.setY(y);
-        editBox.setWidth(width);
-        editBox.setHeight(height);
-        if (editBox instanceof EditBoxAccessor accessor) {
-            accessor.niamod$setTextY(y + Math.max(0, (height - font.lineHeight) / 2));
         }
     }
 
@@ -625,9 +623,7 @@ public class NiaClickGuiScreen extends Screen {
                 List.of()
         ); GuiRenderTargetOverride.Scope ignored = GuiRenderTargetOverride.push(portalSnapshot)) {
             renderPanelFrame(snapshotGraphics, lastRenderMouseX, lastRenderMouseY, lastRenderDelta, Math.round(panelX), Math.round(panelY), theme);
-            try (FogRenderer resource = fogRenderer) {
-                snapshotRenderer.render(resource.getBuffer(FogRenderer.FogMode.NONE));
-            }
+            snapshotRenderer.render(fogRenderer.getBuffer(FogRenderer.FogMode.NONE));
             snapshotRenderer.incrementFrameNumber();
         }
 

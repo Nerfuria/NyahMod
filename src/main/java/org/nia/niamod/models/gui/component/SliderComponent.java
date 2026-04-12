@@ -65,7 +65,7 @@ public class SliderComponent {
         try {
             if (isInt) {
                 int val = Integer.parseInt(text);
-                val = Math.max((int)min, Math.min((int)max, val));
+                val = Math.max((int) min, Math.min((int) max, val));
                 ((ConfigSetting<Integer>) setting).set(val);
             } else {
                 float val = Float.parseFloat(text);
@@ -73,7 +73,8 @@ public class SliderComponent {
                 ((ConfigSetting<Float>) setting).set(val);
             }
             renderPercentage = getProgress();
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     public void setPosition(int x, int y, int width) {
@@ -99,7 +100,7 @@ public class SliderComponent {
 
         String valueText = formatValue();
         int minBoxWidth = Math.max(30, NiaClickGuiScreen.styledWidth(font, valueText) + 8);
-        int valueWidth = Math.max(minBoxWidth, (int)(width * 0.15f));
+        int valueWidth = Math.max(minBoxWidth, (int) (width * 0.15f));
         int valueX = x + width - valueWidth;
 
         int controlX = x + (int) (width * 0.45f);
@@ -218,7 +219,7 @@ public class SliderComponent {
     private void updateValueFromMouse(double mouseX) {
         float percent = (float) ((mouseX - trackX) / trackWidth);
         percent = Math.max(0, Math.min(1, percent));
-        
+
         if (isInt) {
             int value = Math.round(min + percent * (max - min));
             ((ConfigSetting<Integer>) setting).set(value);

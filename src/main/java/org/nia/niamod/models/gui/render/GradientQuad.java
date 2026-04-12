@@ -10,9 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2f;
 
-import java.awt.*;
-
-public record GradientQuad (Matrix3x2f pose, int left, int right, int top, int bottom, ScreenRectangle scissorArea, int hueColor) implements GuiElementRenderState {
+public record GradientQuad(Matrix3x2f pose, int left, int right, int top, int bottom, ScreenRectangle scissorArea,
+                           int hueColor) implements GuiElementRenderState {
 
     @Override
     public void buildVertices(VertexConsumer vertices) {
