@@ -32,8 +32,8 @@ public class ChatEncryptionFeature extends Feature {
     private static final String CIPHER_ALGO = "AES/GCM/NoPadding";
     private static final String KEY_ALGO = "AES";
     private static final String HASH_ALGO = "SHA-256";
-    private static final String MSG_START = "£67-";
-    private static final String MSG_END = "-67$";
+    private static final String MSG_START = "£\uDB8D\uDE37-";
+    private static final String MSG_END = "-\uDB8D\uDE37$";
 
     private static String encode(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length / 2 + bytes.length % 2);

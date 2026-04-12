@@ -4,5 +4,5 @@ import org.nia.niamod.eventbus.EventInfo;
 import org.nia.niamod.eventbus.Preference;
 
 @EventInfo(preference = Preference.CALLER)
-public final class PostInitEvent {
+public record PostInitEvent() {
 }

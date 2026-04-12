@@ -1,5 +1,6 @@
 package org.nia.niamod.features.radiance;
 
+import lombok.Getter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -16,7 +17,7 @@ import java.util.regex.Pattern;
 
 public class RadianceOverlaySync {
     private static final Pattern RADIANCE_COOLDOWN_PATTERN = Pattern.compile(
-        "(?i)\\bradiance\\b[^0-9]*\\(?\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*\\)?");
+            "(?i)\\bradiance\\b[^0-9]*\\(?\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*\\)?");
     private static final long OVERLAY_MAX_MS = 15000L;
     private static final long CONNECTION_NOTICE_TIMEOUT_MS = 6000L;
 
@@ -34,10 +35,21 @@ public class RadianceOverlaySync {
     private boolean connectionNoticePending;
     private long connectionNoticeDeadlineMs;
     private boolean syncConnectionActive;
+    @Getter
     private boolean manualConnectRequested;
 
     public RadianceOverlaySync(WarStateTracker warStateTracker) {
         this.warStateTracker = warStateTracker;
+    }
+
+    private static String sanitizeText(String value) {
+        String cleaned = value.replace("\u0000", "");
+        cleaned = cleaned.replaceAll("(?i)§[0-9a-fk-or]", "");
+        cleaned = cleaned.replaceAll("(?i)&[0-9a-fk-or]", "");
+        cleaned = cleaned.replaceAll("&\\{[^}]*}", "");
+        cleaned = cleaned.replaceAll("&\\[[^]]*]", "");
+        cleaned = cleaned.replaceAll("&<[^>]*>", "");
+        return cleaned.trim();
     }
 
     public void onJoin() {
@@ -58,10 +70,6 @@ public class RadianceOverlaySync {
         }
         NyahConfig.nyahConfigData.setRadianceSyncRequireWar(requireWar);
         NyahConfig.save();
-    }
-
-    public boolean isManualConnectRequested() {
-        return manualConnectRequested;
     }
 
     public void setManualConnectRequested(boolean manualConnectRequested) {
@@ -119,8 +127,8 @@ public class RadianceOverlaySync {
         String key = getGroupKey();
         String playerName = client.player.getGameProfile().name();
         String playerUuid = client.player.getGameProfile().id() == null
-            ? ""
-            : client.player.getGameProfile().id().toString();
+                ? ""
+                : client.player.getGameProfile().id().toString();
         boolean warActive = warStateTracker.isInWar();
         boolean connectAllowed = warActive || manualConnectRequested;
         updateSyncConnection(client, now, key, playerName, playerUuid, connectAllowed);
@@ -154,8 +162,8 @@ public class RadianceOverlaySync {
                 double remainingDuration = getRemoteRemainingDurationSeconds(now, cfEntry, tier);
                 if (remainingDuration > 0.0) {
                     double buffered = statusMode
-                        ? remainingDuration
-                        : applyCastModePairBuffer(NyahConfig.nyahConfigData.getRadianceSyncSelfTier(), tier, remainingDuration);
+                            ? remainingDuration
+                            : applyCastModePairBuffer(NyahConfig.nyahConfigData.getRadianceSyncSelfTier(), tier, remainingDuration);
                     startTimerAt(now, remainingDuration, buffered);
                 }
             }
@@ -185,7 +193,7 @@ public class RadianceOverlaySync {
 
     public void onHudRender(GuiGraphics drawContext, DeltaTracker tickCounter) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.player == null) {
+        if (client.player == null) {
             return;
         }
         if (NyahConfig.nyahConfigData.isRadianceSyncRequireWar() && !warStateTracker.isInWar()) {
@@ -229,16 +237,6 @@ public class RadianceOverlaySync {
         drawContext.pose().popMatrix();
     }
 
-    private static String sanitizeText(String value) {
-        String cleaned = value.replace("\u0000", "");
-        cleaned = cleaned.replaceAll("(?i)\u00A7[0-9a-fk-or]", "");
-        cleaned = cleaned.replaceAll("(?i)&[0-9a-fk-or]", "");
-        cleaned = cleaned.replaceAll("&\\{[^}]*\\}", "");
-        cleaned = cleaned.replaceAll("&\\[[^\\]]*\\]", "");
-        cleaned = cleaned.replaceAll("&<[^>]*>", "");
-        return cleaned.trim();
-    }
-
     private void updateSyncConnection(Minecraft client,
                                       long now,
                                       String key,
@@ -246,7 +244,7 @@ public class RadianceOverlaySync {
                                       String playerUuid,
                                       boolean warActive) {
         boolean hasIdentity = playerName != null && !playerName.isBlank()
-            && !playerUuid.isBlank();
+                && !playerUuid.isBlank();
         boolean shouldConnect = warActive && isValidKey(key) && hasIdentity;
         if (shouldConnect) {
             if (!syncConnectionActive) {
@@ -340,8 +338,8 @@ public class RadianceOverlaySync {
             return;
         }
         client.player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(),
-            NyahConfig.nyahConfigData.getRadianceSyncPingVolume(),
-            NyahConfig.nyahConfigData.getRadianceSyncPingPitch());
+                NyahConfig.nyahConfigData.getRadianceSyncPingVolume(),
+                NyahConfig.nyahConfigData.getRadianceSyncPingPitch());
     }
 
     private double getDurationForTier(int tier) {
@@ -442,5 +440,6 @@ public class RadianceOverlaySync {
         return key != null && !key.isBlank() && key.length() <= 64;
     }
 
-    private record CooldownOverlayLine(String text, int color) {}
+    private record CooldownOverlayLine(String text, int color) {
+    }
 }

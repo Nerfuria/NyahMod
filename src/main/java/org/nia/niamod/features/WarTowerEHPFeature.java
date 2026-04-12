@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 public class WarTowerEHPFeature extends Feature {
 
     private static final Pattern towerRegex = Pattern.compile(
-            "§3\\[([A-Za-z]{3,4})\\] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
+            "§3\\[([A-Za-z]{3,4})] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
     );
 
     private Component replaceEHP(Component text) {

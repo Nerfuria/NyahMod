@@ -1,155 +1,155 @@
 [
   {
     "ids": [
-      "damage"
+      "Damage%"
     ],
     "alias": "DMG%"
   },
   {
     "ids": [
-      "manaRegen"
+      "Mana Regens"
     ],
     "alias": "MR"
   },
   {
     "ids": [
-      "manaSteal"
+      "Mana Steals"
     ],
     "alias": "MS"
   },
   {
     "ids": [
-      "rawHealth"
+      "Health"
     ],
     "alias": "HP"
   },
   {
     "ids": [
-      "healingEfficiency"
+      "Healing Efficiency%"
     ],
     "alias": "HE%"
   },
   {
     "ids": [
-      "rawSpellDamage"
+      "Spell Damage"
     ],
     "alias": "SD"
   },
   {
     "ids": [
-      "maxMana"
+      "Max Mana"
     ],
     "alias": "MM"
   },
   {
     "ids": [
-      "rawStrength",
-      "rawDexterity",
-      "rawIntelligence",
-      "rawAgility",
-      "rawDefence"
+      "Strength",
+      "Dexterity",
+      "Intelligence",
+      "Agility",
+      "Defence"
     ],
     "minCount": 3,
     "alias": "SP"
   },
   {
     "ids": [
-      "rawStrength"
+      "Strength"
     ],
     "alias": "STR"
   },
   {
     "ids": [
-      "rawDexterity"
+      "Dexterity"
     ],
     "alias": "DEX"
   },
   {
     "ids": [
-      "rawIntelligence"
+      "Intelligence"
     ],
     "alias": "INT"
   },
   {
     "ids": [
-      "rawAgility"
+      "Agility"
     ],
     "alias": "AGI"
   },
   {
     "ids": [
-      "rawDefence"
+      "Defence"
     ],
     "alias": "DEF"
   },
   {
     "ids": [
-      "jumpHeight"
+      "Jump Height"
     ],
     "alias": "JH"
   },
   {
     "ids": [
-      "rawAttackSpeed"
+      "Attack Speed tier"
     ],
-    "alias": "{sign}ATK"
+    "alias": "ATK"
   },
   {
     "ids": [
-      "spellDamage"
+      "Spell Damage%"
     ],
     "alias": "SD%"
   },
   {
     "ids": [
-      "thunderDamage",
-      "waterDamage",
-      "earthDamage",
-      "fireDamage",
-      "airDamage"
+      "Thunder Damage%",
+      "Water Damage%",
+      "Earth Damage%",
+      "Fire Damage%",
+      "Air Damage%"
     ],
     "minCount": 3,
     "alias": "RGB%"
   },
   {
     "ids": [
-      "thunderDamage"
+      "Thunder Damage%"
     ],
     "alias": "TD%"
   },
   {
     "ids": [
-      "waterDamage"
+      "Water Damage%"
     ],
     "alias": "WD%"
   },
   {
     "ids": [
-      "earthDamage"
+      "Earth Damage%"
     ],
     "alias": "ED%"
   },
   {
     "ids": [
-      "fireDamage"
+      "Fire Damage%"
     ],
     "alias": "FD%"
   },
   {
     "ids": [
-      "airDamage"
+      "Air Damage%"
     ],
     "alias": "AD%"
   },
   {
     "ids": [
-      "elementalDamage"
+      "Elemental Damage%"
     ],
     "alias": "ELE%"
   },
   {
     "ids": [
-      "walkSpeed"
+      "Walk Speed%"
     ],
     "alias": "WS"
   }
