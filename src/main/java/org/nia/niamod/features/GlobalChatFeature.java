@@ -29,8 +29,10 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 public class GlobalChatFeature extends Feature implements WebSocket.Listener {
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private WebSocket ws;
     private int tries = 5;
+    private String currentServerId;
 
     @Override
     public void init() {
@@ -53,6 +55,11 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
         }
         String message = StringArgumentType.getString(ctx, "message");
         if (ws != null) {
+            if (ws.isInputClosed()) {
+                ws.sendClose(WebSocket.NORMAL_CLOSURE, "Connection closed").thenRun(() -> ws = null);
+                Minecraft.getInstance().player.displayClientMessage(Component.literal("Websocket connection closed. Try rejoining the server."), false);
+                return 1;
+            }
             ws.sendText(message, true);
         } else {
             Minecraft.getInstance().player.displayClientMessage(Component.literal("Not connected to Websocket"), false);
@@ -63,20 +70,33 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     @Subscribe
     @Safe
     public void onJoin(ServerJoinEvent event) {
+        currentServerId = event.serverId();
         tries = 5;
         Scheduler.scheduleAsync(
-                () -> tryConnect(event.serverId()),
+                () -> tryConnect(currentServerId),
                 100);
     }
 
     private void tryConnect(String serverId) {
         try {
-            HttpClient client = HttpClient.newHttpClient();
-            ws = client.newWebSocketBuilder().header("User-Agent", "NiaMod").buildAsync(URI.create(NyahConfig.nyahConfigData.getGlobalChatURL() + "?serverId=" + serverId + "&name=" + Minecraft.getInstance().getUser().getName()), this).join();
+            if (ws != null && !ws.isInputClosed()) return;
+            ws = HTTP_CLIENT.newWebSocketBuilder().header("User-Agent", "NiaMod").buildAsync(URI.create(NyahConfig.nyahConfigData.getGlobalChatURL() + "?serverId=" + serverId + "&name=" + Minecraft.getInstance().getUser().getName()), this).join();
+            schedulePing();
         } catch (CompletionException e) {
             tries--;
+            if (tries == 0) return;
             Scheduler.scheduleAsync(() -> tryConnect(serverId), 100);
         }
+    }
+
+    private void schedulePing() {
+        if (ws == null || ws.isOutputClosed()) return;
+        Scheduler.scheduleAsync(() -> {
+            if (ws != null && !ws.isOutputClosed()) {
+                ws.sendText("ping", true);
+                schedulePing();
+            }
+        }, 30000);
     }
 
     @Override
@@ -92,6 +112,26 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
             }
         });
         return WebSocket.Listener.super.onText(webSocket, data, last);
+    }
+
+    @Override
+    public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+        ws = null;
+        if (NyahConfig.nyahConfigData.isGlobalChatEnabled() && currentServerId != null) {
+            tries = 5;
+            Scheduler.scheduleAsync(() -> tryConnect(currentServerId), 5000);
+        }
+        return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
+    }
+
+    @Override
+    public void onError(WebSocket webSocket, Throwable error) {
+        ws = null;
+        if (NyahConfig.nyahConfigData.isGlobalChatEnabled() && currentServerId != null) {
+            tries = 5;
+            Scheduler.scheduleAsync(() -> tryConnect(currentServerId), 5000);
+        }
+        WebSocket.Listener.super.onError(webSocket, error);
     }
 
     @Override
