@@ -39,7 +39,7 @@ public class BooleanComponent {
         int switchY = centerY - SWITCH_HEIGHT / 2;
         boolean active = Boolean.TRUE.equals(setting.get());
         if (animAmount < 0) animAmount = active ? 1 : 0;
-        animAmount = (animAmount * 12f + (active ? 1f : 0f)) / 13f;
+        animAmount = (animAmount * 4f + (active ? 1f : 0f)) / 5f;
 
         int trackColor = Render2D.withAlpha(theme.getSecondary(), Math.min(240, opacity));
         int onColor = Render2D.withAlpha(theme.getAccentColor(), Math.min(255, opacity));
