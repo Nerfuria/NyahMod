@@ -124,13 +124,11 @@ public class NyahConfig {
                 "Chat Encryption",
                 "Encrypt and decode guild messages with a shared key.",
                 SettingCategory.GENERAL,
-                () -> nyahConfigData.isChatEncryptionFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setChatEncryptionFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isChatEncryptionFeatureEnabled(), val -> { nyahConfigData.setChatEncryptionFeatureEnabled(val); applyFeatureStates(); }),
                         string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", () -> nyahConfigData.getEncryptionPrefix(), val -> nyahConfigData.setEncryptionPrefix(val)),
                         string("encryption_key", "Encryption Key", "Shared AES key material.", () -> nyahConfigData.getEncryptionKey(), val -> nyahConfigData.setEncryptionKey(val)),
                         integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, () -> nyahConfigData.getSaltLength(), val -> nyahConfigData.setSaltLength(val))
@@ -142,13 +140,11 @@ public class NyahConfig {
                 "View Model",
                 "Hand offsets, rotations",
                 SettingCategory.GENERAL,
-                () -> nyahConfigData.isViewModelFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setViewModelFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isViewModelFeatureEnabled(), val -> { nyahConfigData.setViewModelFeatureEnabled(val); applyFeatureStates(); }),
                         integer("x_offset", "X Offset", "Horizontal offset in hundredths.", -150, 150, () -> nyahConfigData.getXOffset(), val -> nyahConfigData.setXOffset(val)),
                         integer("y_offset", "Y Offset", "Vertical offset in hundredths.", -150, 150, () -> nyahConfigData.getYOffset(), val -> nyahConfigData.setYOffset(val)),
                         integer("z_offset", "Z Offset", "Depth offset in hundredths.", -150, 50, () -> nyahConfigData.getZOffset(), val -> nyahConfigData.setZOffset(val)),
@@ -165,13 +161,12 @@ public class NyahConfig {
                 "Resource Tick",
                 "Tracks the current guild resource tick from territory data.",
                 SettingCategory.WAR,
-                () -> nyahConfigData.isResourceTickFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setResourceTickFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
-                List.of()
+                List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isResourceTickFeatureEnabled(), val -> { nyahConfigData.setResourceTickFeatureEnabled(val); applyFeatureStates(); })
+                )
         ));
 
         SECTIONS.add(SettingSection.standard(
@@ -179,13 +174,11 @@ public class NyahConfig {
                 "Territory Boxes",
                 "Draws upcoming attack territories directly in-world.",
                 SettingCategory.WAR,
-                () -> nyahConfigData.isWarTimersFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setWarTimersFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTimersFeatureEnabled(), val -> { nyahConfigData.setWarTimersFeatureEnabled(val); applyFeatureStates(); }),
                         color("territory_color", "Box Color", "Color used for queued territory outlines.", () -> nyahConfigData.getColor(), val -> nyahConfigData.setColor(val)),
                         color("unqueued_territory_color", "Unqueued Box Color", "Color used for unqueued territory outlines.", () -> nyahConfigData.getNotQColor(), val -> nyahConfigData.setNotQColor(val)),
                         integer("maximum_territories", "Max Territories", "Maximum queued territories to render.", 1, 30, () -> nyahConfigData.getMaximumTerritories(), val -> nyahConfigData.setMaximumTerritories(val)),
@@ -198,13 +191,11 @@ public class NyahConfig {
                 "Consumable Labels",
                 "Compact crafted-consumable identifiers in inventories.",
                 SettingCategory.WAR,
-                () -> nyahConfigData.isConsuTextFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setConsuTextFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isConsuTextFeatureEnabled(), val -> { nyahConfigData.setConsuTextFeatureEnabled(val); applyFeatureStates(); }),
                         floating("label_scale", "Label Scale", "Overlay text scale.", 0.25f, 2.5f, () -> nyahConfigData.getIdScale(), val -> nyahConfigData.setIdScale(val)),
                         integer("label_x_offset", "Label X Offset", "Horizontal label offset.", -16, 16, () -> nyahConfigData.getIdXOffset(), val -> nyahConfigData.setIdXOffset(val)),
                         integer("label_y_offset", "Label Y Offset", "Vertical label offset.", -16, 16, () -> nyahConfigData.getIdYOffset(), val -> nyahConfigData.setIdYOffset(val))
@@ -216,13 +207,12 @@ public class NyahConfig {
                 "Tower EHP",
                 "Replaces tower boss-bar HP with effective HP.",
                 SettingCategory.WAR,
-                () -> nyahConfigData.isWarTowerEhpFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setWarTowerEhpFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
-                List.of()
+                List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTowerEhpFeatureEnabled(), val -> { nyahConfigData.setWarTowerEhpFeatureEnabled(val); applyFeatureStates(); })
+                )
         ));
 
         SECTIONS.add(SettingSection.standard(
@@ -230,13 +220,11 @@ public class NyahConfig {
                 "Shout Filter",
                 "Modify shouts to be less obstructive.",
                 SettingCategory.SOCIAL,
-                () -> nyahConfigData.isShoutFilterFeatureEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setShoutFilterFeatureEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isShoutFilterFeatureEnabled(), val -> { nyahConfigData.setShoutFilterFeatureEnabled(val); applyFeatureStates(); }),
                         choice("filter_mode", "Shout Filter Mode", "What to replace shouts with", () -> nyahConfigData.getShoutFilterMode(), val -> nyahConfigData.setShoutFilterMode(val), ShoutReplacement.class)
                 )
         ));
@@ -246,13 +234,11 @@ public class NyahConfig {
                 "Radiance Sync",
                 "Tracks Radiance with Guard Partners in War",
                 SettingCategory.WAR,
-                nyahConfigData::isRadianceSyncEnabled,
+                () -> true,
                 value -> {
-                    nyahConfigData.setRadianceSyncEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", nyahConfigData::isRadianceSyncEnabled, val -> { nyahConfigData.setRadianceSyncEnabled(val); applyFeatureStates(); }),
                         string("group_key", "Group Key", "Shared sync group key (shared with party members).", nyahConfigData::getRadianceSyncGroupKey, nyahConfigData::setRadianceSyncGroupKey),
                         integer("self_aspect_tier", "Self Aspect Tier", "Your Radiance aspect tier (0 = none, 1-3).", 0, 3, nyahConfigData::getRadianceSyncSelfTier, nyahConfigData::setRadianceSyncSelfTier),
                         bool("require_war", "Require War", "Only show overlay while in war.", nyahConfigData::isRadianceSyncRequireWar, nyahConfigData::setRadianceSyncRequireWar),
@@ -277,13 +263,11 @@ public class NyahConfig {
                 "Attacker Com Chat",
                 "In game chat between attacker community members",
                 SettingCategory.SOCIAL,
-                () -> nyahConfigData.isGlobalChatEnabled(),
+                () -> true,
                 value -> {
-                    nyahConfigData.setGlobalChatEnabled(value);
-                    applyFeatureStates();
-                    save();
                 },
                 List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isGlobalChatEnabled(), val -> { nyahConfigData.setGlobalChatEnabled(val); applyFeatureStates(); }),
                         string("url", "Chat WS URL", "URL of websocket for chat", () -> nyahConfigData.getGlobalChatURL(), val -> nyahConfigData.setGlobalChatURL(val))
                 ))
         );
@@ -338,8 +322,6 @@ public class NyahConfig {
             nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.resolve(nyahConfigData.getClickGuiTheme()).name());
             if (nyahConfigData.getClickGuiAnimation() == null)
                 nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.NONE);
-            if (nyahConfigData.getClickGuiAnimation() == null)
-                nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.PORTAL);
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
             if (nyahConfigData.getRadianceSyncGroupKey() == null) nyahConfigData.setRadianceSyncGroupKey("");
             if (nyahConfigData.getRadianceSyncOverlayMode() == null)
@@ -491,7 +473,7 @@ public class NyahConfig {
         private String guildName = "Nerfuria";
         private String clickGuiTheme = "DEFAULT";
         private String clickGuiFont = "MINECRAFT_DEFAULT";
-        private ClickGuiAnimationMode clickGuiAnimation = ClickGuiAnimationMode.PORTAL;
+        private ClickGuiAnimationMode clickGuiAnimation = ClickGuiAnimationMode.NONE;
         private int animationTime = 1000;
         private float guiOpacity = 0.9f;
 

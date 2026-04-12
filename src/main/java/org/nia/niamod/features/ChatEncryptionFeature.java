@@ -175,7 +175,7 @@ public class ChatEncryptionFeature extends Feature {
             if (!decoded.equals(string)) {
                 copy.append(Component.literal(string.substring(0, string.indexOf(MSG_START))).withStyle(style));
                 style = style
-                        .withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty("This message was encoded with nyah-s :3")))
+                        .withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty("This message was encoded with NiaMod")))
                         .withUnderlined(true);
             }
             copy.append(Component.literal(decoded).withStyle(style));

@@ -163,17 +163,8 @@ public class SectionComponent {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + DEFAULT_HEIGHT) {
             mouseDown = true;
-            if (button == 0) {
-                if (section.hasToggle()) {
-                    section.setEnabled(!section.isEnabled());
-                } else if (!children.isEmpty()) {
-                    expanded = !expanded;
-                }
-                return true;
-            }
-            if (button == 1 && !children.isEmpty()) {
+            if (!children.isEmpty()) {
                 expanded = !expanded;
-                return true;
             }
             return true;
         }
