@@ -25,34 +25,32 @@ public final class RadianceCommand {
     }
 
     public static void register() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(
-                    literal("radiancesync")
-                            .executes(ctx -> openConfig(ctx.getSource()))
-                            .then(literal("aspect")
-                                    .executes(ctx -> cycleAspectTier(ctx.getSource()))
-                                    .then(argument("tier", StringArgumentType.word())
-                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                                                    new String[]{"none", "t1", "t2", "t3"}, builder))
-                                            .executes(ctx -> setAspectTier(
-                                                    ctx.getSource(),
-                                                    StringArgumentType.getString(ctx, "tier")))))
-                            .then(literal("requirewar")
-                                    .then(argument("value", StringArgumentType.word())
-                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                                                    new String[]{"on", "off"}, builder))
-                                            .executes(ctx -> setRequireWar(
-                                                    ctx.getSource(),
-                                                    StringArgumentType.getString(ctx, "value")))))
-                            .then(literal("key")
-                                    .then(argument("value", StringArgumentType.greedyString())
-                                            .executes(ctx -> setGroupKey(
-                                                    ctx.getSource(),
-                                                    StringArgumentType.getString(ctx, "value")))))
-                            .then(literal("overlay")
-                                    .executes(ctx -> openOverlayEditor(ctx.getSource())))
-            );
-        });
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
+                literal("radiancesync")
+                        .executes(ctx -> openConfig(ctx.getSource()))
+                        .then(literal("aspect")
+                                .executes(ctx -> cycleAspectTier(ctx.getSource()))
+                                .then(argument("tier", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                new String[]{"none", "t1", "t2", "t3"}, builder))
+                                        .executes(ctx -> setAspectTier(
+                                                ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "tier")))))
+                        .then(literal("requirewar")
+                                .then(argument("value", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                new String[]{"on", "off"}, builder))
+                                        .executes(ctx -> setRequireWar(
+                                                ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "value")))))
+                        .then(literal("key")
+                                .then(argument("value", StringArgumentType.greedyString())
+                                        .executes(ctx -> setGroupKey(
+                                                ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "value")))))
+                        .then(literal("overlay")
+                                .executes(ctx -> openOverlayEditor(ctx.getSource())))
+        ));
 
         if (!hiddenCommandHandlerRegistered) {
             hiddenCommandHandlerRegistered = true;

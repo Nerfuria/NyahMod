@@ -1,5 +1,6 @@
 package org.nia.niamod.features.radiance;
 
+import lombok.Getter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -34,6 +35,7 @@ public class RadianceOverlaySync {
     private boolean connectionNoticePending;
     private long connectionNoticeDeadlineMs;
     private boolean syncConnectionActive;
+    @Getter
     private boolean manualConnectRequested;
 
     public RadianceOverlaySync(WarStateTracker warStateTracker) {
@@ -42,10 +44,10 @@ public class RadianceOverlaySync {
 
     private static String sanitizeText(String value) {
         String cleaned = value.replace("\u0000", "");
-        cleaned = cleaned.replaceAll("(?i)\u00A7[0-9a-fk-or]", "");
+        cleaned = cleaned.replaceAll("(?i)§[0-9a-fk-or]", "");
         cleaned = cleaned.replaceAll("(?i)&[0-9a-fk-or]", "");
-        cleaned = cleaned.replaceAll("&\\{[^}]*\\}", "");
-        cleaned = cleaned.replaceAll("&\\[[^\\]]*\\]", "");
+        cleaned = cleaned.replaceAll("&\\{[^}]*}", "");
+        cleaned = cleaned.replaceAll("&\\[[^]]*]", "");
         cleaned = cleaned.replaceAll("&<[^>]*>", "");
         return cleaned.trim();
     }
@@ -68,10 +70,6 @@ public class RadianceOverlaySync {
         }
         NyahConfig.nyahConfigData.setRadianceSyncRequireWar(requireWar);
         NyahConfig.save();
-    }
-
-    public boolean isManualConnectRequested() {
-        return manualConnectRequested;
     }
 
     public void setManualConnectRequested(boolean manualConnectRequested) {
@@ -195,7 +193,7 @@ public class RadianceOverlaySync {
 
     public void onHudRender(GuiGraphics drawContext, DeltaTracker tickCounter) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.player == null) {
+        if (client.player == null) {
             return;
         }
         if (NyahConfig.nyahConfigData.isRadianceSyncRequireWar() && !warStateTracker.isInWar()) {

@@ -83,9 +83,7 @@ public final class RadianceOverlayEditorScreen extends Screen {
             restoreOriginalValues();
         }
         dragging = false;
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
-        }
+        this.minecraft.setScreen(parent);
     }
 
     @Override

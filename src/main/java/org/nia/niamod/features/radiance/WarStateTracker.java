@@ -1,7 +1,10 @@
 package org.nia.niamod.features.radiance;
 
+import lombok.Getter;
+
 import java.util.regex.Pattern;
 
+@Getter
 public class WarStateTracker {
     private static final Pattern WAR_START_PATTERN =
             Pattern.compile("The war battle will start in \\d+ seconds\\.", Pattern.CASE_INSENSITIVE);
@@ -15,17 +18,13 @@ public class WarStateTracker {
 
     private static String normalizeLine(String line) {
         String normalized = line;
-        normalized = normalized.replaceAll("(?i)\u00A7[0-9a-fk-or]", "");
+        normalized = normalized.replaceAll("(?i)§[0-9a-fk-or]", "");
         normalized = normalized.replaceAll("(?i)&[0-9a-fk-or]", "");
-        normalized = normalized.replaceAll("&\\{[^}]*\\}", "");
-        normalized = normalized.replaceAll("&\\[[^\\]]*\\]", "");
+        normalized = normalized.replaceAll("&\\{[^}]*}", "");
+        normalized = normalized.replaceAll("&\\[[^]]*]", "");
         normalized = normalized.replaceAll("&<[^>]*>", "");
         normalized = normalized.replaceAll("\\s+", " ").trim();
         return normalized;
-    }
-
-    public boolean isInWar() {
-        return inWar;
     }
 
     public void reset() {
