@@ -118,7 +118,6 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
         ws = null;
         if (NyahConfig.nyahConfigData.isGlobalChatEnabled() && currentServerId != null) {
-            tries = 5;
             Scheduler.scheduleAsync(() -> tryConnect(currentServerId), 5000);
         }
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
@@ -128,7 +127,6 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     public void onError(WebSocket webSocket, Throwable error) {
         ws = null;
         if (NyahConfig.nyahConfigData.isGlobalChatEnabled() && currentServerId != null) {
-            tries = 5;
             Scheduler.scheduleAsync(() -> tryConnect(currentServerId), 5000);
         }
         WebSocket.Listener.super.onError(webSocket, error);
