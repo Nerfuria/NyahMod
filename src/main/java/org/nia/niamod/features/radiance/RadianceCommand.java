@@ -1,9 +1,9 @@
 package org.nia.niamod.features.radiance;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -27,30 +27,30 @@ public final class RadianceCommand {
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(
-                literal("radiancesync")
-                .executes(ctx -> openConfig(ctx.getSource()))
-                .then(literal("aspect")
-                    .executes(ctx -> cycleAspectTier(ctx.getSource()))
-                    .then(argument("tier", StringArgumentType.word())
-                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                            new String[]{"none", "t1", "t2", "t3"}, builder))
-                        .executes(ctx -> setAspectTier(
-                            ctx.getSource(),
-                            StringArgumentType.getString(ctx, "tier")))))
-                .then(literal("requirewar")
-                    .then(argument("value", StringArgumentType.word())
-                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                            new String[]{"on", "off"}, builder))
-                        .executes(ctx -> setRequireWar(
-                            ctx.getSource(),
-                            StringArgumentType.getString(ctx, "value")))))
-                .then(literal("key")
-                    .then(argument("value", StringArgumentType.greedyString())
-                        .executes(ctx -> setGroupKey(
-                            ctx.getSource(),
-                            StringArgumentType.getString(ctx, "value")))))
-                .then(literal("overlay")
-                    .executes(ctx -> openOverlayEditor(ctx.getSource())))
+                    literal("radiancesync")
+                            .executes(ctx -> openConfig(ctx.getSource()))
+                            .then(literal("aspect")
+                                    .executes(ctx -> cycleAspectTier(ctx.getSource()))
+                                    .then(argument("tier", StringArgumentType.word())
+                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                    new String[]{"none", "t1", "t2", "t3"}, builder))
+                                            .executes(ctx -> setAspectTier(
+                                                    ctx.getSource(),
+                                                    StringArgumentType.getString(ctx, "tier")))))
+                            .then(literal("requirewar")
+                                    .then(argument("value", StringArgumentType.word())
+                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                    new String[]{"on", "off"}, builder))
+                                            .executes(ctx -> setRequireWar(
+                                                    ctx.getSource(),
+                                                    StringArgumentType.getString(ctx, "value")))))
+                            .then(literal("key")
+                                    .then(argument("value", StringArgumentType.greedyString())
+                                            .executes(ctx -> setGroupKey(
+                                                    ctx.getSource(),
+                                                    StringArgumentType.getString(ctx, "value")))))
+                            .then(literal("overlay")
+                                    .executes(ctx -> openOverlayEditor(ctx.getSource())))
             );
         });
 
@@ -119,7 +119,7 @@ public final class RadianceCommand {
         String normalized = rawValue.trim().toLowerCase(Locale.ROOT);
         boolean next;
         switch (normalized) {
-            case "on"  -> next = true;
+            case "on" -> next = true;
             case "off" -> next = false;
             default -> {
                 sendError(source, "requirewar expects on/off.");
@@ -207,14 +207,14 @@ public final class RadianceCommand {
         }
         if (sync.isManualConnectRequested() == enabled) {
             feedback.accept(enabled
-                ? "Manual connection is already enabled."
-                : "Manual sync connection is already disabled.");
+                    ? "Manual connection is already enabled."
+                    : "Manual sync connection is already disabled.");
             return;
         }
         sync.setManualConnectRequested(enabled);
         feedback.accept(enabled
-            ? "Manual sync connection enabled. Use /radiancesync disconnect to stop testing outside war."
-            : "Manual sync connection disabled.");
+                ? "Manual sync connection enabled. Use /radiancesync disconnect to stop testing outside war."
+                : "Manual sync connection disabled.");
     }
 
     private static Integer parseAspectTier(String rawValue) {

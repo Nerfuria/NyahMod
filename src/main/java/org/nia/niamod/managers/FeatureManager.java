@@ -49,7 +49,6 @@ public class FeatureManager {
         resTickFeature.runSafe("init", resTickFeature::init);
         chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
         warTimersFeature.runSafe("init", warTimersFeature::init);
-        ignoreFeature.runSafe("init", ignoreFeature::init);
         warTowerEHPFeature.runSafe("init", warTowerEHPFeature::init);
         consuTextFeature.runSafe("init", consuTextFeature::init);
         shoutFilterFeature.runSafe("init", shoutFilterFeature::init);

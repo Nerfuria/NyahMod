@@ -34,7 +34,43 @@ public class CloudflareSync {
     private volatile long lastPingSentMs;
     private volatile long estimatedRttMs;
 
-    
+    private static String getString(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return "";
+        }
+        try {
+            return message.get(key).getAsString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static int getInt(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return -1;
+        }
+        try {
+            return message.get(key).getAsInt();
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
+    private static long getLong(JsonObject message, String key) {
+        if (!message.has(key) || message.get(key).isJsonNull()) {
+            return -1L;
+        }
+        try {
+            return message.get(key).getAsLong();
+        } catch (Exception ignored) {
+            return -1L;
+        }
+    }
+
+    private static boolean isValidKey(String key) {
+        return key != null && !key.isBlank() && key.length() <= 64;
+    }
+
     public void tick(String key, String playerName, String playerUuid) {
         if (!isValidKey(key) || playerName == null || playerName.isEmpty() || playerUuid == null || playerUuid.isEmpty()) {
             disconnect();
@@ -42,8 +78,8 @@ public class CloudflareSync {
         }
 
         boolean targetChanged = !key.equals(connectedKey)
-            || !playerName.equals(connectedPlayerName)
-            || !playerUuid.equals(connectedPlayerUuid);
+                || !playerName.equals(connectedPlayerName)
+                || !playerUuid.equals(connectedPlayerUuid);
         if (targetChanged && webSocket != null) {
             disconnect();
         }
@@ -74,66 +110,66 @@ public class CloudflareSync {
             workerUrl = "https://radiancesync.wavelink.workers.dev";
         }
         String wsUrl = workerUrl.replaceFirst("^https://", "wss://")
-            + "?key=" + encodedKey
-            + "&ign=" + encodedPlayerName
-            + "&uuid=" + encodedPlayerUuid;
+                + "?key=" + encodedKey
+                + "&ign=" + encodedPlayerName
+                + "&uuid=" + encodedPlayerUuid;
 
         try {
             httpClient.newWebSocketBuilder()
-                .buildAsync(URI.create(wsUrl), new WebSocket.Listener() {
-                    private final StringBuilder textBuffer = new StringBuilder();
+                    .buildAsync(URI.create(wsUrl), new WebSocket.Listener() {
+                        private final StringBuilder textBuffer = new StringBuilder();
 
-                    @Override
-                    public void onOpen(WebSocket ws) {
-                        webSocket = ws;
-                        connectedKey = key;
-                        connectedPlayerName = playerName;
-                        connectedPlayerUuid = playerUuid;
-                        lastPingSentMs = 0L;
-                        connecting.set(false);
-                        LOGGER.info("[RadianceSync] WebSocket connected");
-                        ws.request(1);
-                    }
+                        @Override
+                        public void onOpen(WebSocket ws) {
+                            webSocket = ws;
+                            connectedKey = key;
+                            connectedPlayerName = playerName;
+                            connectedPlayerUuid = playerUuid;
+                            lastPingSentMs = 0L;
+                            connecting.set(false);
+                            LOGGER.info("[RadianceSync] WebSocket connected");
+                            ws.request(1);
+                        }
 
-                    @Override
-                    public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
-                        if (last) {
-                            String payload;
-                            if (textBuffer.length() == 0) {
-                                payload = data.toString();
+                        @Override
+                        public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+                            if (last) {
+                                String payload;
+                                if (textBuffer.length() == 0) {
+                                    payload = data.toString();
+                                } else {
+                                    textBuffer.append(data);
+                                    payload = textBuffer.toString();
+                                    textBuffer.setLength(0);
+                                }
+                                handleIncomingMessage(payload);
                             } else {
                                 textBuffer.append(data);
-                                payload = textBuffer.toString();
-                                textBuffer.setLength(0);
                             }
-                            handleIncomingMessage(payload);
-                        } else {
-                            textBuffer.append(data);
+                            ws.request(1);
+                            return null;
                         }
-                        ws.request(1);
-                        return null;
-                    }
 
-                    @Override
-                    public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
-                        LOGGER.info("[RadianceSync] WebSocket closed: {} {}", statusCode, reason);
-                        clearSocketState(ws);
-                        connecting.set(false);
-                        return null;
-                    }
+                        @Override
+                        public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
+                            LOGGER.info("[RadianceSync] WebSocket closed: {} {}", statusCode, reason);
+                            clearSocketState(ws);
+                            connecting.set(false);
+                            return null;
+                        }
 
-                    @Override
-                    public void onError(WebSocket ws, Throwable error) {
-                        LOGGER.warn("[RadianceSync] WebSocket error: {}", error.getMessage());
-                        clearSocketState(ws);
+                        @Override
+                        public void onError(WebSocket ws, Throwable error) {
+                            LOGGER.warn("[RadianceSync] WebSocket error: {}", error.getMessage());
+                            clearSocketState(ws);
+                            connecting.set(false);
+                        }
+                    })
+                    .exceptionally(ex -> {
                         connecting.set(false);
-                    }
-                })
-                .exceptionally(ex -> {
-                    connecting.set(false);
-                    LOGGER.warn("[RadianceSync] WebSocket connect failed: {}", ex.getMessage());
-                    return null;
-                });
+                        LOGGER.warn("[RadianceSync] WebSocket connect failed: {}", ex.getMessage());
+                        return null;
+                    });
         } catch (Exception e) {
             connecting.set(false);
             LOGGER.warn("[RadianceSync] Failed to start WS connect: {}", e.getMessage());
@@ -285,42 +321,6 @@ public class CloudflareSync {
         }
     }
 
-    private static String getString(JsonObject message, String key) {
-        if (!message.has(key) || message.get(key).isJsonNull()) {
-            return "";
-        }
-        try {
-            return message.get(key).getAsString();
-        } catch (Exception ignored) {
-            return "";
-        }
+    public record Entry(int tier, long remainingMs, long receivedAtMs) {
     }
-
-    private static int getInt(JsonObject message, String key) {
-        if (!message.has(key) || message.get(key).isJsonNull()) {
-            return -1;
-        }
-        try {
-            return message.get(key).getAsInt();
-        } catch (Exception ignored) {
-            return -1;
-        }
-    }
-
-    private static long getLong(JsonObject message, String key) {
-        if (!message.has(key) || message.get(key).isJsonNull()) {
-            return -1L;
-        }
-        try {
-            return message.get(key).getAsLong();
-        } catch (Exception ignored) {
-            return -1L;
-        }
-    }
-
-    private static boolean isValidKey(String key) {
-        return key != null && !key.isBlank() && key.length() <= 64;
-    }
-
-    public record Entry(int tier, long remainingMs, long receivedAtMs) {}
 }

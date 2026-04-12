@@ -37,6 +37,14 @@ public final class RadianceOverlayEditorScreen extends Screen {
         this.originalScale = NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
     }
 
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     @Override
     protected void init() {
         int buttonWidth = 98;
@@ -44,14 +52,14 @@ public final class RadianceOverlayEditorScreen extends Screen {
         int centerX = this.width / 2;
 
         addRenderableWidget(Button.builder(Component.literal("-"), btn -> adjustScale(-SCALE_STEP))
-            .pos(centerX - 154, buttonY)
-            .size(24, 20)
-            .build());
+                .pos(centerX - 154, buttonY)
+                .size(24, 20)
+                .build());
 
         addRenderableWidget(Button.builder(Component.literal("+"), btn -> adjustScale(SCALE_STEP))
-            .pos(centerX - 126, buttonY)
-            .size(24, 20)
-            .build());
+                .pos(centerX - 126, buttonY)
+                .size(24, 20)
+                .build());
 
         addRenderableWidget(Button.builder(Component.literal("Done"), btn -> {
             NyahConfig.nyahConfigData.setRadianceSyncOverlayScale(clamp(NyahConfig.nyahConfigData.getRadianceSyncOverlayScale(), MIN_SCALE, MAX_SCALE));
@@ -90,11 +98,11 @@ public final class RadianceOverlayEditorScreen extends Screen {
         String hintC = "Scale: " + String.format(Locale.ROOT, "%.2fx", NyahConfig.nyahConfigData.getRadianceSyncOverlayScale());
 
         context.drawString(this.font, hintA,
-            (this.width - this.font.width(hintA)) / 2, 8, 0xFFE6E6E6, true);
+                (this.width - this.font.width(hintA)) / 2, 8, 0xFFE6E6E6, true);
         context.drawString(this.font, hintB,
-            (this.width - this.font.width(hintB)) / 2, 20, 0xFFE6E6E6, true);
+                (this.width - this.font.width(hintB)) / 2, 20, 0xFFE6E6E6, true);
         context.drawString(this.font, hintC,
-            (this.width - this.font.width(hintC)) / 2, this.height - 38, 0xFFFFFF55, true);
+                (this.width - this.font.width(hintC)) / 2, this.height - 38, 0xFFFFFF55, true);
 
         super.render(context, mouseX, mouseY, delta);
     }
@@ -219,7 +227,7 @@ public final class RadianceOverlayEditorScreen extends Screen {
 
     private void adjustScale(float delta) {
         NyahConfig.nyahConfigData.setRadianceSyncOverlayScale(clamp(
-            NyahConfig.nyahConfigData.getRadianceSyncOverlayScale() + delta, MIN_SCALE, MAX_SCALE));
+                NyahConfig.nyahConfigData.getRadianceSyncOverlayScale() + delta, MIN_SCALE, MAX_SCALE));
     }
 
     private void drawOutline(GuiGraphics context, PreviewBounds bounds, int color) {
@@ -229,29 +237,10 @@ public final class RadianceOverlayEditorScreen extends Screen {
         context.fill(bounds.right - 1, bounds.top, bounds.right, bounds.bottom, color);
     }
 
-    private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static float clamp(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static final class PreviewBounds {
-        private final int left;
-        private final int top;
-        private final int right;
-        private final int bottom;
-
-        private PreviewBounds(int left, int top, int right, int bottom) {
-            this.left = left;
-            this.top = top;
-            this.right = right;
-            this.bottom = bottom;
-        }
+    private record PreviewBounds(int left, int top, int right, int bottom) {
 
         private boolean contains(double x, double y) {
-            return x >= left && x <= right && y >= top && y <= bottom;
+                return x >= left && x <= right && y >= top && y <= bottom;
+            }
         }
-    }
 }

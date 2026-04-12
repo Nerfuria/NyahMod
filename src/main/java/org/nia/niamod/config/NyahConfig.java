@@ -246,9 +246,9 @@ public class NyahConfig {
                 "Radiance Sync",
                 "Tracks Radiance with Guard Partners in War",
                 SettingCategory.WAR,
-                nyahConfigData::isRadianceSyncFeatureEnabled,
+                nyahConfigData::isRadianceSyncEnabled,
                 value -> {
-                    nyahConfigData.setRadianceSyncFeatureEnabled(value);
+                    nyahConfigData.setRadianceSyncEnabled(value);
                     applyFeatureStates();
                     save();
                 },
@@ -315,7 +315,7 @@ public class NyahConfig {
         if (FeatureManager.getGlobalChatFeature() != null)
             FeatureManager.getGlobalChatFeature().setEnabled(nyahConfigData.isGlobalChatEnabled());
         if (FeatureManager.getRadianceSyncFeature() != null)
-            FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncFeatureEnabled());
+            FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncEnabled());
     }
 
     private static void loadConfig() {
@@ -338,11 +338,14 @@ public class NyahConfig {
             nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.resolve(nyahConfigData.getClickGuiTheme()).name());
             if (nyahConfigData.getClickGuiAnimation() == null)
                 nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.NONE);
-            if (nyahConfigData.getClickGuiAnimation() == null) nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.PORTAL);
+            if (nyahConfigData.getClickGuiAnimation() == null)
+                nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.PORTAL);
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
             if (nyahConfigData.getRadianceSyncGroupKey() == null) nyahConfigData.setRadianceSyncGroupKey("");
-            if (nyahConfigData.getRadianceSyncOverlayMode() == null) nyahConfigData.setRadianceSyncOverlayMode(RadianceOverlayMode.CAST);
-            if (nyahConfigData.getRadianceSyncWorkerUrl() == null) nyahConfigData.setRadianceSyncWorkerUrl("https://radiancesync.wavelink.workers.dev");
+            if (nyahConfigData.getRadianceSyncOverlayMode() == null)
+                nyahConfigData.setRadianceSyncOverlayMode(RadianceOverlayMode.CAST);
+            if (nyahConfigData.getRadianceSyncWorkerUrl() == null)
+                nyahConfigData.setRadianceSyncWorkerUrl("https://radiancesync.wavelink.workers.dev");
         } catch (IOException exception) {
             NiamodClient.LOGGER.error("Error loading config file!", exception);
             nyahConfigData = new NyahConfigData();
@@ -508,6 +511,7 @@ public class NyahConfig {
         private boolean shoutFilterFeatureEnabled = true;
         private boolean isViewModelFeatureEnabled = true;
         private boolean isGlobalChatEnabled = true;
+        private boolean radianceSyncEnabled = true;
 
         private String globalChatURL = "wss://niamod.d0cr.dev/gcom";
 
