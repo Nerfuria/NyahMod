@@ -14,12 +14,15 @@ import org.nia.niamod.models.misc.Safe;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -88,10 +91,12 @@ public class ChatEncryptionFeature extends Feature {
     }
 
     private byte[] encryptionKey() {
-        if (NyahConfig.nyahConfigData.getEncryptionKey().isEmpty()) return new byte[0];
         try {
-            return MessageDigest.getInstance(HASH_ALGO)
-                    .digest(NyahConfig.nyahConfigData.getEncryptionKey().getBytes());
+            String password = NyahConfig.nyahConfigData.getEncryptionKey();
+            byte[] salt = new byte[16];
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 100000, 256);
+            return factory.generateSecret(spec).getEncoded();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
