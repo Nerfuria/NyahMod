@@ -88,7 +88,7 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
         if (ws == null || ws.isOutputClosed()) return;
         Scheduler.scheduleAsync(() -> {
             if (ws != null && !ws.isOutputClosed()) {
-                ws.sendText("ping", true);
+                ws.sendPing(java.nio.ByteBuffer.wrap(new byte[]{1}));
                 schedulePing();
             }
         }, 30000);
