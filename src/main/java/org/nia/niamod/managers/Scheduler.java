@@ -4,17 +4,15 @@ import lombok.experimental.UtilityClass;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.models.misc.DelayedTask;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @UtilityClass
 public class Scheduler {
-    private static ConcurrentLinkedDeque<DelayedTask> tasks;
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+    private static ConcurrentLinkedDeque<DelayedTask> tasks;
+
     public static void init() {
         tasks = new ConcurrentLinkedDeque<>();
         ClientTickEvents.END_CLIENT_TICK.register((s) -> tick());

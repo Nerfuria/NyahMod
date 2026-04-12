@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.wynntils.core.text.StyledText;
+import com.wynntils.core.text.fonts.WynnFont;
 import com.wynntils.utils.colors.CustomColor;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -26,7 +27,6 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import com.wynntils.core.text.fonts.WynnFont;
 
 public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     private WebSocket ws;
@@ -49,6 +49,7 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     private int onMessage(CommandContext<FabricClientCommandSource> ctx) {
         if (!NyahConfig.nyahConfigData.isGlobalChatEnabled()) {
             Minecraft.getInstance().player.displayClientMessage(Component.literal("Global Chat is disabled."), false);
+            return 0;
         }
         String message = StringArgumentType.getString(ctx, "message");
         if (ws != null) {
@@ -81,7 +82,7 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
         Minecraft.getInstance().execute(() -> {
-            MutableComponent prelim = StyledText.fromString(WynnFont.asBackgroundFont("Attacker Com", CustomColor.fromInt(0xFFFFFFFF),CustomColor.fromInt(0xFF3b1344), "NONE", "FLAG")).getComponent();
+            MutableComponent prelim = StyledText.fromString(WynnFont.asBackgroundFont("Attacker Com", CustomColor.fromInt(0xFFFFFFFF), CustomColor.fromInt(0xFF3b1344), "NONE", "FLAG")).getComponent();
             JsonObject obj = JsonParser.parseString(data.toString()).getAsJsonObject();
             if (obj.has("error")) {
                 Minecraft.getInstance().player.displayClientMessage(prelim.append(Component.literal(" You have been rate limited.").withColor(0xFFBF0A30)), false);

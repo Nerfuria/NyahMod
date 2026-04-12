@@ -100,17 +100,20 @@ public class NyahConfig {
                         floating("gui_opacity", "GUI Opacity", "Overall background transparency.", 0.1f, 1.0f, () -> nyahConfigData.getGuiOpacity(), val -> nyahConfigData.setGuiOpacity(val)),
                         color("custom_gui_background", "Custom Background", "Background color for the Custom theme.", NyahConfig::getActiveThemeBackground, val -> {
                             nyahConfigData.setCustomGuiBackground(val);
-                            if (val != getActiveThemeBackground()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            if (val != getActiveThemeBackground())
+                                nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
                             save();
                         }),
                         color("custom_gui_secondary", "Custom Secondary", "Secondary color for the Custom theme.", NyahConfig::getActiveThemeSecondary, val -> {
                             nyahConfigData.setCustomGuiSecondary(val);
-                            if (val != getActiveThemeSecondary()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            if (val != getActiveThemeSecondary())
+                                nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
                             save();
                         }),
                         color("custom_gui_accent", "Custom Accent", "Accent color for the Custom theme.", NyahConfig::getActiveThemeAccent, val -> {
                             nyahConfigData.setCustomGuiAccent(val);
-                            if (val != getActiveThemeAccent()) nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
+                            if (val != getActiveThemeAccent())
+                                nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.name());
                             save();
                         })
                 )
@@ -274,9 +277,9 @@ public class NyahConfig {
                 "Attacker Com Chat",
                 "In game chat between attacker community members",
                 SettingCategory.SOCIAL,
-                () -> nyahConfigData.isChatEncryptionFeatureEnabled(),
+                () -> nyahConfigData.isGlobalChatEnabled(),
                 value -> {
-                    nyahConfigData.setChatEncryptionFeatureEnabled(value);
+                    nyahConfigData.setGlobalChatEnabled(value);
                     applyFeatureStates();
                     save();
                 },
@@ -307,9 +310,10 @@ public class NyahConfig {
             FeatureManager.getConsuTextFeature().setEnabled(nyahConfigData.isConsuTextFeatureEnabled());
         if (FeatureManager.getShoutFilterFeature() != null)
             FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
-        if (FeatureManager.getViewModelTransformationFeature() != null) {
+        if (FeatureManager.getViewModelTransformationFeature() != null)
             FeatureManager.getViewModelTransformationFeature().setEnabled(nyahConfigData.isViewModelFeatureEnabled());
-        }
+        if (FeatureManager.getGlobalChatFeature() != null)
+            FeatureManager.getGlobalChatFeature().setEnabled(nyahConfigData.isGlobalChatEnabled());
         if (FeatureManager.getRadianceSyncFeature() != null)
             FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncFeatureEnabled());
     }
@@ -332,6 +336,8 @@ public class NyahConfig {
             if (nyahConfigData.getAvoidedPlayers() == null) nyahConfigData.setAvoidedPlayers(new ArrayList<>());
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).name());
             nyahConfigData.setClickGuiTheme(ClickGuiThemeOption.resolve(nyahConfigData.getClickGuiTheme()).name());
+            if (nyahConfigData.getClickGuiAnimation() == null)
+                nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.NONE);
             if (nyahConfigData.getClickGuiAnimation() == null) nyahConfigData.setClickGuiAnimation(ClickGuiAnimationMode.PORTAL);
             nyahConfigData.setClickGuiFont(ClickGuiFontOption.resolve(nyahConfigData.getClickGuiFont()).getKey());
             if (nyahConfigData.getRadianceSyncGroupKey() == null) nyahConfigData.setRadianceSyncGroupKey("");
@@ -390,7 +396,8 @@ public class NyahConfig {
             try {
                 if (type == ClickGuiThemeOption.class) return ClickGuiThemeOption.valueOf(raw).getLabel();
                 if (type == ClickGuiFontOption.class) return ClickGuiFontOption.valueOf(raw).getLabel();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             String lower = raw.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
             return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
         };
@@ -447,17 +454,20 @@ public class NyahConfig {
     }
 
     private static int getActiveThemeBackground() {
-        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getBackground() & 0xFFFFFF;
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM)
+            return getClickGuiThemeEnum().getTheme().getBackground() & 0xFFFFFF;
         return nyahConfigData.getCustomGuiBackground() & 0xFFFFFF;
     }
 
     private static int getActiveThemeSecondary() {
-        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getSecondary() & 0xFFFFFF;
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM)
+            return getClickGuiThemeEnum().getTheme().getSecondary() & 0xFFFFFF;
         return nyahConfigData.getCustomGuiSecondary() & 0xFFFFFF;
     }
 
     private static int getActiveThemeAccent() {
-        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM) return getClickGuiThemeEnum().getTheme().getAccentColor() & 0xFFFFFF;
+        if (getClickGuiThemeEnum() != ClickGuiThemeOption.CUSTOM)
+            return getClickGuiThemeEnum().getTheme().getAccentColor() & 0xFFFFFF;
         return nyahConfigData.getCustomGuiAccent() & 0xFFFFFF;
     }
 
@@ -493,7 +503,6 @@ public class NyahConfig {
         private boolean resourceTickFeatureEnabled = true;
         private boolean chatEncryptionFeatureEnabled = true;
         private boolean warTimersFeatureEnabled = true;
-        private boolean ignoreFeatureEnabled = true;
         private boolean warTowerEhpFeatureEnabled = true;
         private boolean consuTextFeatureEnabled = true;
         private boolean shoutFilterFeatureEnabled = true;

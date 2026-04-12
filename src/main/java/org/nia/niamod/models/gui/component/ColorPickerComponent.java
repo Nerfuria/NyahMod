@@ -59,7 +59,8 @@ public class ColorPickerComponent {
                 this.hue = hsv[0];
                 this.saturation = hsv[1];
                 this.value = hsv[2];
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+            }
         }
     }
 
