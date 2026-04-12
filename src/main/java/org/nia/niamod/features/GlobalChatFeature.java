@@ -41,11 +41,6 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
             dispatcher.register(ClientCommandManager.literal("gc").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
             dispatcher.register(ClientCommandManager.literal("globalchat").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
         }));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            if (ws != null) {
-                ws.sendClose(WebSocket.NORMAL_CLOSURE, "Client disconnected").thenRun(() -> ws = null);
-            }
-        });
     }
 
     private int onMessage(CommandContext<FabricClientCommandSource> ctx) {
