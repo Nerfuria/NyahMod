@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -41,6 +42,9 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
             dispatcher.register(ClientCommandManager.literal("gc").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
             dispatcher.register(ClientCommandManager.literal("globalchat").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
         }));
+        ClientPlayConnectionEvents.DISCONNECT.register((disconnect, mc) -> {
+            ws.sendClose(WebSocket.NORMAL_CLOSURE, "Connection closed").thenRun(() -> ws = null);
+        });
     }
 
     private int onMessage(CommandContext<FabricClientCommandSource> ctx) {

@@ -22,6 +22,7 @@ public class ClientPacketListenerMixin {
         ChatModifyEvent event = new ChatModifyEvent(component);
         NiaEventBus.dispatch(event);
         Component modified = event.getMessage();
+        if (modified == null) return;
         NiaEventBus.dispatch(new ChatMessageReceivedEvent(modified));
         original.call(instance, modified, bl);
     }
