@@ -96,6 +96,7 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
 
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+        if (data.toString().equals("pong")) return WebSocket.Listener.super.onText(webSocket, data, last);
         Minecraft.getInstance().execute(() -> {
             MutableComponent prelim = StyledText.fromString(WynnFont.asBackgroundFont("Attacker Com", CustomColor.fromInt(0xFFFFFFFF), CustomColor.fromInt(0xFF3b1344), "NONE", "FLAG")).getComponent();
             JsonObject obj = JsonParser.parseString(data.toString()).getAsJsonObject();
