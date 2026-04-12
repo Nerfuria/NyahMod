@@ -63,13 +63,13 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     @Subscribe
     @Safe
     public void onJoin(ServerJoinEvent event) {
+        tries = 5;
         Scheduler.scheduleAsync(
                 () -> tryConnect(event.serverId()),
                 100);
     }
 
     private void tryConnect(String serverId) {
-        if (tries == 0) return;
         try {
             HttpClient client = HttpClient.newHttpClient();
             ws = client.newWebSocketBuilder().header("User-Agent", "NiaMod").buildAsync(URI.create(NyahConfig.nyahConfigData.getGlobalChatURL() + "?serverId=" + serverId + "&name=" + Minecraft.getInstance().getUser().getName()), this).join();
