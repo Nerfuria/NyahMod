@@ -28,7 +28,8 @@ public class ShoutFilterFeature extends Feature {
     public void modifyChat(ChatModifyEvent event) {
         Component component = event.getMessage();
         if (!NyahConfig.nyahConfigData.isShoutReplacementFeatureEnabled()) return;
-        if (!component.getString().contains("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE") && !component.getString().matches("\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06.*\\uE060\\uDAFF\\uDFFF\\uE034\\uDAFF\\uDFFF\\uE044\\uDAFF\\uDFFF.*\\uDB00\\uDC02 shouts:.*")) return;
+        if (!component.getString().contains("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE") && !component.getString().matches("\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06.*\\uE060\\uDAFF\\uDFFF\\uE034\\uDAFF\\uDFFF\\uE044\\uDAFF\\uDFFF.*\\uDB00\\uDC02 shouts:.*"))
+            return;
 
         if (NyahConfig.nyahConfigData.getShoutFilterMode() == ShoutReplacement.REMOVE) {
             event.setMessage(null);

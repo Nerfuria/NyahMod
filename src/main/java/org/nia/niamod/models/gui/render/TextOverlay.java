@@ -16,25 +16,29 @@ public interface TextOverlay {
 
     default int getXOffset() {
         return 0;
-    };
+    }
+
+    default void setXOffset(int xOffset) {
+    }
 
     default int getYOffset() {
         return 0;
+    }
+
+    default void setYOffset(int yOffset) {
     }
 
     default float getScale() {
         return 1.0f;
     }
 
-    default void setXOffset(int xOffset) {}
-
-    default void setYOffset(int yOffset) {}
-
-    default void setScale(float scale) {}
+    default void setScale(float scale) {
+    }
 
     default boolean isEnabled() {
         return true;
     }
 
-    default void setEnabled(boolean enabled) {}
+    default void setEnabled(boolean enabled) {
+    }
 }

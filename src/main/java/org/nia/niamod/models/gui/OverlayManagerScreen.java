@@ -7,12 +7,13 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.render.TextOverlay;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 import org.nia.niamod.render.Render2D;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class OverlayManagerScreen extends Screen {
     private static final float MIN_SCALE = 0.5f;
@@ -46,29 +47,6 @@ public class OverlayManagerScreen extends Screen {
 
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private abstract class ThemeButton extends net.minecraft.client.gui.components.AbstractButton {
-        public ThemeButton(int x, int y, int width, int height, Component message) {
-            super(x, y, width, height, message);
-        }
-
-        @Override
-        public void renderContents(GuiGraphics context, int mouseX, int mouseY, float partialTick) {
-            ClickGuiTheme theme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme()).getTheme();
-            boolean hovered = isHoveredOrFocused();
-            int fill = hovered ? Render2D.withAlpha(theme.getSecondary(), 20) : Render2D.withAlpha(theme.getSecondary(), (int) (255 * NyahConfig.nyahConfigData.getGuiOpacity()));
-            int border = hovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
-            Render2D.shaderRoundedSurface(context, getX(), getY(), width, height, 7, fill, border);
-            int textColor = hovered ? theme.getAccentColor() : theme.getTextColor();
-            int textWidth = OverlayManagerScreen.this.font.width(getMessage());
-            context.drawString(OverlayManagerScreen.this.font, getMessage(), getX() + (width - textWidth) / 2, getY() + (height - OverlayManagerScreen.this.font.lineHeight) / 2, textColor, true);
-        }
-
-        @Override
-        public void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput narrationElementOutput) {
-            this.defaultButtonNarrationText(narrationElementOutput);
-        }
     }
 
     @Override
@@ -342,5 +320,29 @@ public class OverlayManagerScreen extends Screen {
         }
     }
 
-    private record OverlayState(int offsetX, int offsetY, float scale, boolean enabled) {}
+    private record OverlayState(int offsetX, int offsetY, float scale, boolean enabled) {
+    }
+
+    private abstract class ThemeButton extends net.minecraft.client.gui.components.AbstractButton {
+        public ThemeButton(int x, int y, int width, int height, Component message) {
+            super(x, y, width, height, message);
+        }
+
+        @Override
+        public void renderContents(GuiGraphics context, int mouseX, int mouseY, float partialTick) {
+            ClickGuiTheme theme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme()).getTheme();
+            boolean hovered = isHoveredOrFocused();
+            int fill = hovered ? Render2D.withAlpha(theme.getSecondary(), 20) : Render2D.withAlpha(theme.getSecondary(), (int) (255 * NyahConfig.nyahConfigData.getGuiOpacity()));
+            int border = hovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
+            Render2D.shaderRoundedSurface(context, getX(), getY(), width, height, 7, fill, border);
+            int textColor = hovered ? theme.getAccentColor() : theme.getTextColor();
+            int textWidth = OverlayManagerScreen.this.font.width(getMessage());
+            context.drawString(OverlayManagerScreen.this.font, getMessage(), getX() + (width - textWidth) / 2, getY() + (height - OverlayManagerScreen.this.font.lineHeight) / 2, textColor, true);
+        }
+
+        @Override
+        public void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput narrationElementOutput) {
+            this.defaultButtonNarrationText(narrationElementOutput);
+        }
+    }
 }

@@ -1,8 +1,6 @@
 package org.nia.niamod.features;
 
 import com.wynntils.core.components.Models;
-import com.wynntils.core.consumers.functions.Function;
-import com.wynntils.core.consumers.functions.arguments.FunctionArguments;
 import com.wynntils.models.territories.TerritoryInfo;
 import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.services.map.pois.TerritoryPoi;
@@ -148,25 +146,25 @@ public class ResourceTickFeature extends Feature {
         }
 
         @Override
-        public int getYOffset() {
-            return NyahConfig.nyahConfigData.getResTickOverlayOffsetY();
-        }
-
-        @Override
-        public float getScale() {
-            return NyahConfig.nyahConfigData.getResTickOverlayScale();
-        }
-
-        @Override
         public void setXOffset(int xOffset) {
             NyahConfig.nyahConfigData.setResTickOverlayOffsetX(xOffset);
             NyahConfig.save();
         }
 
         @Override
+        public int getYOffset() {
+            return NyahConfig.nyahConfigData.getResTickOverlayOffsetY();
+        }
+
+        @Override
         public void setYOffset(int yOffset) {
             NyahConfig.nyahConfigData.setResTickOverlayOffsetY(yOffset);
             NyahConfig.save();
+        }
+
+        @Override
+        public float getScale() {
+            return NyahConfig.nyahConfigData.getResTickOverlayScale();
         }
 
         @Override

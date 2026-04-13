@@ -7,7 +7,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
-import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.OverlayManagerScreen;
 import org.nia.niamod.models.gui.render.TextOverlay;
 

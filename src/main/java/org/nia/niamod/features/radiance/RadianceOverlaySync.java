@@ -204,25 +204,25 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     @Override
-    public int getYOffset() {
-        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetY();
-    }
-
-    @Override
-    public float getScale() {
-        return NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
-    }
-
-    @Override
     public void setXOffset(int xOffset) {
         NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetX(xOffset);
         NyahConfig.save();
     }
 
     @Override
+    public int getYOffset() {
+        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetY();
+    }
+
+    @Override
     public void setYOffset(int yOffset) {
         NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetY(yOffset);
         NyahConfig.save();
+    }
+
+    @Override
+    public float getScale() {
+        return NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
     }
 
     @Override

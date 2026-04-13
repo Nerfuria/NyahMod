@@ -24,7 +24,6 @@ import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.OverlayManagerScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
-import org.nia.niamod.models.misc.Feature;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -131,7 +130,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isChatEncryptionFeatureEnabled(), val -> { nyahConfigData.setChatEncryptionFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isChatEncryptionFeatureEnabled(), val -> {
+                            nyahConfigData.setChatEncryptionFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", () -> nyahConfigData.getEncryptionPrefix(), val -> nyahConfigData.setEncryptionPrefix(val)),
                         string("encryption_key", "Encryption Key", "Shared AES key material.", () -> nyahConfigData.getEncryptionKey(), val -> nyahConfigData.setEncryptionKey(val)),
                         integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, () -> nyahConfigData.getSaltLength(), val -> nyahConfigData.setSaltLength(val))
@@ -147,7 +149,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isViewModelFeatureEnabled(), val -> { nyahConfigData.setViewModelFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isViewModelFeatureEnabled(), val -> {
+                            nyahConfigData.setViewModelFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         integer("x_offset", "X Offset", "Horizontal offset in hundredths.", -150, 150, () -> nyahConfigData.getXOffset(), val -> nyahConfigData.setXOffset(val)),
                         integer("y_offset", "Y Offset", "Vertical offset in hundredths.", -150, 150, () -> nyahConfigData.getYOffset(), val -> nyahConfigData.setYOffset(val)),
                         integer("z_offset", "Z Offset", "Depth offset in hundredths.", -150, 50, () -> nyahConfigData.getZOffset(), val -> nyahConfigData.setZOffset(val)),
@@ -168,7 +173,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isResourceTickFeatureEnabled(), val -> { nyahConfigData.setResourceTickFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isResourceTickFeatureEnabled(), val -> {
+                            nyahConfigData.setResourceTickFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         button("res_overlay", "Move Overlay", "Move the resource tick overlay", () -> mc.setScreen(new OverlayManagerScreen(mc.screen, List.of(FeatureManager.getResTickFeature().getResTickOverlay()))), "Open Editor")
                 )
         ));
@@ -182,7 +190,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTimersFeatureEnabled(), val -> { nyahConfigData.setWarTimersFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTimersFeatureEnabled(), val -> {
+                            nyahConfigData.setWarTimersFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         color("territory_color", "Box Color", "Color used for queued territory outlines.", () -> nyahConfigData.getColor(), val -> nyahConfigData.setColor(val)),
                         color("territory_color_inside", "Inside Box Color", "Color used for queued territory outlines that you are inside.", () -> nyahConfigData.getColorInside(), val -> nyahConfigData.setColorInside(val)),
                         color("unqueued_territory_color", "Unqueued Box Color", "Color used for unqueued territory outlines.", () -> nyahConfigData.getNotQColor(), val -> nyahConfigData.setNotQColor(val)),
@@ -201,7 +212,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isConsuTextFeatureEnabled(), val -> { nyahConfigData.setConsuTextFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isConsuTextFeatureEnabled(), val -> {
+                            nyahConfigData.setConsuTextFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         floating("label_scale", "Label Scale", "Overlay text scale.", 0.25f, 2.5f, () -> nyahConfigData.getIdScale(), val -> nyahConfigData.setIdScale(val)),
                         integer("label_x_offset", "Label X Offset", "Horizontal label offset.", -16, 16, () -> nyahConfigData.getIdXOffset(), val -> nyahConfigData.setIdXOffset(val)),
                         integer("label_y_offset", "Label Y Offset", "Vertical label offset.", -16, 16, () -> nyahConfigData.getIdYOffset(), val -> nyahConfigData.setIdYOffset(val))
@@ -217,7 +231,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTowerEhpFeatureEnabled(), val -> { nyahConfigData.setWarTowerEhpFeatureEnabled(val); applyFeatureStates(); })
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTowerEhpFeatureEnabled(), val -> {
+                            nyahConfigData.setWarTowerEhpFeatureEnabled(val);
+                            applyFeatureStates();
+                        })
                 )
         ));
 
@@ -230,7 +247,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isShoutFilterFeatureEnabled(), val -> { nyahConfigData.setShoutFilterFeatureEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isShoutFilterFeatureEnabled(), val -> {
+                            nyahConfigData.setShoutFilterFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
                         choice("filter_mode", "Shout Filter Mode", "What to replace shouts with", () -> nyahConfigData.getShoutFilterMode(), val -> nyahConfigData.setShoutFilterMode(val), ShoutReplacement.class)
                 )
         ));
@@ -244,7 +264,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", nyahConfigData::isRadianceSyncEnabled, val -> { nyahConfigData.setRadianceSyncEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", nyahConfigData::isRadianceSyncEnabled, val -> {
+                            nyahConfigData.setRadianceSyncEnabled(val);
+                            applyFeatureStates();
+                        }),
                         string("group_key", "Group Key", "Shared sync group key (shared with party members).", nyahConfigData::getRadianceSyncGroupKey, nyahConfigData::setRadianceSyncGroupKey),
                         integer("self_aspect_tier", "Self Aspect Tier", "Your Radiance aspect tier (0 = none, 1-3).", 0, 3, nyahConfigData::getRadianceSyncSelfTier, nyahConfigData::setRadianceSyncSelfTier),
                         bool("require_war", "Require War", "Only show overlay while in war.", nyahConfigData::isRadianceSyncRequireWar, nyahConfigData::setRadianceSyncRequireWar),
@@ -271,7 +294,10 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isGlobalChatEnabled(), val -> { nyahConfigData.setGlobalChatEnabled(val); applyFeatureStates(); }),
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isGlobalChatEnabled(), val -> {
+                            nyahConfigData.setGlobalChatEnabled(val);
+                            applyFeatureStates();
+                        }),
                         string("url", "Chat WS URL", "URL of websocket for chat", () -> nyahConfigData.getGlobalChatURL(), val -> nyahConfigData.setGlobalChatURL(val))
                 ))
         );

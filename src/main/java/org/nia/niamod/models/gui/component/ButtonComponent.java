@@ -40,7 +40,7 @@ public class ButtonComponent {
 
         int buttonFill = hovered ? Render2D.withAlpha(theme.getSecondary(), Math.min(242, opacity)) : Render2D.withAlpha(theme.getSecondary(), Math.min(224, opacity));
         int buttonBorder = hovered ? Render2D.withAlpha(0xFFFFFF, Math.min(56, opacity)) : Render2D.withAlpha(0xFFFFFF, Math.min(26, opacity));
-        
+
         Render2D.shaderRoundedSurface(
                 g,
                 buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
@@ -50,7 +50,7 @@ public class ButtonComponent {
         String btnText = setting.getButtonText();
         if (btnText != null) {
             int tw = font.width(NiaClickGuiScreen.styled(btnText));
-            g.drawString(font, NiaClickGuiScreen.styled(btnText), buttonX + (BUTTON_WIDTH - tw) / 2, buttonY + (BUTTON_HEIGHT - font.lineHeight)/2 + 1, textColor, false);
+            g.drawString(font, NiaClickGuiScreen.styled(btnText), buttonX + (BUTTON_WIDTH - tw) / 2, buttonY + (BUTTON_HEIGHT - font.lineHeight) / 2 + 1, textColor, false);
         }
     }
 
