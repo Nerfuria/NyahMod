@@ -184,7 +184,9 @@ public class NyahConfig {
                 List.of(
                         bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isWarTimersFeatureEnabled(), val -> { nyahConfigData.setWarTimersFeatureEnabled(val); applyFeatureStates(); }),
                         color("territory_color", "Box Color", "Color used for queued territory outlines.", () -> nyahConfigData.getColor(), val -> nyahConfigData.setColor(val)),
+                        color("territory_color_inside", "Inside Box Color", "Color used for queued territory outlines that you are inside.", () -> nyahConfigData.getColorInside(), val -> nyahConfigData.setColorInside(val)),
                         color("unqueued_territory_color", "Unqueued Box Color", "Color used for unqueued territory outlines.", () -> nyahConfigData.getNotQColor(), val -> nyahConfigData.setNotQColor(val)),
+                        color("unqueued_territory_inside_color", "Inside Unqueued Box Color", "Color used for unqueued territory outlines that you are inside.", () -> nyahConfigData.getNotQInsideColor(), val -> nyahConfigData.setNotQInsideColor(val)),
                         integer("maximum_territories", "Max Territories", "Maximum queued territories to render.", 1, 30, () -> nyahConfigData.getMaximumTerritories(), val -> nyahConfigData.setMaximumTerritories(val)),
                         integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, () -> nyahConfigData.getMaximumDistance(), val -> nyahConfigData.setMaximumDistance(val))
                 )
@@ -513,7 +515,9 @@ public class NyahConfig {
         private int saltLength = 16;
 
         private int color = 0xFFFFFF;
+        private int colorInside = 0xFFFFFF;
         private int notQColor = 0xFFFFFF;
+        private int notQInsideColor = 0xFFFFFF;
         private int maximumDistance = 1000;
         private int maximumTerritories = 10;
 
