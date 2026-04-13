@@ -8,14 +8,16 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.mixin.PlayerListHudAccessor;
 import org.nia.niamod.models.config.RadianceOverlayMode;
+import org.nia.niamod.models.gui.render.TextOverlay;
 
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RadianceOverlaySync {
+public class RadianceOverlaySync implements TextOverlay {
     private static final Pattern RADIANCE_COOLDOWN_PATTERN = Pattern.compile(
             "(?i)\\bradiance\\b[^0-9]*\\(?\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*\\)?");
     private static final long OVERLAY_MAX_MS = 15000L;
@@ -191,6 +193,58 @@ public class RadianceOverlaySync {
         }
     }
 
+    @Override
+    public String defaultValue() {
+        return isStatusOverlayMode() ? "RADIANCE: 8.7s" : "RADIANCE IN 3.0s";
+    }
+
+    @Override
+    public int getXOffset() {
+        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetX();
+    }
+
+    @Override
+    public int getYOffset() {
+        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetY();
+    }
+
+    @Override
+    public float getScale() {
+        return NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
+    }
+
+    @Override
+    public void setXOffset(int xOffset) {
+        NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetX(xOffset);
+        NyahConfig.save();
+    }
+
+    @Override
+    public void setYOffset(int yOffset) {
+        NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetY(yOffset);
+        NyahConfig.save();
+    }
+
+    @Override
+    public void setScale(float scale) {
+        NyahConfig.nyahConfigData.setRadianceSyncOverlayScale(scale);
+        NyahConfig.save();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return NyahConfig.nyahConfigData.isRadianceSyncEnabled();
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        NyahConfig.nyahConfigData.setRadianceSyncEnabled(enabled);
+        NyahConfig.save();
+        if (FeatureManager.getRadianceSyncFeature() != null) {
+            FeatureManager.getRadianceSyncFeature().setEnabled(enabled);
+        }
+    }
+
     public void onHudRender(GuiGraphics drawContext, DeltaTracker tickCounter) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
@@ -203,17 +257,10 @@ public class RadianceOverlaySync {
         boolean statusMode = isStatusOverlayMode();
         boolean castPromptActive = !statusMode && isCastPromptActive(now);
 
-        float scale = NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
-        int width = drawContext.guiWidth();
-        int height = drawContext.guiHeight();
-        int baseX = (int) ((width / 2.0f) / scale);
-        int baseY = (int) ((height * 2.0f / 3.0f) / scale);
-        baseX += Math.round(NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetX() / scale);
-        baseY -= Math.round(NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetY() / scale);
-        drawContext.pose().pushMatrix();
-        drawContext.pose().scale(scale, scale);
-        int primaryLineY = baseY;
-        int cooldownLineY = baseY + 12;
+        int baseX = 0;
+        int primaryLineY = 0;
+        int cooldownLineY = 12;
+
         if (statusMode) {
             if (timerActive) {
                 double remaining = Math.max(0.0, getRemainingSeconds(now));
@@ -234,7 +281,6 @@ public class RadianceOverlaySync {
             }
             drawCooldownLine(drawContext, client, baseX, cooldownLineY);
         }
-        drawContext.pose().popMatrix();
     }
 
     private void updateSyncConnection(Minecraft client,
@@ -260,7 +306,7 @@ public class RadianceOverlaySync {
         }
         syncConnectionActive = shouldConnect;
 
-        if (!connectionNoticePending) {
+        if (!connectionNoticePending || client.player == null) {
             return;
         }
         if (cloudflareSync.isConnected()) {
@@ -313,15 +359,6 @@ public class RadianceOverlaySync {
         return new CooldownOverlayLine(cooldownText, 0xFF55FFFF);
     }
 
-    private void drawCenteredText(GuiGraphics drawContext,
-                                  Minecraft client,
-                                  String text,
-                                  int centerX,
-                                  int y,
-                                  int color) {
-        int textWidth = client.font.width(text);
-        drawContext.drawString(client.font, text, centerX - textWidth / 2, y, color, true);
-    }
 
     private double getRemainingSeconds(long nowMs) {
         double durationMs = timerDurationSeconds * 1000.0;

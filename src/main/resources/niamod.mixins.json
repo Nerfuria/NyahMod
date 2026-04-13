@@ -24,7 +24,6 @@
     "HeldItemRendererMixin",
     "InGameHudMixin",
     "PlayerListHudAccessor",
-    "wynntils.FunctionManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

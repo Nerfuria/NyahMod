@@ -39,7 +39,7 @@ public class GlobalChatFeature extends Feature implements WebSocket.Listener {
     public void init() {
         NiaEventBus.subscribe(this);
         ClientCommandRegistrationCallback.EVENT.register(((dispatcher, buildContext) -> {
-            dispatcher.register(ClientCommandManager.literal("gc").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
+            dispatcher.register(ClientCommandManager.literal("ac").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
             dispatcher.register(ClientCommandManager.literal("globalchat").then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(this::onMessage)));
         }));
         ClientPlayConnectionEvents.DISCONNECT.register((disconnect, mc) -> {

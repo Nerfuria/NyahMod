@@ -57,6 +57,7 @@ public class SectionComponent {
             case CHOICE -> new ChoiceComponent((ChoiceSetting) setting);
             case COLOR -> new ColorPickerComponent((ColorSetting) setting);
             case STRING -> new StringInputComponent((StringSetting) setting);
+            case BUTTON -> new ButtonComponent((org.nia.niamod.config.setting.ButtonSetting) setting);
         };
     }
 
@@ -220,6 +221,7 @@ public class SectionComponent {
         else if (child instanceof SliderComponent c) c.setPosition(cx, cy, cw);
         else if (child instanceof ColorPickerComponent c) c.setPosition(cx, cy, cw);
         else if (child instanceof StringInputComponent c) c.setPosition(cx, cy, cw);
+        else if (child instanceof ButtonComponent c) c.setPosition(cx, cy, cw);
     }
 
     private int getChildHeight(Object child) {
@@ -228,6 +230,7 @@ public class SectionComponent {
         if (child instanceof SliderComponent c) return c.getHeight();
         if (child instanceof ColorPickerComponent c) return c.getHeight();
         if (child instanceof StringInputComponent c) return c.getHeight();
+        if (child instanceof ButtonComponent c) return c.getHeight();
         return 0;
     }
 
@@ -237,6 +240,7 @@ public class SectionComponent {
         else if (child instanceof SliderComponent c) c.render(g, font, mx, my, theme, opacity);
         else if (child instanceof ColorPickerComponent c) c.render(g, font, mx, my, theme, opacity);
         else if (child instanceof StringInputComponent c) c.render(g, font, mx, my, theme, opacity);
+        else if (child instanceof ButtonComponent c) c.render(g, font, mx, my, theme, opacity);
     }
 
     private boolean childMouseClicked(Object child, double mx, double my, int button) {
@@ -245,6 +249,7 @@ public class SectionComponent {
         if (child instanceof SliderComponent c) return c.mouseClicked(mx, my, button);
         if (child instanceof ColorPickerComponent c) return c.mouseClicked(mx, my, button);
         if (child instanceof StringInputComponent c) return c.mouseClicked(mx, my, button);
+        if (child instanceof ButtonComponent c) return c.mouseClicked(mx, my, button);
         return false;
     }
 

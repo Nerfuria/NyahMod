@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.setting.BooleanSetting;
+import org.nia.niamod.config.setting.ButtonSetting;
 import org.nia.niamod.config.setting.ChoiceSetting;
 import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.FloatSetting;
@@ -20,8 +21,10 @@ import org.nia.niamod.models.config.RadianceOverlayMode;
 import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.OverlayManagerScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
+import org.nia.niamod.models.misc.Feature;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -165,7 +168,8 @@ public class NyahConfig {
                 value -> {
                 },
                 List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isResourceTickFeatureEnabled(), val -> { nyahConfigData.setResourceTickFeatureEnabled(val); applyFeatureStates(); })
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isResourceTickFeatureEnabled(), val -> { nyahConfigData.setResourceTickFeatureEnabled(val); applyFeatureStates(); }),
+                        button("res_overlay", "Move Overlay", "Move the resource tick overlay", () -> mc.setScreen(new OverlayManagerScreen(mc.screen, List.of(FeatureManager.getResTickFeature().getResTickOverlay()))), "Open Editor")
                 )
         ));
 
@@ -252,9 +256,7 @@ public class NyahConfig {
                         bool("ping_sound", "Ping Sound", "Play a sound when Radiance is ready.", nyahConfigData::isRadianceSyncPingEnabled, nyahConfigData::setRadianceSyncPingEnabled),
                         floating("ping_volume", "Ping Volume", "Volume of the ping sound.", 0.1f, 2.0f, nyahConfigData::getRadianceSyncPingVolume, nyahConfigData::setRadianceSyncPingVolume),
                         floating("ping_pitch", "Ping Pitch", "Pitch of the ping sound.", 0.5f, 2.0f, nyahConfigData::getRadianceSyncPingPitch, nyahConfigData::setRadianceSyncPingPitch),
-                        floating("overlay_scale", "Overlay Scale", "Scale of the overlay text.", 0.5f, 3.0f, nyahConfigData::getRadianceSyncOverlayScale, nyahConfigData::setRadianceSyncOverlayScale),
-                        integer("overlay_offset_x", "Overlay X Offset", "Horizontal overlay position offset.", -1000, 1000, nyahConfigData::getRadianceSyncOverlayOffsetX, nyahConfigData::setRadianceSyncOverlayOffsetX),
-                        integer("overlay_offset_y", "Overlay Y Offset", "Vertical overlay position offset.", -1000, 1000, nyahConfigData::getRadianceSyncOverlayOffsetY, nyahConfigData::setRadianceSyncOverlayOffsetY)
+                        button("move_overlay", "Move Overlay", "Move the sync overlay", () -> mc.setScreen(new OverlayManagerScreen(mc.screen, List.of(FeatureManager.getRadianceSyncFeature().getOverlay()))), "Open Editor")
                 )
         ));
 
@@ -346,6 +348,13 @@ public class NyahConfig {
             setter.set(value);
             save();
         });
+    }
+
+    private static ButtonSetting button(String id, String title, String description, Runnable action, String buttonText) {
+        return new ButtonSetting(id, title, description, () -> {
+            action.run();
+            save();
+        }, buttonText);
     }
 
     private static FloatSetting floating(String id, String title, String description, float min, float max, ConfigGetter<Float> getter, ConfigSetter<Float> setter) {
@@ -537,5 +546,9 @@ public class NyahConfig {
         private int radianceSyncOverlayOffsetX = 0;
         private int radianceSyncOverlayOffsetY = -10;
         private String radianceSyncGroupKey = "";
+
+        private int resTickOverlayOffsetX = 0;
+        private int resTickOverlayOffsetY = 0;
+        private float resTickOverlayScale = 1.0f;
     }
 }

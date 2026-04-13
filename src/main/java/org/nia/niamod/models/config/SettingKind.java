@@ -6,5 +6,6 @@ public enum SettingKind {
     FLOAT,
     STRING,
     CHOICE,
-    COLOR
+    COLOR,
+    BUTTON
 }

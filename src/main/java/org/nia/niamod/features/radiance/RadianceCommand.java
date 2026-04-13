@@ -48,8 +48,6 @@ public final class RadianceCommand {
                                         .executes(ctx -> setGroupKey(
                                                 ctx.getSource(),
                                                 StringArgumentType.getString(ctx, "value")))))
-                        .then(literal("overlay")
-                                .executes(ctx -> openOverlayEditor(ctx.getSource())))
         ));
 
         if (!hiddenCommandHandlerRegistered) {
@@ -126,16 +124,6 @@ public final class RadianceCommand {
         }
         sync.setRequireWar(next);
         sendFeedback(source, "Overlay requires being in war: " + next);
-        return 1;
-    }
-
-    private static int openOverlayEditor(FabricClientCommandSource source) {
-        RadianceOverlaySync sync = getSync(source);
-        if (sync == null) {
-            return 0;
-        }
-        Minecraft client = Minecraft.getInstance();
-        client.submit(() -> client.setScreen(new RadianceOverlayEditorScreen(client.screen, sync)));
         return 1;
     }
 

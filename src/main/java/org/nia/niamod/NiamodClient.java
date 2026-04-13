@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
+import org.nia.niamod.managers.OverlayManager;
 import org.nia.niamod.managers.Scheduler;
 import org.slf4j.Logger;
 
@@ -18,6 +19,7 @@ public class NiamodClient implements ClientModInitializer {
         mc = Minecraft.getInstance();
         KeybindManager.init();
         NyahConfig.init();
+        OverlayManager.init();
         FeatureManager.init();
         Scheduler.init();
     }

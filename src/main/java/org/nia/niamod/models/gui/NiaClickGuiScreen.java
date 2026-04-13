@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.config.setting.SettingSection;
+import org.nia.niamod.managers.OverlayManager;
 import org.nia.niamod.mixin.EditBoxAccessor;
 import org.nia.niamod.mixin.GameRendererAccessor;
 import org.nia.niamod.models.config.ClickGuiAnimationMode;
@@ -709,6 +710,16 @@ public class NiaClickGuiScreen extends Screen {
 
         int textW = font.width(styled("Reset Defaults"));
         g.drawString(font, styled("Reset Defaults"), buttonX + (buttonW - textW) / 2, resetY + 8, rHovered ? 0xFFFFFFFF : 0xD6FFFFFF, false);
+
+        int overlayY = resetY - 30;
+        boolean oHovered = mx >= buttonX && mx <= buttonX + buttonW && my >= overlayY && my <= overlayY + 24;
+
+        int overlayFill = oHovered ? Render2D.withAlpha(theme.getSecondary(), 242) : Render2D.withAlpha(theme.getSecondary(), 224);
+        int overlayBorder = oHovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
+        Render2D.shaderRoundedSurface(g, buttonX, overlayY, buttonW, 24, 7, overlayFill, overlayBorder);
+
+        int overlayTextW = font.width(styled("Overlays"));
+        g.drawString(font, styled("Overlays"), buttonX + (buttonW - overlayTextW) / 2, overlayY + 8, oHovered ? 0xFFFFFFFF : 0xD6FFFFFF, false);
     }
 
     private void renderSearchBar(GuiGraphics g, int x, int y, int mouseX, int mouseY, ClickGuiTheme theme) {
@@ -817,6 +828,12 @@ public class NiaClickGuiScreen extends Screen {
             NyahConfig.applyFeatureStates();
             lastRenderedTheme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme());
             rebuildWidgetsAndSections();
+            return true;
+        }
+
+        int overlayY = resetY - 30;
+        if (btn == 0 && mx >= px + 10 && mx <= px + SIDEBAR_W - 10 && my >= overlayY && my <= overlayY + 24) {
+            OverlayManager.openConfig();
             return true;
         }
 

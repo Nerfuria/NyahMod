@@ -13,6 +13,7 @@ import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.features.radiance.RadianceCommand;
 import org.nia.niamod.features.radiance.RadianceOverlaySync;
 import org.nia.niamod.features.radiance.WarStateTracker;
+import org.nia.niamod.managers.OverlayManager;
 import org.nia.niamod.models.events.ChatMessageReceivedEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -32,8 +33,7 @@ public class RadianceSyncFeature extends Feature {
         NiaEventBus.subscribe(this);
         ClientTickEvents.END_CLIENT_TICK.register(client ->
                 runSafe("onClientTick", () -> onClientTick(client)));
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("niamod", "radiance_overlay"),
-                (drawContext, tickCounter) -> runSafe("onHudRender", () -> onHudRender(drawContext, tickCounter)));
+        OverlayManager.registerOverlay(overlay);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 runSafe("onJoin", this::onJoin));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->

@@ -9,8 +9,14 @@ import com.wynntils.services.map.pois.TerritoryPoi;
 import com.wynntils.utils.type.CappedValue;
 import lombok.Getter;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import org.nia.niamod.NiamodClient;
+import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.managers.FeatureManager;
+import org.nia.niamod.managers.OverlayManager;
+import org.nia.niamod.models.gui.render.TextOverlay;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.util.MathUtils;
@@ -22,11 +28,11 @@ import java.util.List;
 
 public class ResourceTickFeature extends Feature {
     private static final int resTickOffset = 5;     // The map updates with a delay of 5 seconds for some reason
-    @Getter
-    private final Function<?> resTickFunction = new ResTickFunction();
     private Integer lastMapTick = null;
     private String lastWorld = null;
     private Instant lastResTick = null;
+    @Getter
+    private ResTickOverlay resTickOverlay;
 
     private static String get_world() {
         if (!Models.WorldState.onWorld()) {
@@ -42,6 +48,8 @@ public class ResourceTickFeature extends Feature {
     public void init() {
         ClientTickEvents.END_CLIENT_TICK.register(client ->
                 runSafe("onClientTick", () -> onClientTick(client)));
+        resTickOverlay = new ResTickOverlay();
+        OverlayManager.registerOverlay(resTickOverlay);
     }
 
     @Safe
@@ -122,10 +130,63 @@ public class ResourceTickFeature extends Feature {
         return lastMapTick;
     }
 
-    public class ResTickFunction extends Function<Integer> {
+    public class ResTickOverlay implements TextOverlay {
+
         @Override
-        public Integer getValue(FunctionArguments arguments) {
-            return callSafe("getTimeUntilResTick", ResourceTickFeature.this::getTimeUntilResTick, -1);
+        public String defaultValue() {
+            return "-1";
+        }
+
+        @Override
+        public void onHudRender(GuiGraphics drawContext, DeltaTracker tickCounter) {
+            drawCenteredText(drawContext, Minecraft.getInstance(), getTimeUntilResTick() + "s", 0, 0, 0xFFFFFFFF);
+        }
+
+        @Override
+        public int getXOffset() {
+            return NyahConfig.nyahConfigData.getResTickOverlayOffsetX();
+        }
+
+        @Override
+        public int getYOffset() {
+            return NyahConfig.nyahConfigData.getResTickOverlayOffsetY();
+        }
+
+        @Override
+        public float getScale() {
+            return NyahConfig.nyahConfigData.getResTickOverlayScale();
+        }
+
+        @Override
+        public void setXOffset(int xOffset) {
+            NyahConfig.nyahConfigData.setResTickOverlayOffsetX(xOffset);
+            NyahConfig.save();
+        }
+
+        @Override
+        public void setYOffset(int yOffset) {
+            NyahConfig.nyahConfigData.setResTickOverlayOffsetY(yOffset);
+            NyahConfig.save();
+        }
+
+        @Override
+        public void setScale(float scale) {
+            NyahConfig.nyahConfigData.setResTickOverlayScale(scale);
+            NyahConfig.save();
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return NyahConfig.nyahConfigData.isResourceTickFeatureEnabled();
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            NyahConfig.nyahConfigData.setResourceTickFeatureEnabled(enabled);
+            NyahConfig.save();
+            if (FeatureManager.getResTickFeature() != null) {
+                FeatureManager.getResTickFeature().setEnabled(enabled);
+            }
         }
     }
 }
