@@ -23,7 +23,7 @@
     "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",
-    "PlayerListHudAccessor",
+    "PlayerListHudAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
