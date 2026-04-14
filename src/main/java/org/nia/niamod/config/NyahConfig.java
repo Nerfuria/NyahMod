@@ -125,7 +125,7 @@ public class NyahConfig {
                 "chat_encryption",
                 "Chat Encryption",
                 "Encrypt and decode guild messages with a shared key.",
-                SettingCategory.GENERAL,
+                SettingCategory.SOCIAL,
                 () -> true,
                 value -> {
                 },
@@ -137,6 +137,23 @@ public class NyahConfig {
                         string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", () -> nyahConfigData.getEncryptionPrefix(), val -> nyahConfigData.setEncryptionPrefix(val)),
                         string("encryption_key", "Encryption Key", "Shared AES key material.", () -> nyahConfigData.getEncryptionKey(), val -> nyahConfigData.setEncryptionKey(val)),
                         integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, () -> nyahConfigData.getSaltLength(), val -> nyahConfigData.setSaltLength(val))
+                )
+        ));
+
+        SECTIONS.add(SettingSection.standard(
+                "auto_stream",
+                "Auto Stream",
+                "Automatically stream when you changed worlds",
+                SettingCategory.SOCIAL,
+                () -> true,
+                value -> {
+                },
+                List.of(
+                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isAutoStreamFeatureEnabled(), val -> {
+                            nyahConfigData.setAutoStreamFeatureEnabled(val);
+                            applyFeatureStates();
+                        }),
+                        integer("timeout", "Timeout", "Time to wait between stream boss bars before attempting to re-stream", 100, 10000, () -> nyahConfigData.getStreamCooldown(), val -> nyahConfigData.setStreamCooldown(val))
                 )
         ));
 
@@ -330,6 +347,8 @@ public class NyahConfig {
             FeatureManager.getGlobalChatFeature().setEnabled(nyahConfigData.isGlobalChatEnabled());
         if (FeatureManager.getRadianceSyncFeature() != null)
             FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncEnabled());
+        if (FeatureManager.getAutoStreamFeature() != null)
+            FeatureManager.getAutoStreamFeature().setEnabled(nyahConfigData.isAutoStreamFeatureEnabled());
     }
 
     private static void loadConfig() {
@@ -524,6 +543,7 @@ public class NyahConfig {
         private boolean shoutReplacementFeatureEnabled = true;
         private boolean resourceTickFeatureEnabled = true;
         private boolean chatEncryptionFeatureEnabled = true;
+        private boolean autoStreamFeatureEnabled = true;
         private boolean warTimersFeatureEnabled = true;
         private boolean warTowerEhpFeatureEnabled = true;
         private boolean consuTextFeatureEnabled = true;
@@ -550,6 +570,8 @@ public class NyahConfig {
         private float idScale = 0.7f;
         private int idXOffset = 1;
         private int idYOffset = 1;
+
+        private int streamCooldown;
 
         private int xOffset = 0;
         private int yOffset = 0;

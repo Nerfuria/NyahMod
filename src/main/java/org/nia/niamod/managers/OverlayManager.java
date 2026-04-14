@@ -6,7 +6,6 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.models.gui.OverlayManagerScreen;
 import org.nia.niamod.models.gui.render.TextOverlay;
 
@@ -23,7 +22,6 @@ public class OverlayManager {
     public static void init() {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("niamod", "overlays"),
                 OverlayManager::onHudRender);
-        KeybindManager.registerKeybinding("Open NiaMod Overlay", GLFW.GLFW_KEY_RIGHT_SHIFT, OverlayManager::openConfig);
     }
 
     public static void openConfig() {

@@ -137,7 +137,7 @@ public class ResourceTickFeature extends Feature {
 
         @Override
         public void onHudRender(GuiGraphics drawContext, DeltaTracker tickCounter) {
-            drawCenteredText(drawContext, Minecraft.getInstance(), getTimeUntilResTick() + "s", 0, 0, 0xFFFFFFFF);
+            drawCenteredText(drawContext, Minecraft.getInstance(), ResourceTickFeature.this.getTimeUntilResTick() + "s", 0, 0, 0xFFFFFFFF);
         }
 
         @Override

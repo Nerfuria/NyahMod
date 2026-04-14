@@ -4,6 +4,7 @@ import net.minecraft.client.GuiMessage;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
@@ -28,14 +29,13 @@ public class ShoutFilterFeature extends Feature {
     public void modifyChat(ChatModifyEvent event) {
         Component component = event.getMessage();
         if (!NyahConfig.nyahConfigData.isShoutReplacementFeatureEnabled()) return;
-        if (!component.getString().contains("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE") && !component.getString().matches("\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06.*\\uE060\\uDAFF\\uDFFF\\uE034\\uDAFF\\uDFFF\\uE044\\uDAFF\\uDFFF.*\\uDB00\\uDC02 shouts:.*"))
+        if (!component.getString().contains("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE") && !component.getString().matches("\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06.*\\uE060\\uDAFF\\uDFFF\\uE034\\uDAFF\\uDFFF\\uE044\\uDAFF\\uDFFF.*\\uDB00\\uDC02.*1shouts: .*"))
             return;
 
         if (NyahConfig.nyahConfigData.getShoutFilterMode() == ShoutReplacement.REMOVE) {
             event.setMessage(null);
         } else if (NyahConfig.nyahConfigData.getShoutFilterMode() == ShoutReplacement.GRAY_OUT) {
-            event.setMessage(Component.empty().append(component)
-                    .setStyle(component.getStyle().withColor(TextColor.fromRgb(0x686868))));
+            event.setMessage(withColor(component));
         } else {
             Minecraft mc = Minecraft.getInstance();
             final int insertTick = mc.gui.getGuiTicks();
@@ -59,6 +59,18 @@ public class ShoutFilterFeature extends Feature {
                             .withColor(TextColor.fromRgb(0x3b1344))
                     ));
         }
+    }
+
+    private Component withColor(Component component) {
+        MutableComponent copy = component.plainCopy();
+
+        copy.setStyle(component.getStyle().withColor(TextColor.fromRgb(0x676767)));
+
+        for (Component sibling : component.getSiblings()) {
+            copy.append(withColor(sibling));
+        }
+
+        return copy;
     }
 
 }

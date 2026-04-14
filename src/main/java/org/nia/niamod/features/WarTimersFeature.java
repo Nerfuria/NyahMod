@@ -60,7 +60,6 @@ public class WarTimersFeature extends Feature {
 
                     boolean inside = player != null &&
                             player.getX() >= min.getX() && player.getX() <= max.getX() &&
-                            player.getY() >= min.getY() && player.getY() <= max.getY() &&
                             player.getZ() >= min.getZ() && player.getZ() <= max.getZ();
                     int cr = inside ? ri : r;
                     int cg = inside ? gi : g;
@@ -93,9 +92,8 @@ public class WarTimersFeature extends Feature {
                         var max = territory.rightCorner();
 
                         boolean inside = player != null &&
-                                player.getX() >= min.getX() && player.getX() <= max.getX() &&
-                                player.getY() >= min.getY() && player.getY() <= max.getY() &&
-                                player.getZ() >= min.getZ() && player.getZ() <= max.getZ();
+                                player.getX() >= min.getX() && player.getX() - 1 <= max.getX() &&
+                                player.getZ() >= min.getZ() && player.getZ() - 1 <= max.getZ();
 
                         int cr = inside ? rqi : rq;
                         int cg = inside ? gqi : gq;
