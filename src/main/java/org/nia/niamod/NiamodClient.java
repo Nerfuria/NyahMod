@@ -19,8 +19,8 @@ public class NiamodClient implements ClientModInitializer {
         mc = Minecraft.getInstance();
         KeybindManager.init();
         NyahConfig.init();
+        Scheduler.init();
         OverlayManager.init();
         FeatureManager.init();
-        Scheduler.init();
     }
 }
