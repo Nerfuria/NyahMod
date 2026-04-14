@@ -301,23 +301,6 @@ public class NyahConfig {
                         button("move_overlay", "Move Overlay", "Move the sync overlay", () -> mc.setScreen(new OverlayManagerScreen(mc.screen, List.of(FeatureManager.getRadianceSyncFeature().getOverlay()))), "Open Editor")
                 )
         ));
-
-        SECTIONS.add(SettingSection.standard(
-                "global_chat",
-                "Attacker Com Chat",
-                "In game chat between attacker community members",
-                SettingCategory.SOCIAL,
-                () -> true,
-                value -> {
-                },
-                List.of(
-                        bool("enabled", "Enabled", "Enable this feature.", () -> nyahConfigData.isGlobalChatEnabled(), val -> {
-                            nyahConfigData.setGlobalChatEnabled(val);
-                            applyFeatureStates();
-                        }),
-                        string("url", "Chat WS URL", "URL of websocket for chat", () -> nyahConfigData.getGlobalChatURL(), val -> nyahConfigData.setGlobalChatURL(val))
-                ))
-        );
     }
 
     public static void save() {
@@ -343,8 +326,6 @@ public class NyahConfig {
             FeatureManager.getShoutFilterFeature().setEnabled(nyahConfigData.isShoutFilterFeatureEnabled());
         if (FeatureManager.getViewModelTransformationFeature() != null)
             FeatureManager.getViewModelTransformationFeature().setEnabled(nyahConfigData.isViewModelFeatureEnabled());
-        if (FeatureManager.getGlobalChatFeature() != null)
-            FeatureManager.getGlobalChatFeature().setEnabled(nyahConfigData.isGlobalChatEnabled());
         if (FeatureManager.getRadianceSyncFeature() != null)
             FeatureManager.getRadianceSyncFeature().setEnabled(nyahConfigData.isRadianceSyncEnabled());
         if (FeatureManager.getAutoStreamFeature() != null)
@@ -549,10 +530,8 @@ public class NyahConfig {
         private boolean consuTextFeatureEnabled = true;
         private boolean shoutFilterFeatureEnabled = true;
         private boolean isViewModelFeatureEnabled = true;
-        private boolean isGlobalChatEnabled = true;
         private boolean radianceSyncEnabled = true;
 
-        private String globalChatURL = "wss://niamod.d0cr.dev/gcom";
 
         private ShoutReplacement shoutFilterMode = ShoutReplacement.COLLAPSE;
 
@@ -571,7 +550,7 @@ public class NyahConfig {
         private int idXOffset = 1;
         private int idYOffset = 1;
 
-        private int streamCooldown;
+        private int streamCooldown = 5000;
 
         private int xOffset = 0;
         private int yOffset = 0;

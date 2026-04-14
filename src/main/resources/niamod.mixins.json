@@ -8,8 +8,7 @@
     "BossBarHudMixin",
     "ClientPacketListenerMixin",
     "MinecraftClientMixin",
-    "wynnextras.BankOverlayMixin",
-    "wynntils.StreamModelMixin"
+    "wynnextras.BankOverlayMixin"
   ],
   "client": [
     "ChatComponentAccessor",

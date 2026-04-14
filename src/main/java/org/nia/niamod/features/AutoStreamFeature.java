@@ -1,29 +1,52 @@
 package org.nia.niamod.features;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
-import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.BossBarNameEvent;
+import org.nia.niamod.models.events.CommandSentEvent;
 import org.nia.niamod.models.misc.Feature;
 
 public class AutoStreamFeature extends Feature {
 
     private long lastSeen;
+    private long lastStreamed;
+    private boolean streamEnabled = false;
 
+    @Override
     public void init() {
         NiaEventBus.subscribe(this);
+        ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
+    }
+
+    private void onTick(Minecraft mc) {
+        if (isDisabled() || mc.getConnection() == null || !streamEnabled) {
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        boolean isStreamCooldownOver = (currentTime - lastSeen) >= NyahConfig.nyahConfigData.getStreamCooldown();
+        boolean isCommandCooldownOver = (currentTime - lastStreamed) >= 1000;
+
+        if (isStreamCooldownOver && isCommandCooldownOver) {
+            mc.getConnection().sendCommand("stream");
+            lastStreamed = currentTime;
+        }
     }
 
     @Subscribe
     private void onBossBar(BossBarNameEvent event) {
         if (event.getTitle().getString().contains("Streamer mode enabled")) {
             lastSeen = System.currentTimeMillis();
-            return;
         }
-        if (lastSeen - System.currentTimeMillis() < NyahConfig.nyahConfigData.getStreamCooldown()) return;
-        Scheduler.schedule(() -> Minecraft.getInstance().getConnection().sendCommand("stream"), 10);
     }
 
+    @Subscribe
+    private void onCommand(CommandSentEvent event) {
+        if (event.command().startsWith("stream")) {
+            streamEnabled = !streamEnabled;
+        }
+    }
 }

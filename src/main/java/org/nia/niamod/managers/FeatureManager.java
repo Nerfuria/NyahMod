@@ -23,8 +23,6 @@ public class FeatureManager {
     @Getter
     private static ViewModelTransformationFeature viewModelTransformationFeature;
     @Getter
-    private static GlobalChatFeature globalChatFeature;
-    @Getter
     private static RadianceSyncFeature radianceSyncFeature;
     @Getter
     private static AutoStreamFeature autoStreamFeature;
@@ -37,7 +35,6 @@ public class FeatureManager {
         consuTextFeature = new ConsuTextFeature();
         shoutFilterFeature = new ShoutFilterFeature();
         viewModelTransformationFeature = new ViewModelTransformationFeature();
-        globalChatFeature = new GlobalChatFeature();
         radianceSyncFeature = new RadianceSyncFeature();
         autoStreamFeature = new AutoStreamFeature();
 
@@ -48,7 +45,6 @@ public class FeatureManager {
         consuTextFeature.runSafe("init", consuTextFeature::init);
         shoutFilterFeature.runSafe("init", shoutFilterFeature::init);
         viewModelTransformationFeature.runSafe("init", viewModelTransformationFeature::init);
-        globalChatFeature.runSafe("init", globalChatFeature::init);
         radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
         autoStreamFeature.runSafe("init", autoStreamFeature::init);
 
