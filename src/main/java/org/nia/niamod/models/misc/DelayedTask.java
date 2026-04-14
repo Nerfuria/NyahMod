@@ -1,8 +1,8 @@
 package org.nia.niamod.models.misc;
 
 public class DelayedTask {
-    private final Runnable task;
-    private int ticksRemaining;
+    protected final Runnable task;
+    protected int ticksRemaining;
 
     public DelayedTask(Runnable task, int delayTicks) {
         this.task = task;

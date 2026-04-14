@@ -216,7 +216,10 @@ public class NyahConfig {
                         color("unqueued_territory_color", "Unqueued Box Color", "Color used for unqueued territory outlines.", () -> nyahConfigData.getNotQColor(), val -> nyahConfigData.setNotQColor(val)),
                         color("unqueued_territory_inside_color", "Inside Unqueued Box Color", "Color used for unqueued territory outlines that you are inside.", () -> nyahConfigData.getNotQInsideColor(), val -> nyahConfigData.setNotQInsideColor(val)),
                         integer("maximum_territories", "Max Territories", "Maximum queued territories to render.", 1, 30, () -> nyahConfigData.getMaximumTerritories(), val -> nyahConfigData.setMaximumTerritories(val)),
-                        integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, () -> nyahConfigData.getMaximumDistance(), val -> nyahConfigData.setMaximumDistance(val))
+                        integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, () -> nyahConfigData.getMaximumDistance(), val -> nyahConfigData.setMaximumDistance(val)),
+                        integer("maximum_terr_warn", "Max Territory Warning", "How many upcoming attack timers to warn you about (set 0 to disable)", 0, 10, () -> nyahConfigData.getTerritoryWarningCount(), val -> nyahConfigData.setTerritoryWarningCount(val)),
+                        integer("max_time_warn", "Max Queue Time", "Maximum time of an attack timer to be included (min)", 1, 10, () -> nyahConfigData.getMaxTimeTerr(), val -> nyahConfigData.setMaxTimeTerr(val)),
+                        integer("often_warn", "Warn Speed", "How many seconds between wars", 10, 120, () -> nyahConfigData.getWarnTime(), val -> nyahConfigData.setWarnTime(val))
                 )
         ));
 
@@ -545,6 +548,9 @@ public class NyahConfig {
         private int notQInsideColor = 0xFFFFFF;
         private int maximumDistance = 1000;
         private int maximumTerritories = 10;
+        private int territoryWarningCount = 0;
+        private int maxTimeTerr = 60 * 10;
+        private int warnTime = 30;
 
         private float idScale = 0.7f;
         private int idXOffset = 1;

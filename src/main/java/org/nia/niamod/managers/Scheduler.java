@@ -3,10 +3,13 @@ package org.nia.niamod.managers;
 import lombok.experimental.UtilityClass;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.models.misc.DelayedTask;
+import org.nia.niamod.models.misc.RepeatingTask;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BooleanSupplier;
+import java.util.function.IntSupplier;
 
 @UtilityClass
 public class Scheduler {
@@ -24,6 +27,14 @@ public class Scheduler {
 
     public static void scheduleAsync(Runnable task, int delayTicks) {
         tasks.add(new DelayedTask(() -> EXECUTOR_SERVICE.execute(task), delayTicks));
+    }
+
+    public static void scheduleRepeating(Runnable task, int delayTicks, int intervalTicks, BooleanSupplier cancelCondition) {
+        tasks.add(new RepeatingTask(task, delayTicks, () -> intervalTicks, cancelCondition));
+    }
+
+    public static void scheduleRepeating(Runnable task, IntSupplier intervalTicks, BooleanSupplier cancelCondition) {
+        tasks.add(new RepeatingTask(task, 0, intervalTicks, cancelCondition));
     }
 
     public static void tick() {
