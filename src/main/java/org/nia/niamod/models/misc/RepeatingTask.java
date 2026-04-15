@@ -6,7 +6,6 @@ import java.util.function.IntSupplier;
 public class RepeatingTask extends DelayedTask {
     private final IntSupplier intervalTicks;
     private final BooleanSupplier cancelCondition;
-    private int currentTicks;
 
     public RepeatingTask(Runnable task, int delayTicks, IntSupplier intervalTicks, BooleanSupplier cancelCondition) {
         super(task, delayTicks);
