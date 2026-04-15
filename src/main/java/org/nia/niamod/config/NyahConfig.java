@@ -219,7 +219,7 @@ public class NyahConfig {
                         integer("maximum_distance", "Max Distance", "Max squared-distance filter input.", 50, 5000, () -> nyahConfigData.getMaximumDistance(), val -> nyahConfigData.setMaximumDistance(val)),
                         integer("maximum_terr_warn", "Max Territory Warning", "How many upcoming attack timers to warn you about (set 0 to disable)", 0, 10, () -> nyahConfigData.getTerritoryWarningCount(), val -> nyahConfigData.setTerritoryWarningCount(val)),
                         integer("max_time_warn", "Max Queue Time", "Maximum time of an attack timer to be included (min)", 1, 10, () -> nyahConfigData.getMaxTimeTerr(), val -> nyahConfigData.setMaxTimeTerr(val)),
-                        integer("often_warn", "Warn Speed", "How many seconds between wars", 10, 120, () -> nyahConfigData.getWarnTime(), val -> nyahConfigData.setWarnTime(val))
+                        integer("often_warn", "Warn Speed", "How many seconds between warns", 10, 120, () -> nyahConfigData.getWarnTime(), val -> nyahConfigData.setWarnTime(val))
                 )
         ));
 

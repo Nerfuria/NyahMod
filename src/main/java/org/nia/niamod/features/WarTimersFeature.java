@@ -52,7 +52,7 @@ public class WarTimersFeature extends Feature {
                     .limit(NyahConfig.nyahConfigData.getTerritoryWarningCount())
                     .map(timer -> Component.literal(" " + timer.territoryName() + " - " + timeFromNow(timer.timerEnd()) + "\n").withColor(0xFFEE6B6E))
                     .forEach(timer -> mc.player.displayClientMessage(prelim.copy().append(timer), false));
-        }, () -> NyahConfig.nyahConfigData.getWarnTime(), this::isDisabled);
+        }, () -> NyahConfig.nyahConfigData.getWarnTime() * 20, this::isDisabled);
     }
 
     @Override
