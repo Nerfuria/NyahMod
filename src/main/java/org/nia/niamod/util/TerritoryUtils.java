@@ -10,13 +10,15 @@ import com.wynntils.utils.type.Pair;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.war.TerritoryBaseLoader;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class TerritoryUtils {
     public static final GuildResource[] RESOURCES = GuildResource.values();
-    private final static Map<Integer, List<EmeraldProdUpgrade>> EMERALD_MODIFIER_OPTIONS = getEmeraldModifierOptions();
 
-    public static int resStorageCostToLevel(int res_storage_max) {
+    public static int resStorageCapToLevel(int res_storage_max) {
         return switch (res_storage_max) {
             case 300 -> 0;
             case 600 -> 1;
@@ -41,7 +43,7 @@ public class TerritoryUtils {
 
             CappedValue storage = territoryInfo.getStorage(resource);
             if (storage != null)
-                return TerritoryUtils.resStorageCostToLevel(storage.max() / hqModifier);
+                return TerritoryUtils.resStorageCapToLevel(storage.max() / hqModifier);
         }
         return 0;
     }
@@ -65,57 +67,6 @@ public class TerritoryUtils {
         return -1;
     }
 
-    private static Map<Integer, List<EmeraldProdUpgrade>> getEmeraldModifierOptions() {
-        Map<Integer, List<EmeraldProdUpgrade>> result = new HashMap<>();
-        for (int effLvl = 0; effLvl < TerritoryUpgrade.EFFICIENT_EMERALDS.getLevels().length; effLvl++) {
-            for (int rateLvl = 0; rateLvl < TerritoryUpgrade.EMERALD_RATE.getLevels().length; rateLvl++) {
-                double eff = TerritoryUpgrade.EFFICIENT_EMERALDS.getLevels()[effLvl].bonus();
-                double rate = TerritoryUpgrade.EMERALD_RATE.getLevels()[rateLvl].bonus();
-                int modifier = (int) ((100 + eff) * (4.0 / rate));
-                if (!result.containsKey(modifier))
-                    result.put(modifier, new ArrayList<>());
-                result.get(modifier).add(new EmeraldProdUpgrade(
-                        effLvl,
-                        rateLvl,
-                        Math.toIntExact(TerritoryUpgrade.EFFICIENT_EMERALDS.getLevels()[effLvl].cost()),
-                        Math.toIntExact(TerritoryUpgrade.EMERALD_RATE.getLevels()[rateLvl].cost())
-                ));
-            }
-        }
-        return Map.copyOf(result);
-    }
-
-    private static EmeraldProdUpgrade getMostLikelyEmProdUpgrade(String territoryName, TerritoryInfo territoryInfo) {
-        double treasuryBonus = getTreasuryBonus(territoryName);
-        int modifier = getProductionModifier(territoryName, territoryInfo, GuildResource.EMERALDS, treasuryBonus);
-        List<EmeraldProdUpgrade> options = EMERALD_MODIFIER_OPTIONS.get(modifier);
-        if (options == null)
-            return null;
-
-        int baseCrop = getResCost(territoryInfo, GuildResource.CROPS);
-        int baseOre = getResCost(territoryInfo, GuildResource.ORE);
-
-        int bestOption = -1;
-        float bestDiff = Integer.MAX_VALUE;
-
-        for (int i = 0; i < options.size(); i++) {
-            int restCrop = baseCrop - options.get(i).cropCost;
-            int restOre = baseOre - options.get(i).oreCost;
-
-            if (restCrop <= 0 || restOre <= 0)
-                continue;
-
-            int diff = Math.abs(restCrop - restOre);
-            if (diff < bestDiff) {
-                bestOption = i;
-                bestDiff = diff;
-            }
-        }
-        if (bestOption == -1)
-            return null;
-        return options.get(bestOption);
-    }
-
     /**
      * Get the resource cost of a territory.
      **/
@@ -133,29 +84,15 @@ public class TerritoryUtils {
         return (storage.current() * 60 * 60 - (prod * mapTick)) / (60 - mapTick);
     }
 
-    private static Pair<Integer, Integer> findUpgradeLevels(TerritoryUpgrade upgrade, TerritoryUpgrade bonus, int targetCost, boolean forceBonus) {
-        Pair<Integer, Integer> best = new Pair<>(0, 0);
-        long bestCost = 0;
-
-        for (int bonusLevel = forceBonus ? 1 : 0; bonusLevel < bonus.getLevels().length; bonusLevel++) {
-            long bonusCost = bonus.getLevels()[bonusLevel].cost();
-            for (int upgradeLevel = 0; upgradeLevel < upgrade.getLevels().length; upgradeLevel++) {
-                long upgradeCost = upgrade.getLevels()[upgradeLevel].cost();
-
-                long totalCost = upgradeCost + bonusCost;
-                if (totalCost <= targetCost + 99 && totalCost > bestCost) {
-                    best = new Pair<>(upgradeLevel, bonusLevel);
-                    bestCost = upgradeCost + bonusCost;
-                } else if (totalCost > targetCost + 50)
-                    break;
-            }
-        }
-        return best;
-    }
-
+    /**
+     * Get the distance of a territory from its HQ using BFS.
+     */
     public static int getHQDistance(String territoryName) {
         TerritoryInfo startTerr = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
         String guild = startTerr.getGuildName();
+
+        if (guild == null)
+            return Integer.MAX_VALUE;
 
         if (startTerr.isHeadquarters())
             return 0;
@@ -185,9 +122,12 @@ public class TerritoryUtils {
                 queue.add(new Pair<>(conn, dist + 1));
             }
         }
-        return -1;
+        return Integer.MAX_VALUE;
     }
 
+    /**
+     * Get the treasury bonus of a territory (dependent on treasury level and distance to HQ).
+     */
     public static double getTreasuryBonus(String territoryName) {
         TerritoryInfo territory = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
         GuildResourceValues level = territory.getTreasury();
@@ -205,66 +145,25 @@ public class TerritoryUtils {
 
         int distance = getHQDistance(territoryName);
         double distanceModifier = switch (distance) {
+            case 0, 1, 2 -> 1.0;
             case 3 -> 0.85;
             case 4 -> 0.7;
             case 5 -> 0.55;
-            default -> distance >= 6 ? 0.4 : 1.0;
+            default -> 0.4;
         };
 
         return tresValue * distanceModifier;
     }
 
     /**
-     * Get the resource production modifier of a territory in % for a specified resource.
+     * Get the resource production modifier of a territory for a specified resource (includes treasury bonus).
      */
-    public static int getProductionModifier(String territoryName, TerritoryInfo territoryInfo, GuildResource resource, double treasuryBonus) {
+    public static double getProductionModifier(String territoryName, GuildResource resource) {
         int baseProd = TerritoryBaseLoader.getTerritory(territoryName).getProduction(resource);
+        TerritoryInfo territoryInfo = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
         int currProd = territoryInfo.getGeneration(resource);
         if (baseProd == 0)
             return 0;
-        return (int) ((currProd * 100) / (1.0 + treasuryBonus) / baseProd);
+        return ((double) currProd) / baseProd;
     }
-
-    public static Map<TerritoryUpgrade, Integer> estimateUpgrades(String territoryName) {
-        TerritoryInfo territoryInfo = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
-
-        Map<TerritoryUpgrade, Integer> result = new HashMap<>();
-
-        if (territoryInfo.isHeadquarters())
-            return result;
-
-        boolean hasAuraVolley = territoryInfo.getDefences().getLevel() >= 3;
-
-        GuildResource[] resources = {GuildResource.ORE, GuildResource.CROPS, GuildResource.WOOD, GuildResource.FISH};
-        TerritoryUpgrade[] upgrades = {TerritoryUpgrade.DAMAGE, TerritoryUpgrade.ATTACK, TerritoryUpgrade.HEALTH, TerritoryUpgrade.DEFENCE};
-        TerritoryUpgrade[] bonuses = {TerritoryUpgrade.TOWER_VOLLEY, TerritoryUpgrade.TOWER_AURA, TerritoryUpgrade.STRONGER_MINIONS, TerritoryUpgrade.TOWER_MULTI_ATTACKS};
-
-        int[] otherCosts = {0, 0, 0, 0};
-        // Emerald storage
-        int emStorageLvl = getEmeraldStorageLevel(territoryInfo);
-        if (emStorageLvl > 0)
-            otherCosts[2] = emeraldStorageLevelToCost(emStorageLvl);
-        // Emerald prod
-        EmeraldProdUpgrade emeraldProdUpgrade = getMostLikelyEmProdUpgrade(territoryName, territoryInfo);
-        if (emeraldProdUpgrade != null) {
-            otherCosts[0] = emeraldProdUpgrade.oreCost;
-            otherCosts[1] = emeraldProdUpgrade.cropCost;
-        }
-
-        for (int i = 0; i < resources.length; i++) {
-            int cost = getResCost(territoryInfo, resources[i]);
-            cost -= otherCosts[i];
-
-            boolean forceBonus = hasAuraVolley && (i == 0 || i == 1);
-
-            Pair<Integer, Integer> levels = findUpgradeLevels(upgrades[i], bonuses[i], cost, forceBonus);
-
-            result.put(upgrades[i], levels.a());
-            result.put(bonuses[i], levels.b());
-        }
-
-        return result;
-    }
-
-    private record EmeraldProdUpgrade(int efficientEmeralds, int emeraldRate, int oreCost, int cropCost) {}
 }
