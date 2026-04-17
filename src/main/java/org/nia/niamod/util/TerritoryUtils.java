@@ -86,10 +86,7 @@ public class TerritoryUtils {
     }
 
     private static EmeraldProdUpgrade getMostLikelyEmProdUpgrade(String territoryName, TerritoryInfo territoryInfo) {
-        long t1 = System.currentTimeMillis();
         double treasuryBonus = getTreasuryBonus(territoryName);
-        long t2 = System.currentTimeMillis();
-        System.out.println("Time: " + (t2 - t1));
         int modifier = getProductionModifier(territoryName, territoryInfo, GuildResource.EMERALDS, treasuryBonus);
         List<EmeraldProdUpgrade> options = EMERALD_MODIFIER_OPTIONS.get(modifier);
         if (options == null)
@@ -132,12 +129,6 @@ public class TerritoryUtils {
             return 0;
 
         int prod = territoryInfo.getGeneration(resource);
-
-
-        System.out.println("Maptick: " + mapTick);
-        System.out.println("Resourc: " + resource);
-        System.out.println("Storage: " + storage.current());
-        System.out.println("Prod:    " + prod);
 
         return (storage.current() * 60 * 60 - (prod * mapTick)) / (60 - mapTick);
     }
@@ -262,10 +253,7 @@ public class TerritoryUtils {
 
         for (int i = 0; i < resources.length; i++) {
             int cost = getResCost(territoryInfo, resources[i]);
-            System.out.println(resources[i]);
-            System.out.println(cost);
             cost -= otherCosts[i];
-            System.out.println(cost);
 
             boolean forceBonus = hasAuraVolley && (i == 0 || i == 1);
 
@@ -278,6 +266,5 @@ public class TerritoryUtils {
         return result;
     }
 
-    private record EmeraldProdUpgrade(int efficientEmeralds, int emeraldRate, int oreCost, int cropCost) {
-    }
+    private record EmeraldProdUpgrade(int efficientEmeralds, int emeraldRate, int oreCost, int cropCost) {}
 }
