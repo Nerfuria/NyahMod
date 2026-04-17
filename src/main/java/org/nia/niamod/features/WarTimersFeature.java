@@ -19,21 +19,27 @@ import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.models.records.Territory;
-import org.nia.niamod.models.records.TimerEntry;
 import org.nia.niamod.render.Render3D;
 import org.nia.niamod.util.WynncraftAPI;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class WarTimersFeature extends Feature {
+    private static final int RENDER_MIN_Y = 0;
+    private static final int RENDER_MAX_Y = 512;
 
-    private final HashMap<String, Territory> territories = new HashMap<>();
+    private final Map<String, Territory> territories = new HashMap<>();
     private boolean showAll;
 
+    @Override
     @Safe
     public void init() {
-        WynncraftAPI.territoryResponse().forEach((k, v) -> territories.put(k, new Territory(k, new BlockPos(v.location().start()[0], -100, v.location().start()[1]), new BlockPos(v.location().end()[0], 256, v.location().end()[1]))));
+        loadTerritories();
         WorldRenderEvents.AFTER_ENTITIES.register(context ->
                 runSafe("render", () -> render(context)));
         KeybindManager.registerKeybinding("Show unqueued territories", GLFW.GLFW_KEY_SEMICOLON, () -> showAll = !showAll);
@@ -41,18 +47,50 @@ public class WarTimersFeature extends Feature {
         scheduleWarn();
     }
 
+    private void loadTerritories() {
+        territories.clear();
+        WynncraftAPI.territoryResponse().forEach((name, response) -> territories.put(
+                name,
+                new Territory(name, toTerritoryCorner(response.location().start()), toTerritoryCorner(response.location().end()))
+        ));
+    }
+
+    private BlockPos toTerritoryCorner(int[] location) {
+        return new BlockPos(location[0], RENDER_MIN_Y, location[1]);
+    }
+
     private void scheduleWarn() {
-        Scheduler.scheduleRepeating(() -> {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null) return;
-            MutableComponent prelim = StyledText.fromString(WynnFont.asBackgroundFont("QUEUES", CustomColor.fromInt(0xFFEE6B6E), CustomColor.fromInt(0xFF3b1344), "NONE", "FLAG")).getComponent();
-            Models.GuildAttackTimer.getUpcomingTimers()
-                    .filter(timer -> timer.timerEnd() - System.currentTimeMillis() < NyahConfig.nyahConfigData.getMaxTimeTerr() * 60 * 1000L)
-                    .sorted(Comparator.comparing(TerritoryAttackTimer::timerEnd))
-                    .limit(NyahConfig.nyahConfigData.getTerritoryWarningCount())
-                    .map(timer -> Component.literal(" " + timer.territoryName() + " - " + timeFromNow(timer.timerEnd()) + "\n").withColor(0xFFEE6B6E))
-                    .forEach(timer -> mc.player.displayClientMessage(prelim.copy().append(timer), false));
-        }, () -> NyahConfig.nyahConfigData.getWarnTime() * 20, this::isDisabled);
+        Scheduler.scheduleRepeating(this::warnUpcomingTerritories, () -> NyahConfig.nyahConfigData.getWarnTime() * 20, this::isDisabled);
+    }
+
+    private void warnUpcomingTerritories() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || NyahConfig.nyahConfigData.getTerritoryWarningCount() <= 0) {
+            return;
+        }
+
+        MutableComponent prefix = StyledText.fromString(
+                WynnFont.asBackgroundFont("QUEUES", CustomColor.fromInt(0xFFEE6B6E), CustomColor.fromInt(0xFF3b1344), "NONE", "FLAG")
+        ).getComponent();
+
+        long now = System.currentTimeMillis();
+        long maxWarningWindowMillis = NyahConfig.nyahConfigData.getMaxTimeTerr() * 60_000L;
+        Models.GuildAttackTimer.getUpcomingTimers()
+                .filter(timer -> isTimerWithinWarningWindow(timer, now, maxWarningWindowMillis))
+                .sorted(Comparator.comparingLong(TerritoryAttackTimer::timerEnd))
+                .limit(NyahConfig.nyahConfigData.getTerritoryWarningCount())
+                .map(this::createWarningLine)
+                .forEach(line -> mc.player.displayClientMessage(prefix.copy().append(line), false));
+    }
+
+    private boolean isTimerWithinWarningWindow(TerritoryAttackTimer timer, long now, long maxWarningWindowMillis) {
+        long remainingMillis = timer.timerEnd() - now;
+        return remainingMillis >= 0 && remainingMillis < maxWarningWindowMillis;
+    }
+
+    private Component createWarningLine(TerritoryAttackTimer timer) {
+        return Component.literal(" " + timer.territoryName() + " - " + timeFromNow(timer.timerEnd()) + "\n")
+                .withColor(0xFFEE6B6E);
     }
 
     @Override
@@ -65,75 +103,98 @@ public class WarTimersFeature extends Feature {
     }
 
     private String timeFromNow(long end) {
-        long now = System.currentTimeMillis();
-        long diff = end - now;
-        int minutes = Math.toIntExact((diff / 1000) / 60);
-        int seconds = Math.toIntExact((diff / 1000) % 60);
+        long diff = Math.max(0L, end - System.currentTimeMillis());
+        int minutes = Math.toIntExact(diff / 60_000L);
+        int seconds = Math.toIntExact((diff / 1_000L) % 60L);
 
         return String.format("%02d:%02d", minutes, seconds);
     }
 
     @Safe
     public void render(WorldRenderContext ctx) {
-        int color = NyahConfig.nyahConfigData.getColor();
-        int r = color >> 16 & 0xFF, g = color >> 8 & 0xFF, b = color & 0xFF;
-
-        int colorInside = NyahConfig.nyahConfigData.getColorInside();
-        int ri = colorInside >> 16 & 0xFF, gi = colorInside >> 8 & 0xFF, bi = colorInside & 0xFF;
-
         LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null || territories.isEmpty()) {
+            return;
+        }
 
-        Models.GuildAttackTimer.getUpcomingTimers()
-                .map(timer -> {
-                    Territory t = territories.get(timer.territoryName());
-                    return new TimerEntry(timer, t, t.distance());
-                })
-                .filter(e -> e.distance() <= NyahConfig.nyahConfigData.getMaximumDistance() * NyahConfig.nyahConfigData.getMaximumDistance())
-                .sorted(Comparator
-                        .comparing(TimerEntry::timer, Comparator.comparing(TerritoryAttackTimer::timerEnd))
-                        .thenComparingInt(TimerEntry::distance))
-                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
-                .map(TimerEntry::territory)
-                .forEach(t -> {
-                    render(ctx, r, g, b, ri, gi, bi, player, t);
-                });
+        BlockPos playerPosition = player.blockPosition().atY(RENDER_MIN_Y);
+        List<TerritoryAttackTimer> upcomingTimers = Models.GuildAttackTimer.getUpcomingTimers().toList();
+        int maximumDistanceSquared = getMaximumDistanceSquared();
+
+        collectQueuedTerritories(upcomingTimers, playerPosition, maximumDistanceSquared)
+                .forEach(entry -> renderTerritory(ctx, entry.territory(), playerPosition, TerritoryPalette.queued()));
+
         if (showAll) {
-            int colorq = NyahConfig.nyahConfigData.getNotQColor();
-            int rq = colorq >> 16 & 0xFF, gq = colorq >> 8 & 0xFF, bq = colorq & 0xFF;
-
-            int colorqinside = NyahConfig.nyahConfigData.getNotQInsideColor();
-            int rqi = colorqinside >> 16 & 0xFF, gqi = colorqinside >> 8 & 0xFF, bqi = colorqinside & 0xFF;
-
-            territories.values()
-                    .stream()
-                    .map(territory -> new TimerEntry(null, territory, territory.distance()))
-                    .filter(t -> t.distance() <= NyahConfig.nyahConfigData.getMaximumDistance() * NyahConfig.nyahConfigData.getMaximumDistance()
-                            && Models.GuildAttackTimer.getUpcomingTimers()
-                            .noneMatch(timer -> timer.territoryName().equals(t.territory().name())))
-                    .sorted(Comparator.comparing(TimerEntry::distance))
-                    .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
-                    .forEach(t -> {
-                        render(ctx, rq, gq, bq, rqi, gqi, bqi, player, t.territory());
-                    });
+            Set<String> queuedTerritoryNames = upcomingTimers.stream()
+                    .map(TerritoryAttackTimer::territoryName)
+                    .collect(Collectors.toSet());
+            collectUnqueuedTerritories(queuedTerritoryNames, playerPosition, maximumDistanceSquared)
+                    .forEach(entry -> renderTerritory(ctx, entry.territory(), playerPosition, TerritoryPalette.unqueued()));
         }
     }
 
-    private void render(WorldRenderContext ctx, int r, int g, int b, int ri, int gi, int bi, LocalPlayer player, Territory t) {
-        var min = t.leftCorner();
-        var max = t.rightCorner();
+    private int getMaximumDistanceSquared() {
+        int maximumDistance = NyahConfig.nyahConfigData.getMaximumDistance();
+        return maximumDistance * maximumDistance;
+    }
 
-        boolean inside = player != null &&
-                player.getX() >= min.getX() && player.getX() - 1 <= max.getX() &&
-                player.getZ() >= min.getZ() && player.getZ() - 1 <= max.getZ();
-        int cr = inside ? ri : r;
-        int cg = inside ? gi : g;
-        int cb = inside ? bi : b;
-        Render3D.renderBox(
-                ctx,
-                min.atY(0),
-                max.atY(512),
-                cr, cg, cb
-        );
+    private List<QueuedTerritoryEntry> collectQueuedTerritories(List<TerritoryAttackTimer> upcomingTimers, BlockPos playerPosition, int maximumDistanceSquared) {
+        return upcomingTimers.stream()
+                .map(timer -> toQueuedTerritoryEntry(timer, playerPosition))
+                .filter(entry -> entry != null && entry.distanceSquared() <= maximumDistanceSquared)
+                .sorted(Comparator.comparingLong(QueuedTerritoryEntry::timerEnd).thenComparingInt(QueuedTerritoryEntry::distanceSquared))
+                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
+                .toList();
+    }
+
+    private QueuedTerritoryEntry toQueuedTerritoryEntry(TerritoryAttackTimer timer, BlockPos playerPosition) {
+        Territory territory = territories.get(timer.territoryName());
+        if (territory == null) {
+            return null;
+        }
+
+        return new QueuedTerritoryEntry(territory, territory.distanceSquaredTo(playerPosition), timer.timerEnd());
+    }
+
+    private List<NearbyTerritoryEntry> collectUnqueuedTerritories(Set<String> queuedTerritoryNames, BlockPos playerPosition, int maximumDistanceSquared) {
+        return territories.values().stream()
+                .filter(territory -> !queuedTerritoryNames.contains(territory.name()))
+                .map(territory -> new NearbyTerritoryEntry(territory, territory.distanceSquaredTo(playerPosition)))
+                .filter(entry -> entry.distanceSquared() <= maximumDistanceSquared)
+                .sorted(Comparator.comparingInt(NearbyTerritoryEntry::distanceSquared))
+                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
+                .toList();
+    }
+
+    private void renderTerritory(WorldRenderContext ctx, Territory territory, BlockPos playerPosition, TerritoryPalette palette) {
+        int color = palette.colorFor(territory.contains(playerPosition));
+        Render3D.box(ctx, territory.minCorner().atY(RENDER_MIN_Y), territory.maxCorner().atY(RENDER_MAX_Y), color);
+    }
+
+    private record TerritoryPalette(int defaultColor, int insideColor) {
+        private static TerritoryPalette queued() {
+            return new TerritoryPalette(
+                    NyahConfig.nyahConfigData.getColor(),
+                    NyahConfig.nyahConfigData.getColorInside()
+            );
+        }
+
+        private static TerritoryPalette unqueued() {
+            return new TerritoryPalette(
+                    NyahConfig.nyahConfigData.getNotQColor(),
+                    NyahConfig.nyahConfigData.getNotQInsideColor()
+            );
+        }
+
+        private int colorFor(boolean inside) {
+            return inside ? insideColor : defaultColor;
+        }
+    }
+
+    private record QueuedTerritoryEntry(Territory territory, int distanceSquared, long timerEnd) {
+    }
+
+    private record NearbyTerritoryEntry(Territory territory, int distanceSquared) {
     }
 
 }

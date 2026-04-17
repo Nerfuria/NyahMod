@@ -123,3 +123,5 @@ runs/
 
 
 .gradle-home
+.gradle-temp-home
+.audit
