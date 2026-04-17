@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "niamod",
   "version": "${version}",
-  "name": "NiaMod",
-  "description": "",
+  "name": "Nia Mod",
+  "description": "Dedicated to my dear Unmeowxkiki.",
   "authors": [],
   "contact": {},
   "license": "All-Rights-Reserved",
@@ -23,8 +23,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "wynntils": ">=${wynntils_version}",
-    "minecraft": "${minecraft_version}",
-    "cloth-config": ">=21.11.153"
+    "minecraft": "${minecraft_version}"
   },
   "custom": {
     "modmenu": {

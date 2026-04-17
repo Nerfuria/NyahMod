@@ -1,18 +1,8 @@
 package org.nia.niamod.models.events;
 
-import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.EventFactory;
-import org.jetbrains.annotations.NotNull;
+import org.nia.niamod.eventbus.EventInfo;
+import org.nia.niamod.eventbus.Preference;
 
-public interface PostInitEvent {
-
-    Event<@NotNull PostInitEvent> EVENT = EventFactory.createArrayBacked(PostInitEvent.class,
-            (listeners) -> () -> {
-                for (PostInitEvent listener : listeners) {
-                    listener.onInit();
-                }
-            });
-
-    void onInit();
-
+@EventInfo(preference = Preference.CALLER)
+public record PostInitEvent() {
 }

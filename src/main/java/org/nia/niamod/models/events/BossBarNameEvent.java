@@ -1,20 +1,16 @@
 package org.nia.niamod.models.events;
 
-import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.text.Text;
-import org.jetbrains.annotations.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import net.minecraft.network.chat.Component;
+import org.nia.niamod.eventbus.EventInfo;
+import org.nia.niamod.eventbus.Preference;
 
-public interface BossBarNameEvent {
-
-    Event<@NotNull BossBarNameEvent> MODIFY = EventFactory.createArrayBacked(BossBarNameEvent.class, listeners -> title -> {
-        for (BossBarNameEvent listener : listeners) {
-            title = listener.modify(title);
-        }
-        return title;
-    });
-
-    Text modify(Text title);
-
-
+@Getter
+@Setter
+@AllArgsConstructor
+@EventInfo(preference = Preference.CALLER)
+public class BossBarNameEvent {
+    private Component title;
 }

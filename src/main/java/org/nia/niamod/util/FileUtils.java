@@ -1,10 +1,12 @@
 package org.nia.niamod.util;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+@UtilityClass
 public class FileUtils {
-
     public static String readFile(String fileName) {
         try (InputStream is = FileUtils.class
                 .getClassLoader()

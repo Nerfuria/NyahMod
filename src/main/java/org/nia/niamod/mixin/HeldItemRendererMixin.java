@@ -1,36 +1,29 @@
 package org.nia.niamod.mixin;
 
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.item.HeldItemRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import org.joml.Matrix4f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.models.events.HeldItemRenderEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static org.nia.niamod.config.NyahConfig.nyahConfigData;
-
-@Mixin(HeldItemRenderer.class)
+@Mixin(ItemInHandRenderer.class)
 public class HeldItemRendererMixin {
     @Inject(
-            method = "renderFirstPersonItem",
+            method = "renderArmWithItem",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/item/HeldItemRenderer;renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemDisplayContext;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;I)V"
+                    target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V"
             )
     )
-    public void onRender(AbstractClientPlayerEntity player, float tickProgress, float pitch, Hand hand, float swingProgress, ItemStack item, float equipProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, int light, CallbackInfo ci) {
-        if (hand == Hand.MAIN_HAND) {
-            matrices.multiplyPositionMatrix(new Matrix4f()
-                    .translate(nyahConfigData.xOffset / 100f, nyahConfigData.yOffset / 100f, nyahConfigData.zOffset / 100f)
-                    .rotateX((float) Math.toRadians(nyahConfigData.xRotation))
-                    .rotateY((float) Math.toRadians(nyahConfigData.yRotation))
-                    .rotateZ((float) Math.toRadians(nyahConfigData.zRotation))
-                    .scale(nyahConfigData.itemScale));
-        }
+    public void onRender(AbstractClientPlayer player, float tickProgress, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector orderedRenderCommandQueue, int light, CallbackInfo ci) {
+        HeldItemRenderEvent event = new HeldItemRenderEvent(hand, matrices);
+        NiaEventBus.dispatch(event);
     }
 }

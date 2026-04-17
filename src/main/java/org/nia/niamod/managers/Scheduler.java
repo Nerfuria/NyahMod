@@ -1,21 +1,40 @@
 package org.nia.niamod.managers;
 
+import lombok.experimental.UtilityClass;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.nia.niamod.models.misc.DelayedTask;
+import org.nia.niamod.models.misc.RepeatingTask;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.BooleanSupplier;
+import java.util.function.IntSupplier;
 
+@UtilityClass
 public class Scheduler {
-    private static List<DelayedTask> tasks;
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+    private static ConcurrentLinkedDeque<DelayedTask> tasks;
 
     public static void init() {
-        tasks = new LinkedList<>();
+        tasks = new ConcurrentLinkedDeque<>();
         ClientTickEvents.END_CLIENT_TICK.register((s) -> tick());
     }
 
     public static void schedule(Runnable task, int delayTicks) {
         tasks.add(new DelayedTask(task, delayTicks));
+    }
+
+    public static void scheduleAsync(Runnable task, int delayTicks) {
+        tasks.add(new DelayedTask(() -> EXECUTOR_SERVICE.execute(task), delayTicks));
+    }
+
+    public static void scheduleRepeating(Runnable task, int delayTicks, int intervalTicks, BooleanSupplier cancelCondition) {
+        tasks.add(new RepeatingTask(task, delayTicks, () -> intervalTicks, cancelCondition));
+    }
+
+    public static void scheduleRepeating(Runnable task, IntSupplier intervalTicks, BooleanSupplier cancelCondition) {
+        tasks.add(new RepeatingTask(task, 0, intervalTicks, cancelCondition));
     }
 
     public static void tick() {

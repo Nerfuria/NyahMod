@@ -1,0 +1,14 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "niamod:noto_serif.ttf",
+      "shift": [
+        0,
+        1
+      ],
+      "size": 9.5,
+      "oversample": 2.0
+    }
+  ]
+}

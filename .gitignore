@@ -120,3 +120,6 @@ runs/
 
 # Contains minecraft login info in plain text
 /.devauth/microsoft_accounts.json
+
+
+.gradle-home

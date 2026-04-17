@@ -1,108 +1,61 @@
 package org.nia.niamod.managers;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
+import lombok.Getter;
+import lombok.experimental.UtilityClass;
+import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.features.AutoStreamFeature;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
-import org.nia.niamod.features.IgnoreFeature;
+import org.nia.niamod.features.RadianceSyncFeature;
 import org.nia.niamod.features.ResourceTickFeature;
+import org.nia.niamod.features.ShoutFilterFeature;
+import org.nia.niamod.features.ViewModelTransformationFeature;
 import org.nia.niamod.features.WarTimersFeature;
 import org.nia.niamod.features.WarTowerEHPFeature;
-import org.nia.niamod.models.events.PostInitEvent;
-import org.nia.niamod.models.misc.Feature;
-import org.nia.niamod.models.misc.Safe;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import static org.nia.niamod.NiamodClient.LOGGER;
-
+@SuppressWarnings("unused")
+@UtilityClass
 public class FeatureManager {
+    @Getter
     private static ResourceTickFeature resTickFeature;
+    @Getter
     private static ChatEncryptionFeature chatEncryptionFeature;
+    @Getter
     private static WarTimersFeature warTimersFeature;
-    private static IgnoreFeature ignoreFeature;
+    @Getter
     private static WarTowerEHPFeature warTowerEHPFeature;
+    @Getter
     private static ConsuTextFeature consuTextFeature;
+    @Getter
+    private static ShoutFilterFeature shoutFilterFeature;
+    @Getter
+    private static ViewModelTransformationFeature viewModelTransformationFeature;
+    @Getter
+    private static RadianceSyncFeature radianceSyncFeature;
+    @Getter
+    private static AutoStreamFeature autoStreamFeature;
 
     public static void init() {
-        resTickFeature = createSafe(ResourceTickFeature.class);
-        chatEncryptionFeature = createSafe(ChatEncryptionFeature.class);
-        warTimersFeature = createSafe(WarTimersFeature.class);
-        ignoreFeature = createSafe(IgnoreFeature.class);
-        warTowerEHPFeature = createSafe(WarTowerEHPFeature.class);
-        consuTextFeature = createSafe(ConsuTextFeature.class);
+        resTickFeature = new ResourceTickFeature();
+        chatEncryptionFeature = new ChatEncryptionFeature();
+        warTimersFeature = new WarTimersFeature();
+        warTowerEHPFeature = new WarTowerEHPFeature();
+        consuTextFeature = new ConsuTextFeature();
+        shoutFilterFeature = new ShoutFilterFeature();
+        viewModelTransformationFeature = new ViewModelTransformationFeature();
+        radianceSyncFeature = new RadianceSyncFeature();
+        autoStreamFeature = new AutoStreamFeature();
 
-        consuTextFeature.init();
-        chatEncryptionFeature.init();
-        warTimersFeature.init();
-        resTickFeature.init();
-        ignoreFeature.init();
+        resTickFeature.runSafe("init", resTickFeature::init);
+        chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
+        warTimersFeature.runSafe("init", warTimersFeature::init);
+        warTowerEHPFeature.runSafe("init", warTowerEHPFeature::init);
+        consuTextFeature.runSafe("init", consuTextFeature::init);
+        shoutFilterFeature.runSafe("init", shoutFilterFeature::init);
+        viewModelTransformationFeature.runSafe("init", viewModelTransformationFeature::init);
+        radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
+        autoStreamFeature.runSafe("init", autoStreamFeature::init);
 
-        PostInitEvent.EVENT.register(FeatureManager::postInit);
-    }
-
-    public static void postInit() {
-        ignoreFeature.postInit();
-    }
-
-    public static ResourceTickFeature getResTickFeature() {
-        return resTickFeature;
-    }
-
-    public static ChatEncryptionFeature getChatEncryptionFeature() {
-        return chatEncryptionFeature;
-    }
-
-    public static WarTimersFeature getWarTimersFeature() {
-        return warTimersFeature;
-    }
-
-    public static IgnoreFeature getIgnoreFeature() {
-        return ignoreFeature;
-    }
-
-    public static WarTowerEHPFeature getWarTowerEHPFeature() {
-        return warTowerEHPFeature;
-    }
-
-    public static ConsuTextFeature getConsuTextFeature() {
-        return consuTextFeature;
-    }
-
-
-    @SuppressWarnings("unchecked")
-    public static <T extends Feature> T createSafe(Class<T> clazz) {
-        ProxyFactory factory = new ProxyFactory();
-        factory.setSuperclass(clazz);
-        factory.setFilter(method ->
-                method.getDeclaringClass().equals(clazz) && method.isAnnotationPresent(Safe.class)
-        );
-        MethodHandler handler = (self, thisMethod, proceed, args) -> {
-            Object defaultValue = getDefault(thisMethod, args);
-            Feature feature = (T) self;
-            if (!feature.isEnabled()) return defaultValue;
-            try {
-                return proceed.invoke(self, args);
-            } catch (Exception e) {
-                LOGGER.error("Feature {} has crashed and is being disabled.", feature.getFeatureName(), e);
-                feature.setEnabled(false);
-                return defaultValue;
-            }
-        };
-        try {
-            return (T) factory.create(new Class<?>[0], new Object[0], handler);
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                 IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static Object getDefault(Method method, Object[] args) {
-        Safe annotation = method.getAnnotation(Safe.class);
-        if (annotation == null) return null;
-        int idx = annotation.ordinal();
-        if (idx >= 0 && args != null && idx < args.length) return args[idx];
-        return null;
+        NyahConfig.onFeaturesInitialized();
     }
 }

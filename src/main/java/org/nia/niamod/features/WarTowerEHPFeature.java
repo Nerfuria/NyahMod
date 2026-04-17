@@ -1,7 +1,8 @@
 package org.nia.niamod.features;
 
-import net.minecraft.text.Text;
-import org.nia.niamod.config.NyahConfig;
+import net.minecraft.network.chat.Component;
+import org.nia.niamod.eventbus.NiaEventBus;
+import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
@@ -12,12 +13,10 @@ import java.util.regex.Pattern;
 public class WarTowerEHPFeature extends Feature {
 
     private static final Pattern towerRegex = Pattern.compile(
-            "§3\\[([A-Za-z]{3,4})\\] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
+            "§3\\[([A-Za-z]{3,4})] §b([A-Za-z ]*)§7 - §4❤ ([0-9]+)§7 \\(§6([0-9.]+)%§7\\) - §c☠ ([0-9]+)-([0-9]+)§7 \\(§b([0-9]\\.[0-9]*)x§7\\)"
     );
 
-    @Safe(ordinal = 0)
-    public Text replaceEHP(Text text) {
-        if (!NyahConfig.nyahConfigData.replaceTowerHP) return text;
+    private Component replaceEHP(Component text) {
         Matcher matcher = towerRegex.matcher(text.getString());
         if (matcher.matches()) {
             String tag = matcher.group(1);
@@ -30,7 +29,7 @@ public class WarTowerEHPFeature extends Feature {
 
             double ehp = hp / (1 - (percent / 100.0));
 
-            return Text.of(
+            return Component.nullToEmpty(
                     "§3[" + tag + "] §b" + name + "§7 - §4❤ " + (int) ehp +
                             "§7 - §c☠ " + atckLow + "-" + atckHigh +
                             "§7 (§b" + speed + "x§7)");
@@ -39,9 +38,15 @@ public class WarTowerEHPFeature extends Feature {
         }
     }
 
+    @Subscribe
+    @Safe
+    public void onBossBarName(BossBarNameEvent event) {
+        event.setTitle(replaceEHP(event.getTitle()));
+    }
+
     @Override
     @Safe
     public void init() {
-        BossBarNameEvent.MODIFY.register(this::replaceEHP);
+        NiaEventBus.subscribe(this);
     }
 }
