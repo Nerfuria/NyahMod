@@ -15,6 +15,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+@SuppressWarnings("unused")
 public class CloudflareSync {
     private static final Logger LOGGER = LoggerFactory.getLogger("niamod");
     private static final Gson GSON = new Gson();
@@ -105,7 +106,7 @@ public class CloudflareSync {
         String encodedPlayerName = URLEncoder.encode(playerName, StandardCharsets.UTF_8);
         String encodedPlayerUuid = URLEncoder.encode(playerUuid, StandardCharsets.UTF_8);
 
-        String workerUrl = NyahConfig.nyahConfigData.getRadianceSyncWorkerUrl();
+        String workerUrl = NyahConfig.getData().getRadianceSyncWorkerUrl();
         if (workerUrl == null || workerUrl.isBlank()) {
             workerUrl = "https://radiancesync.wavelink.workers.dev";
         }

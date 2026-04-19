@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings("unused")
 public class ChatEncryptionFeature extends Feature {
 
     private static final int AAD_VALUE = 67;
@@ -34,7 +35,7 @@ public class ChatEncryptionFeature extends Feature {
     private static final String CIPHER_ALGO = "AES/GCM/NoPadding";
     private static final String KEY_ALGO = "AES";
     private static final String HASH_ALGO = "SHA-256";
-    private static final String MSG_START = "£\uDB8D\uDE37-";
+    private static final String MSG_START = "Â£\uDB8D\uDE37-";
     private static final String MSG_END = "-\uDB8D\uDE37$";
 
     private static String encode(byte[] bytes) {
@@ -91,7 +92,7 @@ public class ChatEncryptionFeature extends Feature {
 
     private byte[] encryptionKey() {
         try {
-            String password = NyahConfig.nyahConfigData.getEncryptionKey();
+            String password = NyahConfig.getData().getEncryptionKey();
             byte[] salt = new byte[16];
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 100000, 256);
@@ -102,7 +103,7 @@ public class ChatEncryptionFeature extends Feature {
     }
 
     private GCMParameterSpec gcmSpec(byte[] iv) {
-        int saltLength = NyahConfig.nyahConfigData.getSaltLength();
+        int saltLength = NyahConfig.getData().getSaltLength();
         byte[] effectiveIv = saltLength == 16 ? iv : Arrays.copyOf(iv, 16);
         return new GCMParameterSpec(GCM_TAG_LENGTH, effectiveIv);
     }
@@ -120,7 +121,7 @@ public class ChatEncryptionFeature extends Feature {
 
     private String encryptMessage(String message) {
         try {
-            byte[] iv = new byte[NyahConfig.nyahConfigData.getSaltLength()];
+            byte[] iv = new byte[NyahConfig.getData().getSaltLength()];
             new SecureRandom().nextBytes(iv);
             Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, iv);
             byte[] encrypted = cipher.doFinal(message.trim().getBytes());
@@ -133,7 +134,7 @@ public class ChatEncryptionFeature extends Feature {
     private String decrypt(String message) throws AEADBadTagException {
         try {
             byte[] bytes = decode(message);
-            int saltLength = NyahConfig.nyahConfigData.getSaltLength();
+            int saltLength = NyahConfig.getData().getSaltLength();
             byte[] iv = Arrays.copyOfRange(bytes, 0, saltLength);
             Cipher cipher = initCipher(Cipher.DECRYPT_MODE, iv);
             byte[] decrypted = cipher.doFinal(bytes, saltLength, bytes.length - saltLength);
@@ -147,7 +148,7 @@ public class ChatEncryptionFeature extends Feature {
 
     @Safe(ordinal = 0)
     public String processMessage(String message) {
-        String prefix = NyahConfig.nyahConfigData.getEncryptionPrefix();
+        String prefix = NyahConfig.getData().getEncryptionPrefix();
         int idx = message.indexOf(prefix);
         if (idx == -1) return message;
         return message.substring(0, idx) + encryptMessage(message.substring(idx + prefix.length()));

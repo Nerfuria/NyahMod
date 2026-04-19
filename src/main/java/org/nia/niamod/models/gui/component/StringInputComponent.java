@@ -5,10 +5,13 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.StringSetting;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class StringInputComponent {
@@ -21,6 +24,7 @@ public class StringInputComponent {
     @Getter
     private EditBox editBox;
     private int x, y, width;
+    private int height = HEIGHT;
 
     public EditBox createEditBox(Font font, ClickGuiTheme theme) {
         int inputHeight = Math.max(14, font.lineHeight + 3);
@@ -45,19 +49,27 @@ public class StringInputComponent {
 
     public int getHeight() {
         int fieldHeight = editBox != null ? editBox.getHeight() : 14;
-        return Math.max(HEIGHT, fieldHeight + 8);
+        return Math.max(height, fieldHeight + 8);
+    }
+
+    public void updateLabelLayout(Font font, int width) {
+        this.width = width;
+        int fieldHeight = editBox != null ? editBox.getHeight() : Math.max(14, font.lineHeight + 3);
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        height = Math.max(WrappedText.rowHeight(font, lines, HEIGHT), fieldHeight + 8);
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        updateLabelLayout(font, width);
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
         int rowHeight = getHeight();
         int centerY = y + rowHeight / 2;
-        int titleY = centerY - font.lineHeight / 2 + 1;
         int fieldX = x + (int) (width * 0.45f);
         int fieldWidth = Math.max(MIN_FIELD_WIDTH, x + width - ROW_SIDE_PADDING - fieldX);
 
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x + 1, titleY, textColor, false);
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        WrappedText.draw(g, font, lines, x + 1, WrappedText.centeredY(y, rowHeight, WrappedText.height(font, lines)), textColor);
 
         if (editBox != null) {
             int fieldHeight = editBox.getHeight();
@@ -122,5 +134,9 @@ public class StringInputComponent {
 
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return false;
+    }
+
+    private int labelMaxWidth(int width) {
+        return Math.max(1, (int) (width * 0.45f) - LABEL_GAP - 1);
     }
 }

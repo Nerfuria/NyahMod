@@ -9,6 +9,7 @@ import org.nia.niamod.models.events.BossBarNameEvent;
 import org.nia.niamod.models.events.CommandSentEvent;
 import org.nia.niamod.models.misc.Feature;
 
+@SuppressWarnings("unused")
 public class AutoStreamFeature extends Feature {
 
     private long lastSeen;
@@ -27,7 +28,7 @@ public class AutoStreamFeature extends Feature {
         }
 
         long currentTime = System.currentTimeMillis();
-        boolean isStreamCooldownOver = (currentTime - lastSeen) >= NyahConfig.nyahConfigData.getStreamCooldown();
+        boolean isStreamCooldownOver = (currentTime - lastSeen) >= NyahConfig.getData().getStreamCooldown();
         boolean isCommandCooldownOver = (currentTime - lastStreamed) >= 1000;
 
         if (isStreamCooldownOver && isCommandCooldownOver) {

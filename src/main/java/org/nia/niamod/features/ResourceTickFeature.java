@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class ResourceTickFeature extends Feature {
     private static final int resTickOffset = 5;     // The map updates with a delay of 5 seconds for some reason
     private Integer lastMapTick = null;
@@ -128,7 +129,8 @@ public class ResourceTickFeature extends Feature {
         return lastMapTick;
     }
 
-    public class ResTickOverlay implements TextOverlay {
+    @SuppressWarnings("unused")
+public class ResTickOverlay implements TextOverlay {
 
         @Override
         public String defaultValue() {
@@ -142,45 +144,45 @@ public class ResourceTickFeature extends Feature {
 
         @Override
         public int getXOffset() {
-            return NyahConfig.nyahConfigData.getResTickOverlayOffsetX();
+            return NyahConfig.getData().getResTickOverlayOffsetX();
         }
 
         @Override
         public void setXOffset(int xOffset) {
-            NyahConfig.nyahConfigData.setResTickOverlayOffsetX(xOffset);
+            NyahConfig.getData().setResTickOverlayOffsetX(xOffset);
             NyahConfig.save();
         }
 
         @Override
         public int getYOffset() {
-            return NyahConfig.nyahConfigData.getResTickOverlayOffsetY();
+            return NyahConfig.getData().getResTickOverlayOffsetY();
         }
 
         @Override
         public void setYOffset(int yOffset) {
-            NyahConfig.nyahConfigData.setResTickOverlayOffsetY(yOffset);
+            NyahConfig.getData().setResTickOverlayOffsetY(yOffset);
             NyahConfig.save();
         }
 
         @Override
         public float getScale() {
-            return NyahConfig.nyahConfigData.getResTickOverlayScale();
+            return NyahConfig.getData().getResTickOverlayScale();
         }
 
         @Override
         public void setScale(float scale) {
-            NyahConfig.nyahConfigData.setResTickOverlayScale(scale);
+            NyahConfig.getData().setResTickOverlayScale(scale);
             NyahConfig.save();
         }
 
         @Override
         public boolean isEnabled() {
-            return NyahConfig.nyahConfigData.isResourceTickFeatureEnabled();
+            return NyahConfig.getData().isResourceTickFeatureEnabled();
         }
 
         @Override
         public void setEnabled(boolean enabled) {
-            NyahConfig.nyahConfigData.setResourceTickFeatureEnabled(enabled);
+            NyahConfig.getData().setResourceTickFeatureEnabled(enabled);
             NyahConfig.save();
             if (FeatureManager.getResTickFeature() != null) {
                 FeatureManager.getResTickFeature().setEnabled(enabled);

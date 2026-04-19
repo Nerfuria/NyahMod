@@ -10,6 +10,7 @@ import org.nia.niamod.models.misc.Safe;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("unused")
 public class WarTowerEHPFeature extends Feature {
 
     private static final Pattern towerRegex = Pattern.compile(

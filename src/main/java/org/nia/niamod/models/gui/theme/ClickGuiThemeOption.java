@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 @Getter
@@ -44,5 +45,15 @@ public enum ClickGuiThemeOption {
         if (rawValue == null || rawValue.isBlank()) return DEFAULT;
         String normalized = rawValue.trim().toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
         return Arrays.stream(values()).filter(o -> o.key.equals(normalized)).findFirst().orElse(DEFAULT);
+    }
+
+    public static List<String> keys() {
+        return Arrays.stream(values())
+                .map(ClickGuiThemeOption::getKey)
+                .toList();
+    }
+
+    public static String labelFor(String key) {
+        return resolve(key).getLabel();
     }
 }

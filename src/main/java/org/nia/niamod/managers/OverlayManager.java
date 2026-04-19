@@ -12,8 +12,6 @@ import org.nia.niamod.models.gui.render.TextOverlay;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.nia.niamod.NiamodClient.mc;
-
 @UtilityClass
 public class OverlayManager {
 
@@ -25,7 +23,13 @@ public class OverlayManager {
     }
 
     public static void openConfig() {
-        mc.setScreen(new OverlayManagerScreen(Minecraft.getInstance().screen, textOverlays));
+        openConfig(textOverlays);
+    }
+
+    public static void openConfig(List<? extends TextOverlay> overlays) {
+        Minecraft minecraft = Minecraft.getInstance();
+        List<TextOverlay> selectedOverlays = new ArrayList<>(overlays);
+        minecraft.setScreen(new OverlayManagerScreen(minecraft.screen, selectedOverlays));
     }
 
     public static void registerOverlay(TextOverlay overlay) {

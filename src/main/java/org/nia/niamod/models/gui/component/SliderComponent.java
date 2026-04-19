@@ -3,6 +3,7 @@ package org.nia.niamod.models.gui.component;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
@@ -10,6 +11,7 @@ import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
+import java.util.List;
 import java.util.Locale;
 
 public class SliderComponent {
@@ -25,6 +27,7 @@ public class SliderComponent {
     private int x, y, width;
     private int trackX, trackY;
     private int trackWidth;
+    private int height = HEIGHT;
     private boolean dragging;
     private float renderPercentage;
     private float dragSquish;
@@ -84,15 +87,23 @@ public class SliderComponent {
     }
 
     public int getHeight() {
-        return HEIGHT;
+        return height;
+    }
+
+    public void updateLabelLayout(Font font, int width) {
+        this.width = width;
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        height = WrappedText.rowHeight(font, lines, HEIGHT);
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        updateLabelLayout(font, width);
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
-        int centerY = y + HEIGHT / 2;
+        int centerY = y + height / 2;
 
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x, centerY - font.lineHeight / 2 + 1, textColor, false);
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        WrappedText.draw(g, font, lines, x, WrappedText.centeredY(y, height, WrappedText.height(font, lines)), textColor);
 
         float targetPercentage = getProgress();
         renderPercentage = (renderPercentage * 29 + targetPercentage) / 30;
@@ -157,7 +168,7 @@ public class SliderComponent {
 
     public void updateClipVisibility(int clipTop, int clipBottom) {
         if (editBox == null) return;
-        int centerY = y + HEIGHT / 2;
+        int centerY = y + height / 2;
         int editY = centerY - editBox.getHeight() / 2;
         int editBottom = editY + editBox.getHeight();
         boolean visible = editY >= clipTop && editBottom <= clipBottom;
@@ -179,7 +190,7 @@ public class SliderComponent {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && mouseX >= trackX - 3 && mouseX <= trackX + trackWidth + 3
-                && mouseY >= y && mouseY <= y + HEIGHT) {
+                && mouseY >= y && mouseY <= y + height) {
             dragging = true;
             updateValueFromMouse(mouseX);
             return true;
@@ -213,6 +224,10 @@ public class SliderComponent {
     private String formatValue() {
         if (isInt) return Integer.toString(((Number) setting.get()).intValue());
         return String.format(Locale.ROOT, "%.2f", ((Number) setting.get()).floatValue());
+    }
+
+    private int labelMaxWidth(int width) {
+        return Math.max(1, (int) (width * 0.45f) - 10);
     }
 
     @SuppressWarnings("unchecked")

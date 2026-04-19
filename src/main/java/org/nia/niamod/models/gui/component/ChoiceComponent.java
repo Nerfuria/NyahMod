@@ -4,11 +4,14 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.ChoiceSetting;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class ChoiceComponent {
@@ -23,6 +26,7 @@ public class ChoiceComponent {
     private int x;
     private int y;
     private int width;
+    private int height = HEIGHT;
     private Font lastFont;
 
     public void setPosition(int x, int y, int width) {
@@ -32,15 +36,22 @@ public class ChoiceComponent {
     }
 
     public int getHeight() {
-        return HEIGHT;
+        return height;
+    }
+
+    public void updateLabelLayout(Font font, int width) {
+        this.width = width;
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        height = WrappedText.rowHeight(font, lines, HEIGHT);
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        updateLabelLayout(font, width);
         lastFont = font;
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
-        int centerY = y + HEIGHT / 2;
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x + 1, centerY - font.lineHeight / 2 + 1, textColor, false);
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        WrappedText.draw(g, font, lines, x + 1, WrappedText.centeredY(y, height, WrappedText.height(font, lines)), textColor);
 
         UiRect control = controlRect(font);
         boolean hovered = mouseX >= control.x() && mouseX <= control.right()
@@ -109,7 +120,11 @@ public class ChoiceComponent {
     private UiRect controlRect(Font font) {
         int controlX = x + (int) (width * 0.45f);
         int controlWidth = Math.max(MIN_CONTROL_WIDTH, x + width - ROW_SIDE_PADDING - controlX);
-        int controlY = y + (HEIGHT - CONTROL_HEIGHT) / 2;
+        int controlY = y + (height - CONTROL_HEIGHT) / 2;
         return new UiRect(controlX, controlY, controlWidth, CONTROL_HEIGHT);
+    }
+
+    private int labelMaxWidth(int width) {
+        return Math.max(1, (int) (width * 0.45f) - LABEL_GAP - 1);
     }
 }

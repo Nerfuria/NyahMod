@@ -18,6 +18,7 @@ import org.nia.niamod.models.misc.Safe;
 
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class ShoutFilterFeature extends Feature {
     @Override
     @Safe
@@ -28,13 +29,13 @@ public class ShoutFilterFeature extends Feature {
     @Subscribe
     public void modifyChat(ChatModifyEvent event) {
         Component component = event.getMessage();
-        if (!NyahConfig.nyahConfigData.isShoutReplacementFeatureEnabled()) return;
+        if (!NyahConfig.getData().isShoutFilterFeatureEnabled()) return;
         if (!component.getString().contains("\uDAFF\uDFFC\uE015\uDAFF\uDFFF\uE002\uDAFF\uDFFE") && !component.getString().matches("\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06.*\\uE060\\uDAFF\\uDFFF\\uE034\\uDAFF\\uDFFF\\uE044\\uDAFF\\uDFFF.*\\uDB00\\uDC02.*1shouts: .*"))
             return;
 
-        if (NyahConfig.nyahConfigData.getShoutFilterMode() == ShoutReplacement.REMOVE) {
+        if (NyahConfig.getData().getShoutFilterMode() == ShoutReplacement.REMOVE) {
             event.setMessage(null);
-        } else if (NyahConfig.nyahConfigData.getShoutFilterMode() == ShoutReplacement.GRAY_OUT) {
+        } else if (NyahConfig.getData().getShoutFilterMode() == ShoutReplacement.GRAY_OUT) {
             event.setMessage(withColor(component));
         } else {
             Minecraft mc = Minecraft.getInstance();

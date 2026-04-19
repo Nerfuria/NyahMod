@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public class WarTimersFeature extends Feature {
     private static final int RENDER_MIN_Y = 0;
     private static final int RENDER_MAX_Y = 512;
@@ -60,12 +61,12 @@ public class WarTimersFeature extends Feature {
     }
 
     private void scheduleWarn() {
-        Scheduler.scheduleRepeating(this::warnUpcomingTerritories, () -> NyahConfig.nyahConfigData.getWarnTime() * 20, this::isDisabled);
+        Scheduler.scheduleRepeating(this::warnUpcomingTerritories, () -> NyahConfig.getData().getWarnTime() * 20, this::isDisabled);
     }
 
     private void warnUpcomingTerritories() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || NyahConfig.nyahConfigData.getTerritoryWarningCount() <= 0) {
+        if (mc.player == null || NyahConfig.getData().getTerritoryWarningCount() <= 0) {
             return;
         }
 
@@ -74,11 +75,11 @@ public class WarTimersFeature extends Feature {
         ).getComponent();
 
         long now = System.currentTimeMillis();
-        long maxWarningWindowMillis = NyahConfig.nyahConfigData.getMaxTimeTerr() * 60_000L;
+        long maxWarningWindowMillis = NyahConfig.getData().getMaxTimeTerr() * 60_000L;
         Models.GuildAttackTimer.getUpcomingTimers()
                 .filter(timer -> isTimerWithinWarningWindow(timer, now, maxWarningWindowMillis))
                 .sorted(Comparator.comparingLong(TerritoryAttackTimer::timerEnd))
-                .limit(NyahConfig.nyahConfigData.getTerritoryWarningCount())
+                .limit(NyahConfig.getData().getTerritoryWarningCount())
                 .map(this::createWarningLine)
                 .forEach(line -> mc.player.displayClientMessage(prefix.copy().append(line), false));
     }
@@ -134,7 +135,7 @@ public class WarTimersFeature extends Feature {
     }
 
     private int getMaximumDistanceSquared() {
-        int maximumDistance = NyahConfig.nyahConfigData.getMaximumDistance();
+        int maximumDistance = NyahConfig.getData().getMaximumDistance();
         return maximumDistance * maximumDistance;
     }
 
@@ -143,7 +144,7 @@ public class WarTimersFeature extends Feature {
                 .map(timer -> toQueuedTerritoryEntry(timer, playerPosition))
                 .filter(entry -> entry != null && entry.distanceSquared() <= maximumDistanceSquared)
                 .sorted(Comparator.comparingLong(QueuedTerritoryEntry::timerEnd).thenComparingInt(QueuedTerritoryEntry::distanceSquared))
-                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
+                .limit(NyahConfig.getData().getMaximumTerritories())
                 .toList();
     }
 
@@ -162,7 +163,7 @@ public class WarTimersFeature extends Feature {
                 .map(territory -> new NearbyTerritoryEntry(territory, territory.distanceSquaredTo(playerPosition)))
                 .filter(entry -> entry.distanceSquared() <= maximumDistanceSquared)
                 .sorted(Comparator.comparingInt(NearbyTerritoryEntry::distanceSquared))
-                .limit(NyahConfig.nyahConfigData.getMaximumTerritories())
+                .limit(NyahConfig.getData().getMaximumTerritories())
                 .toList();
     }
 
@@ -174,15 +175,15 @@ public class WarTimersFeature extends Feature {
     private record TerritoryPalette(int defaultColor, int insideColor) {
         private static TerritoryPalette queued() {
             return new TerritoryPalette(
-                    NyahConfig.nyahConfigData.getColor(),
-                    NyahConfig.nyahConfigData.getColorInside()
+                    NyahConfig.getData().getColor(),
+                    NyahConfig.getData().getColorInside()
             );
         }
 
         private static TerritoryPalette unqueued() {
             return new TerritoryPalette(
-                    NyahConfig.nyahConfigData.getNotQColor(),
-                    NyahConfig.nyahConfigData.getNotQInsideColor()
+                    NyahConfig.getData().getNotQColor(),
+                    NyahConfig.getData().getNotQInsideColor()
             );
         }
 

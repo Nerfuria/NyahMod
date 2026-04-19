@@ -16,6 +16,7 @@ import org.nia.niamod.models.events.ChatMessageReceivedEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 
+@SuppressWarnings("unused")
 public class RadianceSyncFeature extends Feature {
 
     @Getter

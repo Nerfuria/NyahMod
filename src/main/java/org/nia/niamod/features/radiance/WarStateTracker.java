@@ -5,6 +5,7 @@ import lombok.Getter;
 import java.util.regex.Pattern;
 
 @Getter
+@SuppressWarnings("unused")
 public class WarStateTracker {
     private static final Pattern WAR_START_PATTERN =
             Pattern.compile("The war battle will start in \\d+ seconds\\.", Pattern.CASE_INSENSITIVE);

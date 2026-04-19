@@ -46,9 +46,14 @@ public class NiaClickGuiScreen extends Screen {
     private static final int ROUND = 12;
     private static final int MODULE_GAP = 7;
     private static final int SEARCH_BAR_HEIGHT = 24;
+    private static final int MIN_PANEL_W = 320;
+    private static final int MIN_PANEL_H = 220;
+    private static final int MAX_PANEL_W = 1000;
+    private static final int MAX_PANEL_H = 800;
+    private static final int SCREEN_MARGIN = 12;
     private final Screen parent;
-    private final Animation openAnim = new Animation(Easing.LINEAR, NyahConfig.nyahConfigData.getAnimationTime());
-    private final Animation closeAnim = new Animation(Easing.LINEAR, NyahConfig.nyahConfigData.getAnimationTime());
+    private final Animation openAnim = new Animation(Easing.LINEAR, NyahConfig.getData().getAnimationTime());
+    private final Animation closeAnim = new Animation(Easing.LINEAR, NyahConfig.getData().getAnimationTime());
     private final Animation scaleAnim = new Animation(Easing.EASE_OUT_EXPO, 300);
     private final Animation opacityAnim = new Animation(Easing.EASE_OUT_EXPO, 300);
     private final Map<SettingCategory, List<SectionComponent>> catComps = new EnumMap<>(SettingCategory.class);
@@ -104,7 +109,7 @@ public class NiaClickGuiScreen extends Screen {
 
     private static Style currentFontStyle() {
         try {
-            ClickGuiFontOption option = ClickGuiFontOption.resolve(NyahConfig.nyahConfigData.getClickGuiFont());
+            ClickGuiFontOption option = NyahConfig.getClickGuiFontOption();
             return Style.EMPTY.withFont(new FontDescription.Resource(option.fontDescriptionId()));
         } catch (Exception e) {
             return Style.EMPTY;
@@ -128,32 +133,34 @@ public class NiaClickGuiScreen extends Screen {
         }
     }
 
-    private ClickGuiTheme getTheme() {
+    public static ClickGuiTheme configuredTheme() {
+        return configuredTheme(1.0);
+    }
+
+    private static ClickGuiTheme configuredTheme(double opacityMultiplier) {
         try {
-            ClickGuiThemeOption option = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme());
+            ClickGuiThemeOption option = NyahConfig.getClickGuiThemeOption();
             ClickGuiTheme base;
 
             if (option == ClickGuiThemeOption.CUSTOM) {
                 base = ClickGuiTheme.builder()
-                        .background(NyahConfig.nyahConfigData.getCustomGuiBackground())
-                        .secondary(NyahConfig.nyahConfigData.getCustomGuiSecondary())
+                        .background(NyahConfig.getData().getCustomGuiBackground())
+                        .secondary(NyahConfig.getData().getCustomGuiSecondary())
                         .textColor(0xFFFFFFFF)
                         .secondaryText(0xDCFFFFFF)
                         .trinaryText(0x82FFFFFF)
                         .overlay(0x26000000)
-                        .accentColor(NyahConfig.nyahConfigData.getCustomGuiAccent())
+                        .accentColor(NyahConfig.getData().getCustomGuiAccent())
                         .shadowColor(0x18000000)
-                        .sliderTrack(NyahConfig.nyahConfigData.getCustomGuiBackground())
+                        .sliderTrack(NyahConfig.getData().getCustomGuiBackground())
                         .scrollbarColor(0x30FFFFFF)
                         .build();
             } else {
                 base = option.getTheme();
             }
 
-            int alpha = (int) (NyahConfig.nyahConfigData.getGuiOpacity() * 255);
-            if (getAnimationMode() == ClickGuiAnimationMode.NONE && animTime < 1.0) {
-                alpha = (int) (alpha * opacityAnim.getValue());
-            }
+            int alpha = (int) (NyahConfig.getData().getGuiOpacity() * 255 * opacityMultiplier);
+            alpha = Math.max(0, Math.min(255, alpha));
 
             return ClickGuiTheme.builder()
                     .background((base.getBackground() & 0x00FFFFFF) | (alpha << 24))
@@ -172,11 +179,16 @@ public class NiaClickGuiScreen extends Screen {
         }
     }
 
+    private ClickGuiTheme getTheme() {
+        double opacityMultiplier = getAnimationMode() == ClickGuiAnimationMode.NONE && animTime < 1.0
+                ? opacityAnim.getValue()
+                : 1.0;
+        return configuredTheme(opacityMultiplier);
+    }
+
     @Override
     protected void init() {
-        panelW = NyahConfig.nyahConfigData.getGuiWidth();
-        panelH = NyahConfig.nyahConfigData.getGuiHeight();
-        moduleW = panelW - SIDEBAR_W - 17;
+        setPanelSize(NyahConfig.getData().getGuiWidth(), NyahConfig.getData().getGuiHeight());
 
         panelX = (width - panelW) / 2.0f;
         panelY = (height - panelH) / 2.0f;
@@ -213,7 +225,7 @@ public class NiaClickGuiScreen extends Screen {
             tabAnims[i].setValue(selectedTab.ordinal() == i ? 255 : 0);
         }
 
-        lastRenderedTheme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme());
+        lastRenderedTheme = NyahConfig.getClickGuiThemeOption();
     }
 
     private void buildAll() {
@@ -367,13 +379,13 @@ public class NiaClickGuiScreen extends Screen {
 
     @Override
     public void render(@NotNull GuiGraphics g, int mouseX, int mouseY, float dt) {
-        ClickGuiThemeOption currentTheme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme());
+        ClickGuiThemeOption currentTheme = NyahConfig.getClickGuiThemeOption();
         if (currentTheme != lastRenderedTheme) {
             rebuildWidgetsAndSections();
             lastRenderedTheme = currentTheme;
         }
 
-        moduleW = panelW - SIDEBAR_W - 17;
+        moduleW = moduleWidth();
         lastRenderMouseX = mouseX;
         lastRenderMouseY = mouseY;
         lastRenderDelta = dt;
@@ -381,12 +393,7 @@ public class NiaClickGuiScreen extends Screen {
         long now = System.currentTimeMillis();
         long frameDt = now - lastFrameTime;
         lastFrameTime = now;
-
-        double lerpFactor = 1.0 - Math.pow(0.005, frameDt / 1000.0);
-        scroll += (scrollTarget - scroll) * Math.min(lerpFactor, 0.6);
-        if (Math.abs(scrollTarget - scroll) < 0.3) {
-            scroll = scrollTarget;
-        }
+        updateScrollPosition(frameDt);
 
         ClickGuiAnimationMode animationMode = getAnimationMode();
 
@@ -426,8 +433,7 @@ public class NiaClickGuiScreen extends Screen {
         }
 
         if (dragging) {
-            panelX = Math.max(-panelW + 50, Math.min(width - 50, (float) (mouseX + dragOffX)));
-            panelY = Math.max(0, Math.min(height - 30, (float) (mouseY + dragOffY)));
+            updateDragPosition(mouseX, mouseY);
         }
 
         ClickGuiTheme theme = getTheme();
@@ -462,19 +468,8 @@ public class NiaClickGuiScreen extends Screen {
         int contentW = panelW - SIDEBAR_W - 12;
         int viewH = panelH - 14;
         int maxScroll = maxScroll(viewH);
-        scrollTarget = Math.max(-maxScroll, Math.min(0, scrollTarget));
-        scroll = Math.max(-maxScroll, Math.min(0, scroll));
-
-        if (searchMode) {
-            renderSearchBar(g, contentX, py + 10, mouseX, mouseY, theme);
-            g.enableScissor(contentX, py + 42, px + panelW - 4, py + panelH - 1);
-            renderModules(g, contentX, py + 42, contentW, py + 42, py + panelH - 1, mouseX, mouseY, theme);
-            g.disableScissor();
-        } else {
-            g.enableScissor(contentX, py + 7, px + panelW - 4, py + panelH - 1);
-            renderModules(g, contentX, py + 7, contentW, py + 7, py + panelH - 1, mouseX, mouseY, theme);
-            g.disableScissor();
-        }
+        clampScroll(maxScroll);
+        renderContentArea(g, px, py, contentX, contentW, mouseX, mouseY, theme);
 
         super.render(g, mouseX, mouseY, dt);
 
@@ -638,14 +633,12 @@ public class NiaClickGuiScreen extends Screen {
     }
 
     private ClickGuiAnimationMode getAnimationMode() {
-        if (NyahConfig.nyahConfigData == null || NyahConfig.nyahConfigData.getClickGuiAnimation() == null) {
-            return ClickGuiAnimationMode.NONE;
-        }
-        return NyahConfig.nyahConfigData.getClickGuiAnimation();
+        ClickGuiAnimationMode animationMode = NyahConfig.getData().getClickGuiAnimation();
+        return animationMode == null ? ClickGuiAnimationMode.NONE : animationMode;
     }
 
     private int getAnimationDurationMs() {
-        return NyahConfig.nyahConfigData.getAnimationTime();
+        return NyahConfig.getData().getAnimationTime();
     }
 
     private boolean isAnimationTransitionComplete() {
@@ -781,6 +774,82 @@ public class NiaClickGuiScreen extends Screen {
         return Math.max(0, totalHeight() - viewH + (searchMode ? 42 : 7));
     }
 
+    private void updateScrollPosition(long frameDt) {
+        double lerpFactor = 1.0 - Math.pow(0.005, frameDt / 1000.0);
+        scroll += (scrollTarget - scroll) * Math.min(lerpFactor, 0.6);
+        if (Math.abs(scrollTarget - scroll) < 0.3) {
+            scroll = scrollTarget;
+        }
+    }
+
+    private void updateDragPosition(int mouseX, int mouseY) {
+        panelX = Math.max(-panelW + 50, Math.min(width - 50, (float) (mouseX + dragOffX)));
+        panelY = Math.max(0, Math.min(height - 30, (float) (mouseY + dragOffY)));
+    }
+
+    private void setPanelSize(int panelW, int panelH) {
+        this.panelW = clamp(panelW, minPanelWidth(), maxPanelWidth());
+        this.panelH = clamp(panelH, minPanelHeight(), maxPanelHeight());
+        this.moduleW = moduleWidth();
+    }
+
+    private int moduleWidth() {
+        return Math.max(1, panelW - SIDEBAR_W - 17);
+    }
+
+    private int minPanelWidth() {
+        return Math.min(MIN_PANEL_W, viewportMaxWidth());
+    }
+
+    private int minPanelHeight() {
+        return Math.min(MIN_PANEL_H, viewportMaxHeight());
+    }
+
+    private int maxPanelWidth() {
+        return Math.max(minPanelWidth(), Math.min(MAX_PANEL_W, viewportMaxWidth()));
+    }
+
+    private int maxPanelHeight() {
+        return Math.max(minPanelHeight(), Math.min(MAX_PANEL_H, viewportMaxHeight()));
+    }
+
+    private int viewportMaxWidth() {
+        return Math.max(1, width - SCREEN_MARGIN * 2);
+    }
+
+    private int viewportMaxHeight() {
+        return Math.max(1, height - SCREEN_MARGIN * 2);
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private void clampScroll(int maxScroll) {
+        scrollTarget = Math.max(-maxScroll, Math.min(0, scrollTarget));
+        scroll = Math.max(-maxScroll, Math.min(0, scroll));
+    }
+
+    private void renderContentArea(GuiGraphics g, int px, int py, int contentX, int contentW, int mouseX, int mouseY, ClickGuiTheme theme) {
+        if (searchMode) {
+            renderSearchBar(g, contentX, py + 10, mouseX, mouseY, theme);
+            g.enableScissor(contentX, py + 42, px + panelW - 4, py + panelH - 1);
+            renderModules(g, contentX, py + 42, contentW, py + 42, py + panelH - 1, mouseX, mouseY, theme);
+            g.disableScissor();
+            return;
+        }
+
+        g.enableScissor(contentX, py + 7, px + panelW - 4, py + panelH - 1);
+        renderModules(g, contentX, py + 7, contentW, py + 7, py + panelH - 1, mouseX, mouseY, theme);
+        g.disableScissor();
+    }
+
+    private void resetToDefaults() {
+        NyahConfig.reset();
+        lastRenderedTheme = NyahConfig.getClickGuiThemeOption();
+        rebuildWidgetsAndSections();
+    }
+
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent click, boolean outside) {
         if (closing) {
@@ -823,11 +892,7 @@ public class NiaClickGuiScreen extends Screen {
 
         int resetY = py + panelH - 35;
         if (btn == 0 && mx >= px + 10 && mx <= px + SIDEBAR_W - 10 && my >= resetY && my <= resetY + 24) {
-            NyahConfig.nyahConfigData = new NyahConfig.NyahConfigData();
-            NyahConfig.save();
-            NyahConfig.applyFeatureStates();
-            lastRenderedTheme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme());
-            rebuildWidgetsAndSections();
+            resetToDefaults();
             return true;
         }
 
@@ -866,13 +931,15 @@ public class NiaClickGuiScreen extends Screen {
         }
 
         if (resizeEdge != 0) {
+            int nextW = panelW;
+            int nextH = panelH;
             if ((resizeEdge & 1) != 0) {
-                panelW = Math.max(400, Math.min(1000, (int) (resizeStartW + (event.x() - dragOffX))));
+                nextW = (int) (resizeStartW + (event.x() - dragOffX));
             }
             if ((resizeEdge & 2) != 0) {
-                panelH = Math.max(300, Math.min(800, (int) (resizeStartH + (event.y() - dragOffY))));
+                nextH = (int) (resizeStartH + (event.y() - dragOffY));
             }
-            moduleW = panelW - SIDEBAR_W - 17;
+            setPanelSize(nextW, nextH);
             return true;
         }
 
@@ -897,8 +964,8 @@ public class NiaClickGuiScreen extends Screen {
 
         if (resizeEdge != 0) {
             resizeEdge = 0;
-            NyahConfig.nyahConfigData.setGuiWidth(panelW);
-            NyahConfig.nyahConfigData.setGuiHeight(panelH);
+            NyahConfig.getData().setGuiWidth(panelW);
+            NyahConfig.getData().setGuiHeight(panelH);
             NyahConfig.save();
             return true;
         }

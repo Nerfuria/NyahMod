@@ -6,6 +6,7 @@ import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.features.AutoStreamFeature;
 import org.nia.niamod.features.ChatEncryptionFeature;
 import org.nia.niamod.features.ConsuTextFeature;
+import org.nia.niamod.features.IgnoreFeature;
 import org.nia.niamod.features.RadianceSyncFeature;
 import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.ShoutFilterFeature;
@@ -34,6 +35,8 @@ public class FeatureManager {
     private static RadianceSyncFeature radianceSyncFeature;
     @Getter
     private static AutoStreamFeature autoStreamFeature;
+    @Getter
+    private static IgnoreFeature ignoreFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
@@ -45,6 +48,7 @@ public class FeatureManager {
         viewModelTransformationFeature = new ViewModelTransformationFeature();
         radianceSyncFeature = new RadianceSyncFeature();
         autoStreamFeature = new AutoStreamFeature();
+        ignoreFeature = new IgnoreFeature();
 
         resTickFeature.runSafe("init", resTickFeature::init);
         chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
@@ -55,6 +59,7 @@ public class FeatureManager {
         viewModelTransformationFeature.runSafe("init", viewModelTransformationFeature::init);
         radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
         autoStreamFeature.runSafe("init", autoStreamFeature::init);
+        ignoreFeature.runSafe("init", ignoreFeature::init);
 
         NyahConfig.onFeaturesInitialized();
     }

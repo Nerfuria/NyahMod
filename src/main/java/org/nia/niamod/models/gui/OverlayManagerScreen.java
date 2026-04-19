@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.render.TextOverlay;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
-import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 import org.nia.niamod.render.Render2D;
 
 import java.util.HashMap;
@@ -58,14 +57,7 @@ public class OverlayManagerScreen extends Screen {
         addRenderableWidget(new ThemeButton(centerX - buttonWidth - 52, buttonY, buttonWidth, 20, Component.literal("Done")) {
             @Override
             public void onPress(InputWithModifiers in) {
-                for (TextOverlay overlay : overlays) {
-                    overlay.setScale(clamp(overlay.getScale(), MIN_SCALE, MAX_SCALE));
-                    overlay.setXOffset(clamp(overlay.getXOffset(), MIN_OFFSET, MAX_OFFSET));
-                    overlay.setYOffset(clamp(overlay.getYOffset(), MIN_OFFSET, MAX_OFFSET));
-                }
-                NyahConfig.save();
-                closeHandled = true;
-                onClose();
+                commitAndClose();
             }
         });
 
@@ -104,7 +96,7 @@ public class OverlayManagerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        ClickGuiTheme theme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme()).getTheme();
+        ClickGuiTheme theme = theme();
 
         for (TextOverlay overlay : overlays) {
             renderPreview(context, overlay, mouseX, mouseY);
@@ -114,12 +106,9 @@ public class OverlayManagerScreen extends Screen {
         String hintB = "Hover and scroll wheel/drag left corner to resize.";
         String hintC = "Middle-click an overlay to toggle it on or off.";
 
-        context.drawString(this.font, hintA,
-                (this.width - this.font.width(hintA)) / 2, 8, theme.getTextColor(), true);
-        context.drawString(this.font, hintB,
-                (this.width - this.font.width(hintB)) / 2, 20, theme.getSecondaryText(), true);
-        context.drawString(this.font, hintC,
-                (this.width - this.font.width(hintC)) / 2, 32, theme.getTrinaryText(), true);
+        drawCenteredText(context, hintA, 8, theme.getTextColor());
+        drawCenteredText(context, hintB, 20, theme.getSecondaryText());
+        drawCenteredText(context, hintC, 32, theme.getTrinaryText());
 
         super.render(context, mouseX, mouseY, delta);
     }
@@ -215,7 +204,7 @@ public class OverlayManagerScreen extends Screen {
     }
 
     private void renderPreview(GuiGraphics context, TextOverlay overlay, int mouseX, int mouseY) {
-        ClickGuiTheme theme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme()).getTheme();
+        ClickGuiTheme theme = theme();
 
         PreviewBounds bounds = getPreviewBounds(overlay);
         boolean hoveredCorner = bounds.containsCorner(mouseX, mouseY);
@@ -241,11 +230,7 @@ public class OverlayManagerScreen extends Screen {
         float scale = clamp(overlay.getScale(), MIN_SCALE, MAX_SCALE);
         int centreX = this.width / 2;
         int centreY = this.height / 2;
-
-        String text = overlay.defaultValue();
-        if (text == null || text.isEmpty()) {
-            text = "Overlay";
-        }
+        String text = previewText(overlay);
 
         context.pose().pushMatrix();
         context.pose().translate(centreX, centreY);
@@ -256,15 +241,21 @@ public class OverlayManagerScreen extends Screen {
     }
 
     private void drawCenteredLine(GuiGraphics context, String text, int centerX, int y, int color) {
-        int width = this.font.width(text);
-        context.drawString(this.font, text, centerX - width / 2, y - this.font.lineHeight / 2, color, true);
+        Component styledText = NiaClickGuiScreen.styled(text);
+        int width = this.font.width(styledText);
+        context.drawString(this.font, styledText, centerX - width / 2, y - this.font.lineHeight / 2, color, false);
+    }
+
+    private void drawCenteredText(GuiGraphics context, String text, int y, int color) {
+        Component styledText = NiaClickGuiScreen.styled(text);
+        int textWidth = this.font.width(styledText);
+        context.drawString(this.font, styledText, (this.width - textWidth) / 2, y, color, false);
     }
 
     private PreviewBounds getPreviewBounds(TextOverlay overlay) {
         float scale = clamp(overlay.getScale(), MIN_SCALE, MAX_SCALE);
-        String text = overlay.defaultValue();
-        if (text == null || text.isEmpty()) text = "Overlay";
-        int textWidth = this.font.width(text);
+        String text = previewText(overlay);
+        int textWidth = this.font.width(NiaClickGuiScreen.styled(text));
 
         double halfWidth = (textWidth * scale) / 2.0;
         double halfHeight = (this.font.lineHeight * scale) / 2.0;
@@ -285,6 +276,26 @@ public class OverlayManagerScreen extends Screen {
 
     private int getAnchorScreenY(TextOverlay overlay) {
         return (int) Math.round(this.height / 2.0 + overlay.getYOffset());
+    }
+
+    private ClickGuiTheme theme() {
+        return NiaClickGuiScreen.configuredTheme();
+    }
+
+    private String previewText(TextOverlay overlay) {
+        String text = overlay.defaultValue();
+        return (text == null || text.isEmpty()) ? "Overlay" : text;
+    }
+
+    private void commitAndClose() {
+        for (TextOverlay overlay : overlays) {
+            overlay.setScale(clamp(overlay.getScale(), MIN_SCALE, MAX_SCALE));
+            overlay.setXOffset(clamp(overlay.getXOffset(), MIN_OFFSET, MAX_OFFSET));
+            overlay.setYOffset(clamp(overlay.getYOffset(), MIN_OFFSET, MAX_OFFSET));
+        }
+        NyahConfig.save();
+        closeHandled = true;
+        onClose();
     }
 
     private void restoreOriginalValues() {
@@ -330,14 +341,15 @@ public class OverlayManagerScreen extends Screen {
 
         @Override
         public void renderContents(GuiGraphics context, int mouseX, int mouseY, float partialTick) {
-            ClickGuiTheme theme = ClickGuiThemeOption.resolve(NyahConfig.nyahConfigData.getClickGuiTheme()).getTheme();
+            ClickGuiTheme theme = theme();
             boolean hovered = isHoveredOrFocused();
-            int fill = hovered ? Render2D.withAlpha(theme.getSecondary(), 20) : Render2D.withAlpha(theme.getSecondary(), (int) (255 * NyahConfig.nyahConfigData.getGuiOpacity()));
+            int fill = hovered ? Render2D.withAlpha(theme.getSecondary(), 242) : Render2D.withAlpha(theme.getSecondary(), 224);
             int border = hovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
             Render2D.shaderRoundedSurface(context, getX(), getY(), width, height, 7, fill, border);
             int textColor = hovered ? theme.getAccentColor() : theme.getTextColor();
-            int textWidth = OverlayManagerScreen.this.font.width(getMessage());
-            context.drawString(OverlayManagerScreen.this.font, getMessage(), getX() + (width - textWidth) / 2, getY() + (height - OverlayManagerScreen.this.font.lineHeight) / 2, textColor, true);
+            Component styledMessage = NiaClickGuiScreen.styled(getMessage().getString());
+            int textWidth = OverlayManagerScreen.this.font.width(styledMessage);
+            context.drawString(OverlayManagerScreen.this.font, styledMessage, getX() + (width - textWidth) / 2, getY() + (height - OverlayManagerScreen.this.font.lineHeight) / 2, textColor, false);
         }
 
         @Override

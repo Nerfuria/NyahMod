@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.GameType;
 import org.joml.Matrix4f;
+import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.HeldItemBobbingEvent;
@@ -11,8 +12,8 @@ import org.nia.niamod.models.events.HeldItemRenderEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 
-import static org.nia.niamod.config.NyahConfig.nyahConfigData;
 
+@SuppressWarnings("unused")
 public class ViewModelTransformationFeature extends Feature {
     @Override
     public void init() {
@@ -22,19 +23,20 @@ public class ViewModelTransformationFeature extends Feature {
     @Subscribe
     public void modifyRender(HeldItemRenderEvent event) {
         if (event.hand() == InteractionHand.MAIN_HAND) {
+            var config = NyahConfig.getData();
             event.matrix().mulPose(new Matrix4f()
-                    .translate(nyahConfigData.getXOffset() / 100f, nyahConfigData.getYOffset() / 100f, nyahConfigData.getZOffset() / 100f)
-                    .rotateX((float) Math.toRadians(nyahConfigData.getXRotation()))
-                    .rotateY((float) Math.toRadians(nyahConfigData.getYRotation()))
-                    .rotateZ((float) Math.toRadians(nyahConfigData.getZRotation()))
-                    .scale(nyahConfigData.getItemScale()));
+                    .translate(config.getXOffset() / 100f, config.getYOffset() / 100f, config.getZOffset() / 100f)
+                    .rotateX((float) Math.toRadians(config.getXRotation()))
+                    .rotateY((float) Math.toRadians(config.getYRotation()))
+                    .rotateZ((float) Math.toRadians(config.getZRotation()))
+                    .scale(config.getItemScale()));
         }
     }
 
     @Subscribe
     @Safe
     public void onHeldItemBobbing(HeldItemBobbingEvent event) {
-        if (!nyahConfigData.isDisableHeldBobbing()) return;
+        if (!NyahConfig.getData().isDisableHeldBobbing()) return;
 
         Minecraft mc = event.minecraft();
         if (mc == null || mc.player == null || mc.gameMode == null) return;

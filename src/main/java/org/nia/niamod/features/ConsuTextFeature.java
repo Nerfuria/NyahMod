@@ -26,6 +26,7 @@ import org.nia.niamod.util.FileUtils;
 
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class ConsuTextFeature extends Feature {
 
     private List<StatLabel> STAT_LABELS;
@@ -82,9 +83,9 @@ public class ConsuTextFeature extends Feature {
         String id = idsToText(IDS);
         if (id.isEmpty()) return;
         context.pose().pushMatrix();
-        context.pose().scale(NyahConfig.nyahConfigData.getIdScale(), NyahConfig.nyahConfigData.getIdScale());
-        float x = (slotX + NyahConfig.nyahConfigData.getIdXOffset()) / NyahConfig.nyahConfigData.getIdScale();
-        float y = (slotY + NyahConfig.nyahConfigData.getIdYOffset()) / NyahConfig.nyahConfigData.getIdScale();
+        context.pose().scale(NyahConfig.getData().getIdScale(), NyahConfig.getData().getIdScale());
+        float x = (slotX + NyahConfig.getData().getIdXOffset()) / NyahConfig.getData().getIdScale();
+        float y = (slotY + NyahConfig.getData().getIdYOffset()) / NyahConfig.getData().getIdScale();
         FontRenderer.getInstance().renderText(context, x, y, new TextRenderTask(StyledText.fromUnformattedString(id), TextRenderSetting.DEFAULT.withTextShadow(TextShadow.OUTLINE)));
         context.pose().popMatrix();
     }

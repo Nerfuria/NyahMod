@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("unused")
 public class RadianceOverlaySync implements TextOverlay {
     private static final Pattern RADIANCE_COOLDOWN_PATTERN = Pattern.compile(
             "(?i)\\bradiance\\b[^0-9]*\\(?\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*\\)?");
@@ -46,7 +47,7 @@ public class RadianceOverlaySync implements TextOverlay {
 
     private static String sanitizeText(String value) {
         String cleaned = value.replace("\u0000", "");
-        cleaned = cleaned.replaceAll("(?i)§[0-9a-fk-or]", "");
+        cleaned = cleaned.replaceAll("(?i)Â§[0-9a-fk-or]", "");
         cleaned = cleaned.replaceAll("(?i)&[0-9a-fk-or]", "");
         cleaned = cleaned.replaceAll("&\\{[^}]*}", "");
         cleaned = cleaned.replaceAll("&\\[[^]]*]", "");
@@ -63,14 +64,14 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     public boolean isRequireWar() {
-        return NyahConfig.nyahConfigData.isRadianceSyncRequireWar();
+        return NyahConfig.getData().isRadianceSyncRequireWar();
     }
 
     public void setRequireWar(boolean requireWar) {
-        if (NyahConfig.nyahConfigData.isRadianceSyncRequireWar() == requireWar) {
+        if (NyahConfig.getData().isRadianceSyncRequireWar() == requireWar) {
             return;
         }
-        NyahConfig.nyahConfigData.setRadianceSyncRequireWar(requireWar);
+        NyahConfig.getData().setRadianceSyncRequireWar(requireWar);
         NyahConfig.save();
     }
 
@@ -86,19 +87,19 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     public int getSelfAspectTier() {
-        return NyahConfig.nyahConfigData.getRadianceSyncSelfTier();
+        return NyahConfig.getData().getRadianceSyncSelfTier();
     }
 
     public void setSelfAspectTier(int tier) {
-        if (tier < 0 || tier > 3 || NyahConfig.nyahConfigData.getRadianceSyncSelfTier() == tier) {
+        if (tier < 0 || tier > 3 || NyahConfig.getData().getRadianceSyncSelfTier() == tier) {
             return;
         }
-        NyahConfig.nyahConfigData.setRadianceSyncSelfTier(tier);
+        NyahConfig.getData().setRadianceSyncSelfTier(tier);
         NyahConfig.save();
     }
 
     public RadianceOverlayMode getOverlayMode() {
-        RadianceOverlayMode mode = NyahConfig.nyahConfigData.getRadianceSyncOverlayMode();
+        RadianceOverlayMode mode = NyahConfig.getData().getRadianceSyncOverlayMode();
         return mode == null ? RadianceOverlayMode.CAST : mode;
     }
 
@@ -107,7 +108,7 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     public String getGroupKey() {
-        String key = NyahConfig.nyahConfigData.getRadianceSyncGroupKey();
+        String key = NyahConfig.getData().getRadianceSyncGroupKey();
         return key == null ? "" : key;
     }
 
@@ -116,7 +117,7 @@ public class RadianceOverlaySync implements TextOverlay {
         if (normalized.equals(getGroupKey())) {
             return;
         }
-        NyahConfig.nyahConfigData.setRadianceSyncGroupKey(normalized);
+        NyahConfig.getData().setRadianceSyncGroupKey(normalized);
         NyahConfig.save();
         cloudflareSync.reset();
     }
@@ -135,7 +136,7 @@ public class RadianceOverlaySync implements TextOverlay {
         boolean connectAllowed = warActive || manualConnectRequested;
         updateSyncConnection(client, now, key, playerName, playerUuid, connectAllowed);
 
-        if (NyahConfig.nyahConfigData.isRadianceSyncRequireWar() && !warActive) {
+        if (NyahConfig.getData().isRadianceSyncRequireWar() && !warActive) {
             clearTimer();
             clearCastPrompt();
             wasOnCooldown = false;
@@ -148,8 +149,8 @@ public class RadianceOverlaySync implements TextOverlay {
         if (cooldownSecondsBoxed != null) {
             if (!wasOnCooldown) {
                 double cooldownSeconds = cooldownSecondsBoxed;
-                double remainingDuration = getDetectedRemainingDurationSeconds(NyahConfig.nyahConfigData.getRadianceSyncSelfTier(), cooldownSeconds);
-                cloudflareSync.send(NyahConfig.nyahConfigData.getRadianceSyncSelfTier(), toMillis(remainingDuration));
+                double remainingDuration = getDetectedRemainingDurationSeconds(NyahConfig.getData().getRadianceSyncSelfTier(), cooldownSeconds);
+                cloudflareSync.send(NyahConfig.getData().getRadianceSyncSelfTier(), toMillis(remainingDuration));
                 if (statusMode) {
                     startTimerAt(now, remainingDuration, remainingDuration);
                 }
@@ -165,7 +166,7 @@ public class RadianceOverlaySync implements TextOverlay {
                 if (remainingDuration > 0.0) {
                     double buffered = statusMode
                             ? remainingDuration
-                            : applyCastModePairBuffer(NyahConfig.nyahConfigData.getRadianceSyncSelfTier(), tier, remainingDuration);
+                            : applyCastModePairBuffer(NyahConfig.getData().getRadianceSyncSelfTier(), tier, remainingDuration);
                     startTimerAt(now, remainingDuration, buffered);
                 }
             }
@@ -200,45 +201,45 @@ public class RadianceOverlaySync implements TextOverlay {
 
     @Override
     public int getXOffset() {
-        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetX();
+        return NyahConfig.getData().getRadianceSyncOverlayOffsetX();
     }
 
     @Override
     public void setXOffset(int xOffset) {
-        NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetX(xOffset);
+        NyahConfig.getData().setRadianceSyncOverlayOffsetX(xOffset);
         NyahConfig.save();
     }
 
     @Override
     public int getYOffset() {
-        return NyahConfig.nyahConfigData.getRadianceSyncOverlayOffsetY();
+        return NyahConfig.getData().getRadianceSyncOverlayOffsetY();
     }
 
     @Override
     public void setYOffset(int yOffset) {
-        NyahConfig.nyahConfigData.setRadianceSyncOverlayOffsetY(yOffset);
+        NyahConfig.getData().setRadianceSyncOverlayOffsetY(yOffset);
         NyahConfig.save();
     }
 
     @Override
     public float getScale() {
-        return NyahConfig.nyahConfigData.getRadianceSyncOverlayScale();
+        return NyahConfig.getData().getRadianceSyncOverlayScale();
     }
 
     @Override
     public void setScale(float scale) {
-        NyahConfig.nyahConfigData.setRadianceSyncOverlayScale(scale);
+        NyahConfig.getData().setRadianceSyncOverlayScale(scale);
         NyahConfig.save();
     }
 
     @Override
     public boolean isEnabled() {
-        return NyahConfig.nyahConfigData.isRadianceSyncEnabled();
+        return NyahConfig.getData().isRadianceSyncEnabled();
     }
 
     @Override
     public void setEnabled(boolean enabled) {
-        NyahConfig.nyahConfigData.setRadianceSyncEnabled(enabled);
+        NyahConfig.getData().setRadianceSyncEnabled(enabled);
         NyahConfig.save();
         if (FeatureManager.getRadianceSyncFeature() != null) {
             FeatureManager.getRadianceSyncFeature().setEnabled(enabled);
@@ -250,7 +251,7 @@ public class RadianceOverlaySync implements TextOverlay {
         if (client.player == null) {
             return;
         }
-        if (NyahConfig.nyahConfigData.isRadianceSyncRequireWar() && !warStateTracker.isInWar()) {
+        if (NyahConfig.getData().isRadianceSyncRequireWar() && !warStateTracker.isInWar()) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -333,7 +334,7 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     private void showCastPrompt(long now) {
-        long durationMs = Math.round(NyahConfig.nyahConfigData.getRadianceSyncCastPromptSeconds() * 1000.0);
+        long durationMs = Math.round(NyahConfig.getData().getRadianceSyncCastPromptSeconds() * 1000.0);
         castPromptUntilMs = now + Math.max(0L, durationMs);
     }
 
@@ -371,12 +372,12 @@ public class RadianceOverlaySync implements TextOverlay {
     }
 
     private void playPing(Minecraft client) {
-        if (!NyahConfig.nyahConfigData.isRadianceSyncPingEnabled() || client.player == null) {
+        if (!NyahConfig.getData().isRadianceSyncPingEnabled() || client.player == null) {
             return;
         }
         client.player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(),
-                NyahConfig.nyahConfigData.getRadianceSyncPingVolume(),
-                NyahConfig.nyahConfigData.getRadianceSyncPingPitch());
+                NyahConfig.getData().getRadianceSyncPingVolume(),
+                NyahConfig.getData().getRadianceSyncPingPitch());
     }
 
     private double getDurationForTier(int tier) {

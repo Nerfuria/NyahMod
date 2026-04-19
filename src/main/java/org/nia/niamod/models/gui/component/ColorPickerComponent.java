@@ -3,6 +3,7 @@ package org.nia.niamod.models.gui.component;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.render.GradientQuad;
@@ -10,17 +11,28 @@ import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
+import java.util.List;
+
 public class ColorPickerComponent {
     public static final int CLOSED_HEIGHT = 18;
     public static final int OPENED_HEIGHT = 116;
+    private static final int SWATCH_SIZE = 12;
+    private static final int SWATCH_RIGHT_PADDING = 4;
+    private static final int HEX_WIDTH = 50;
+    private static final int HEX_GAP = 8;
+    private static final int LABEL_CONTROL_GAP = 8;
+    private static final int PICKER_PANEL_GAP = 2;
+    private static final int PICKER_BOTTOM_PADDING = 4;
 
     private final ColorSetting setting;
     private boolean expanded;
     private float hue, saturation, value;
     private boolean draggingSV;
     private boolean draggingHue;
+    private boolean syncingHexInput;
 
     private int x, y, width;
+    private int closedHeight = CLOSED_HEIGHT;
     private EditBox hexInput;
 
     public ColorPickerComponent(ColorSetting setting) {
@@ -49,6 +61,7 @@ public class ColorPickerComponent {
     }
 
     private void onHexChanged(String text) {
+        if (syncingHexInput) return;
         if (draggingHue || draggingSV) return;
         if (text.startsWith("#")) text = text.substring(1);
         if (text.length() == 6) {
@@ -71,34 +84,40 @@ public class ColorPickerComponent {
     }
 
     public int getHeight() {
-        return expanded ? OPENED_HEIGHT : CLOSED_HEIGHT;
+        return expanded ? closedHeight + openedExtraHeight() : closedHeight;
+    }
+
+    public void updateLabelLayout(Font font, int width) {
+        this.width = width;
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        closedHeight = WrappedText.rowHeight(font, lines, CLOSED_HEIGHT);
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        updateLabelLayout(font, width);
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
-        int centerY = y + CLOSED_HEIGHT / 2;
+        int centerY = y + closedHeight / 2;
 
-        g.drawString(font, NiaClickGuiScreen.styled(setting.getTitle()), x, centerY - font.lineHeight / 2 + 1, textColor, false);
+        List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
+        WrappedText.draw(g, font, lines, x, WrappedText.centeredY(y, closedHeight, WrappedText.height(font, lines)), textColor);
 
-        int swatchSize = 12;
-        int swatchX = x + width - swatchSize - 4;
-        int swatchY = centerY - swatchSize / 2;
+        int swatchX = swatchX();
+        int swatchY = centerY - SWATCH_SIZE / 2;
         int currentColor = 0xFF000000 | Render2D.hsvToRgb(hue, saturation, value);
 
         Render2D.shaderRoundedSurface(
                 g,
                 swatchX - 1,
                 swatchY - 1,
-                swatchSize + 2,
-                swatchSize + 2,
+                SWATCH_SIZE + 2,
+                SWATCH_SIZE + 2,
                 4,
                 Render2D.withAlpha(currentColor, opacity),
                 Render2D.withAlpha(0xFFFFFF, Math.min(72, opacity))
         );
 
-        int hexWidth = 50;
-        int hexX = swatchX - hexWidth - 8;
+        int hexX = hexX();
         int hexHeight = hexInput != null ? hexInput.getHeight() : Math.max(18, font.lineHeight + 6);
         int hexY = centerY - hexHeight / 2;
 
@@ -110,7 +129,7 @@ public class ColorPickerComponent {
                     g,
                     hexX,
                     hexY,
-                    hexWidth,
+                    HEX_WIDTH,
                     hexHeight,
                     5,
                     Render2D.withAlpha(theme.getSecondary(), Math.min(200, opacity)),
@@ -122,10 +141,10 @@ public class ColorPickerComponent {
             hexInput.active = active;
             hexInput.setEditable(active);
             if (!hexInput.isFocused()) {
-                hexInput.setValue(getHex());
+                setHexInputValue(getHex());
                 hexInput.moveCursorToStart(false);
             }
-            NiaClickGuiScreen.layoutBorderlessEditBox(hexInput, font, hexX + 6, hexY, hexWidth - 12, hexHeight);
+            NiaClickGuiScreen.layoutBorderlessEditBox(hexInput, font, hexX + 6, hexY, HEX_WIDTH - 12, hexHeight);
         }
 
         if (!expanded) {
@@ -133,9 +152,9 @@ public class ColorPickerComponent {
         }
 
         int panelX = x + 4;
-        int panelY = y + 20;
+        int panelY = pickerPanelY();
         int panelW = width - 8;
-        int panelH = OPENED_HEIGHT - 24;
+        int panelH = pickerPanelHeight();
 
         Render2D.shaderRoundedSurface(
                 g,
@@ -194,7 +213,7 @@ public class ColorPickerComponent {
 
     public void updateClipVisibility(int clipTop, int clipBottom) {
         if (hexInput == null) return;
-        int centerY = y + CLOSED_HEIGHT / 2;
+        int centerY = y + closedHeight / 2;
         int editY = centerY - hexInput.getHeight() / 2;
         int editBottom = editY + hexInput.getHeight();
         boolean visible = editY >= clipTop && editBottom <= clipBottom;
@@ -217,13 +236,8 @@ public class ColorPickerComponent {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
-        if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + CLOSED_HEIGHT) {
-            int swatchSize = 12;
-            int swatchX = x + width - swatchSize - 4;
-            int hexWidth = 50;
-            int hexX = swatchX - hexWidth - 6;
-
-            if (mouseX >= hexX && mouseX <= hexX + hexWidth) {
+        if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + closedHeight) {
+            if (mouseX >= hexX() && mouseX <= hexX() + HEX_WIDTH) {
                 return false;
             }
 
@@ -234,7 +248,7 @@ public class ColorPickerComponent {
         if (!expanded) return false;
 
         int panelX = x + 4;
-        int panelY = y + 20;
+        int panelY = pickerPanelY();
         int panelW = width - 8;
 
         int svX = panelX + 4;
@@ -265,7 +279,7 @@ public class ColorPickerComponent {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (draggingSV) {
             int panelX = x + 4;
-            int panelY = y + 20;
+            int panelY = pickerPanelY();
             int panelW = width - 8;
             int svX = panelX + 4;
             int svY = panelY + 4;
@@ -292,6 +306,39 @@ public class ColorPickerComponent {
             return true;
         }
         return false;
+    }
+
+    private int swatchX() {
+        return x + width - SWATCH_SIZE - SWATCH_RIGHT_PADDING;
+    }
+
+    private int hexX() {
+        return swatchX() - HEX_WIDTH - HEX_GAP;
+    }
+
+    private int labelMaxWidth(int width) {
+        return Math.max(1, width - SWATCH_SIZE - SWATCH_RIGHT_PADDING - HEX_WIDTH - HEX_GAP - LABEL_CONTROL_GAP);
+    }
+
+    private int pickerPanelY() {
+        return y + closedHeight + PICKER_PANEL_GAP;
+    }
+
+    private int pickerPanelHeight() {
+        return OPENED_HEIGHT - CLOSED_HEIGHT - PICKER_PANEL_GAP - PICKER_BOTTOM_PADDING;
+    }
+
+    private int openedExtraHeight() {
+        return PICKER_PANEL_GAP + pickerPanelHeight() + PICKER_BOTTOM_PADDING;
+    }
+
+    private void setHexInputValue(String value) {
+        syncingHexInput = true;
+        try {
+            hexInput.setValue(value);
+        } finally {
+            syncingHexInput = false;
+        }
     }
 
     private void updateSV(double mouseX, double mouseY, int gradX, int gradY, int gradW, int gradH) {
