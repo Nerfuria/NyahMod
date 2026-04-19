@@ -3,16 +3,7 @@ package org.nia.niamod.managers;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.features.AutoStreamFeature;
-import org.nia.niamod.features.ChatEncryptionFeature;
-import org.nia.niamod.features.ConsuTextFeature;
-import org.nia.niamod.features.IgnoreFeature;
-import org.nia.niamod.features.RadianceSyncFeature;
-import org.nia.niamod.features.ResourceTickFeature;
-import org.nia.niamod.features.ShoutFilterFeature;
-import org.nia.niamod.features.ViewModelTransformationFeature;
-import org.nia.niamod.features.WarTimersFeature;
-import org.nia.niamod.features.WarTowerEHPFeature;
+import org.nia.niamod.features.*;
 
 @SuppressWarnings("unused")
 @UtilityClass

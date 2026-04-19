@@ -167,14 +167,14 @@ public class IgnoreManagerScreen extends Screen {
 
     private void drawPlayer(GuiGraphics g, IgnorePlayerEntry player, UiRect bounds, int mouseX, int mouseY, ClickGuiTheme theme) {
         boolean hovered = inside(bounds, mouseX, mouseY);
-        int modeColor = starColor(player.getMode(), theme);
+        int modeColor = starColor(player.mode(), theme);
         int rowFill = hovered ? Render2D.withAlpha(theme.getOverlay(), 185) : theme.getOverlay();
         int rowBorder = Render2D.withAlpha(0xFFFFFF, hovered ? 34 : 16);
         Render2D.shaderRoundedSurface(g, bounds.x(), bounds.y(), bounds.width(), bounds.height(), 7, rowFill, rowBorder);
 
         UiRect star = starBounds(bounds);
-        int starFill = Render2D.withAlpha(modeColor, player.getMode() == IgnorePlayerMode.NONE ? 20 : 38);
-        int starBorder = Render2D.withAlpha(modeColor, player.getMode() == IgnorePlayerMode.NONE ? 46 : 90);
+        int starFill = Render2D.withAlpha(modeColor, player.mode() == IgnorePlayerMode.NONE ? 20 : 38);
+        int starBorder = Render2D.withAlpha(modeColor, player.mode() == IgnorePlayerMode.NONE ? 46 : 90);
         Render2D.shaderRoundedSurface(g, star.x() + 8, star.y() + 6, 20, 20, 6, starFill, starBorder);
         String starText = "★";
         int starWidth = font.width(NiaClickGuiScreen.styled(starText));
@@ -183,11 +183,11 @@ public class IgnoreManagerScreen extends Screen {
 
         int nameX = bounds.x() + STAR_W + 6;
         int nameMaxW = bounds.width() - STAR_W - IGNORE_W - 22;
-        String displayName = fit(player.getPlayerName(), nameMaxW);
+        String displayName = fit(player.playerName(), nameMaxW);
         g.drawString(font, NiaClickGuiScreen.styled(displayName), nameX, bounds.y() + 11, theme.getTextColor(), false);
 
         UiRect ignore = ignoreBounds(bounds);
-        boolean ignored = player.isIgnored();
+        boolean ignored = player.ignored();
         boolean buttonHovered = inside(ignore, mouseX, mouseY);
         int stateColor = ignored ? IGNORE_ON_COLOR : IGNORE_OFF_COLOR;
         int buttonFill = buttonHovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.getSecondary(), 196);
@@ -241,22 +241,22 @@ public class IgnoreManagerScreen extends Screen {
             }
 
             if (inside(starBounds(bounds), mouseX, mouseY)) {
-                if (!player.isModeEditable()) {
+                if (!player.modeEditable()) {
                     return true;
                 }
                 if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.FAVOURITE);
+                    feature.setMode(player.playerName(), IgnorePlayerMode.FAVOURITE);
                 } else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.AVOID);
+                    feature.setMode(player.playerName(), IgnorePlayerMode.AVOID);
                 } else if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.NONE);
+                    feature.setMode(player.playerName(), IgnorePlayerMode.NONE);
                 }
                 reloadPlayers();
                 return true;
             }
 
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && inside(ignoreBounds(bounds), mouseX, mouseY)) {
-                feature.toggleIgnored(player.getPlayerName());
+                feature.toggleIgnored(player.playerName());
                 reloadPlayers();
                 return true;
             }

@@ -219,7 +219,7 @@ final class NyahConfigSections {
                 category,
                 NyahConfigData::isWarTowerEhpFeatureEnabled,
                 NyahConfigData::setWarTowerEhpFeatureEnabled,
-                List.<ConfigSetting<?>>of()
+                List.of()
         );
     }
 

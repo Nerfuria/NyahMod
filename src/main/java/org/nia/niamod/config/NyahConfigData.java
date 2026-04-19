@@ -1,6 +1,5 @@
 package org.nia.niamod.config;
 
-import com.google.gson.annotations.SerializedName;
 import lombok.Getter;
 import lombok.Setter;
 import org.nia.niamod.models.config.ClickGuiAnimationMode;

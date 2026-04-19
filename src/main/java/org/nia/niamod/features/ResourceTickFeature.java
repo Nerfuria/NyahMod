@@ -130,7 +130,7 @@ public class ResourceTickFeature extends Feature {
     }
 
     @SuppressWarnings("unused")
-public class ResTickOverlay implements TextOverlay {
+    public class ResTickOverlay implements TextOverlay {
 
         @Override
         public String defaultValue() {

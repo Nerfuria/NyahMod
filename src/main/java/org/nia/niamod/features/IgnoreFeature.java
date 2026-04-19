@@ -8,8 +8,8 @@ import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
-import org.nia.niamod.models.gui.IgnoreManagerScreen;
 import org.nia.niamod.models.events.ChatMessageReceivedEvent;
+import org.nia.niamod.models.gui.IgnoreManagerScreen;
 import org.nia.niamod.models.ignore.IgnoreAction;
 import org.nia.niamod.models.ignore.IgnorePlayerEntry;
 import org.nia.niamod.models.ignore.IgnorePlayerMode;
@@ -65,10 +65,10 @@ public class IgnoreFeature extends Feature {
     public List<IgnorePlayerEntry> getVisiblePlayers(String searchQuery) {
         String query = normalize(searchQuery);
         return listedPlayers().stream()
-                .filter(entry -> query.isEmpty() || normalize(entry.getPlayerName()).contains(query))
+                .filter(entry -> query.isEmpty() || normalize(entry.playerName()).contains(query))
                 .sorted(Comparator
                         .comparingInt(this::rowRank)
-                        .thenComparing(entry -> normalize(entry.getPlayerName())))
+                        .thenComparing(entry -> normalize(entry.playerName())))
                 .toList();
     }
 
@@ -298,16 +298,16 @@ public class IgnoreFeature extends Feature {
     }
 
     private int rowRank(IgnorePlayerEntry entry) {
-        if (entry.getMode() == IgnorePlayerMode.FAVOURITE) {
+        if (entry.mode() == IgnorePlayerMode.FAVOURITE) {
             return 0;
         }
-        if (entry.isIgnored() && entry.isModeEditable()) {
+        if (entry.ignored() && entry.modeEditable()) {
             return 1;
         }
-        if (!entry.isModeEditable()) {
+        if (!entry.modeEditable()) {
             return 2;
         }
-        return entry.getMode().getSortOrder();
+        return entry.mode().getSortOrder();
     }
 
     private boolean isChatDetected(String playerName) {
@@ -367,8 +367,8 @@ public class IgnoreFeature extends Feature {
     private List<String> ignoredNames() {
         Map<String, String> names = new LinkedHashMap<>();
         listedPlayers().stream()
-                .filter(IgnorePlayerEntry::isIgnored)
-                .forEach(entry -> names.putIfAbsent(normalize(entry.getPlayerName()), entry.getPlayerName()));
+                .filter(IgnorePlayerEntry::ignored)
+                .forEach(entry -> names.putIfAbsent(normalize(entry.playerName()), entry.playerName()));
         ignoredPlayers.forEach(name -> names.putIfAbsent(name, name));
         return new ArrayList<>(names.values());
     }
