@@ -21,12 +21,12 @@ public final class GuiRenderTargetOverride {
     public record Scope(RenderTarget previous) implements AutoCloseable {
 
         @Override
-            public void close() {
-                if (previous == null) {
-                    CURRENT.remove();
-                } else {
-                    CURRENT.set(previous);
-                }
+        public void close() {
+            if (previous == null) {
+                CURRENT.remove();
+            } else {
+                CURRENT.set(previous);
             }
         }
+    }
 }

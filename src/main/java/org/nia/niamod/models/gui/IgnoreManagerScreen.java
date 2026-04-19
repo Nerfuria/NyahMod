@@ -104,6 +104,7 @@ public class IgnoreManagerScreen extends Screen {
         drawScrollbar(g, theme);
 
         super.render(g, mouseX, mouseY, delta);
+        drawStarTooltip(g, mouseX, mouseY, theme);
     }
 
     private void drawTopBar(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
@@ -209,6 +210,57 @@ public class IgnoreManagerScreen extends Screen {
         UiRect thumb = scrollThumb(maxScroll);
         int thumbX = track.x() + (track.width() - SCROLLBAR_W) / 2;
         g.fill(thumbX, thumb.y(), thumbX + SCROLLBAR_W, thumb.bottom(), theme.scrollbarColor());
+    }
+
+    private void drawStarTooltip(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
+        if (mouseY < listTop() || mouseY > panelY + panelH - 10) {
+            return;
+        }
+
+        for (int i = 0; i < players.size(); i++) {
+            IgnorePlayerEntry player = players.get(i);
+            UiRect bounds = playerBounds(i);
+            if (!inside(starBounds(bounds), mouseX, mouseY)) {
+                continue;
+            }
+
+            String[] lines = player.modeEditable()
+                    ? new String[]{
+                    "Left click: Favourite",
+                    "Middle click: Reset",
+                    "Right click: Avoid"
+            }
+                    : new String[]{
+                    "Left click: Favourite",
+                    "Middle click: Reset",
+                    "Right click: Avoid",
+                    "Locked: chat-detected"
+            };
+            drawTooltip(g, lines, mouseX - 5, mouseY - 12, theme);
+            return;
+        }
+    }
+
+    private void drawTooltip(GuiGraphics g, String[] lines, int mouseX, int mouseY, ClickGuiTheme theme) {
+        int textWidth = 0;
+        for (String line : lines) {
+            textWidth = Math.max(textWidth, font.width(NiaClickGuiScreen.styled(line)));
+        }
+
+        int lineGap = 2;
+        int tooltipW = textWidth + 12;
+        int tooltipH = lines.length * font.lineHeight + Math.max(0, lines.length - 1) * lineGap + 8;
+        int x = Math.min(mouseX + 12, width - tooltipW - 4);
+        int y = Math.min(mouseY + 12, height - tooltipH - 4);
+        x = Math.max(4, x);
+        y = Math.max(4, y);
+
+        Render2D.dropShadow(g, new UiRect(x, y, tooltipW, tooltipH), 5, theme.shadowColor(), 6);
+        Render2D.shaderRoundedSurface(g, x, y, tooltipW, tooltipH, 6, Render2D.withAlpha(theme.secondary(), 245), Render2D.withAlpha(0xFFFFFF, 42));
+        for (int i = 0; i < lines.length; i++) {
+            int lineY = y + 5 + i * (font.lineHeight + lineGap);
+            g.drawString(font, NiaClickGuiScreen.styled(lines[i]), x + 6, lineY, 0xE6FFFFFF, false);
+        }
     }
 
     @Override

@@ -13,6 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
@@ -40,7 +41,7 @@ public class WarTimersFeature extends Feature {
     @Override
     @Safe
     public void init() {
-        loadTerritories();
+        loadTerritoriesAsync();
         WorldRenderEvents.AFTER_ENTITIES.register(context ->
                 runSafe("render", () -> render(context)));
         KeybindManager.registerKeybinding("Show unqueued territories", GLFW.GLFW_KEY_SEMICOLON, () -> showAll = !showAll);
@@ -48,12 +49,39 @@ public class WarTimersFeature extends Feature {
         scheduleWarn();
     }
 
-    private void loadTerritories() {
+    private void loadTerritoriesAsync() {
+        WynncraftAPI.territoryResponseAsync().whenComplete((response, throwable) -> {
+            if (throwable != null) {
+                NiamodClient.LOGGER.warn("Failed to load territory data", throwable);
+                return;
+            }
+            Minecraft.getInstance().execute(() -> replaceTerritories(response));
+        });
+    }
+
+    private void replaceTerritories(Map<String, org.nia.niamod.models.api.TerritoryResponse> response) {
         territories.clear();
-        WynncraftAPI.territoryResponse().forEach((name, response) -> territories.put(
-                name,
-                new Territory(name, toTerritoryCorner(response.location().start()), toTerritoryCorner(response.location().end()))
-        ));
+        if (response == null || response.isEmpty()) {
+            return;
+        }
+        response.forEach((name, territoryResponse) -> {
+            Territory territory = toTerritory(name, territoryResponse);
+            if (territory != null) {
+                territories.put(name, territory);
+            }
+        });
+    }
+
+    private Territory toTerritory(String name, org.nia.niamod.models.api.TerritoryResponse response) {
+        if (name == null || response == null || response.location() == null) {
+            return null;
+        }
+        int[] start = response.location().start();
+        int[] end = response.location().end();
+        if (start == null || end == null || start.length < 2 || end.length < 2) {
+            return null;
+        }
+        return new Territory(name, toTerritoryCorner(start), toTerritoryCorner(end));
     }
 
     private BlockPos toTerritoryCorner(int[] location) {
@@ -61,12 +89,12 @@ public class WarTimersFeature extends Feature {
     }
 
     private void scheduleWarn() {
-        Scheduler.scheduleRepeating(this::warnUpcomingTerritories, () -> NyahConfig.getData().getWarnTime() * 20, this::isDisabled);
+        Scheduler.scheduleRepeating(this::warnUpcomingTerritories, () -> NyahConfig.getData().getWarnTime() * 20, () -> false);
     }
 
     private void warnUpcomingTerritories() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || NyahConfig.getData().getTerritoryWarningCount() <= 0) {
+        if (isDisabled() || mc.player == null || NyahConfig.getData().getTerritoryWarningCount() <= 0) {
             return;
         }
 
@@ -96,10 +124,6 @@ public class WarTimersFeature extends Feature {
 
     @Override
     public void setEnabled(boolean enabled) {
-        if (this.enabled == enabled) return;
-        if (enabled) {
-            scheduleWarn();
-        }
         this.enabled = enabled;
     }
 

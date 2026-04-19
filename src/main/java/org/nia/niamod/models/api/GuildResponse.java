@@ -9,7 +9,14 @@ import java.util.stream.Stream;
 public record GuildResponse(Members members) {
 
     public List<String> allUsernames() {
-        return Stream.of(members.owner.keySet(), members.chief.keySet(), members.strategist.keySet(), members.captain.keySet(), members.recruiter.keySet(), members.recruit.keySet()).filter(Objects::nonNull).flatMap(Collection::stream).toList();
+        if (members == null) {
+            return List.of();
+        }
+        return Stream.of(members.owner, members.chief, members.strategist, members.captain, members.recruiter, members.recruit)
+                .filter(Objects::nonNull)
+                .map(Map::keySet)
+                .flatMap(Collection::stream)
+                .toList();
     }
 
     public record Members(Map<String, Member> owner, Map<String, Member> chief, Map<String, Member> strategist,

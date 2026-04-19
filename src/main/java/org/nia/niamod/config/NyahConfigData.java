@@ -8,12 +8,16 @@ import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @Setter
 public class NyahConfigData {
+    private static final String DEFAULT_RADIANCE_SYNC_WORKER_URL = "https://radiancesync.wavelink.workers.dev";
+    private static final String ALLOWED_RADIANCE_SYNC_WORKER_HOST = "radiancesync.wavelink.workers.dev";
+
     private String apiBase = "https://api.wynncraft.com/v3/";
     private String guildName = "Nerfuria";
 
@@ -42,7 +46,6 @@ public class NyahConfigData {
 
     private String encryptionPrefix = "@";
     private String encryptionKey = "six seven";
-    private int saltLength = 16;
 
     private int color = 0xFFFFFF;
     private int colorInside = 0xFFFFFF;
@@ -51,7 +54,7 @@ public class NyahConfigData {
     private int maximumDistance = 1000;
     private int maximumTerritories = 10;
     private int territoryWarningCount = 0;
-    private int maxTimeTerr = 60 * 10;
+    private int maxTimeTerr = 10;
     private int warnTime = 30;
 
     private float idScale = 0.7f;
@@ -76,7 +79,7 @@ public class NyahConfigData {
     private int radianceSyncSelfTier = 0;
     private float radianceSyncCastPromptSeconds = 2.0f;
     private RadianceOverlayMode radianceSyncOverlayMode = RadianceOverlayMode.CAST;
-    private String radianceSyncWorkerUrl = "https://radiancesync.wavelink.workers.dev";
+    private String radianceSyncWorkerUrl = DEFAULT_RADIANCE_SYNC_WORKER_URL;
     private boolean radianceSyncPingEnabled = false;
     private float radianceSyncPingVolume = 1.0f;
     private float radianceSyncPingPitch = 1.0f;
@@ -89,7 +92,18 @@ public class NyahConfigData {
     private int resTickOverlayOffsetY = 0;
     private float resTickOverlayScale = 1.0f;
 
+    public void setEncryptionPrefix(String encryptionPrefix) {
+        this.encryptionPrefix = encryptionPrefix == null || encryptionPrefix.isBlank() ? "@" : encryptionPrefix;
+    }
+
     public void normalize() {
+        if (apiBase == null || apiBase.isBlank()) {
+            apiBase = "https://api.wynncraft.com/v3/";
+        }
+        if (guildName == null || guildName.isBlank()) {
+            guildName = "Nerfuria";
+        }
+
         if (favouritePlayers == null) {
             favouritePlayers = new ArrayList<>();
         }
@@ -106,14 +120,89 @@ public class NyahConfigData {
         if (shoutFilterMode == null) {
             shoutFilterMode = ShoutReplacement.COLLAPSE;
         }
+        if (encryptionPrefix == null || encryptionPrefix.isBlank()) {
+            encryptionPrefix = "@";
+        }
+        if (encryptionKey == null) {
+            encryptionKey = "";
+        }
+
+        animationTime = clamp(animationTime, 100, 2000);
+        guiOpacity = clamp(guiOpacity, 0.1f, 1.0f);
+        customGuiBackground &= 0xFFFFFF;
+        customGuiSecondary &= 0xFFFFFF;
+        customGuiAccent &= 0xFFFFFF;
+        guiWidth = clamp(guiWidth, 320, 1000);
+        guiHeight = clamp(guiHeight, 260, 800);
+
+        color &= 0xFFFFFF;
+        colorInside &= 0xFFFFFF;
+        notQColor &= 0xFFFFFF;
+        notQInsideColor &= 0xFFFFFF;
+        maximumDistance = clamp(maximumDistance, 50, 5000);
+        maximumTerritories = clamp(maximumTerritories, 1, 30);
+        territoryWarningCount = clamp(territoryWarningCount, 0, 10);
+        maxTimeTerr = clamp(maxTimeTerr, 1, 10);
+        warnTime = clamp(warnTime, 10, 120);
+
+        idScale = clamp(idScale, 0.25f, 2.5f);
+        idXOffset = clamp(idXOffset, -16, 16);
+        idYOffset = clamp(idYOffset, -16, 16);
+
+        streamCooldown = clamp(streamCooldown, 100, 10000);
+
+        xOffset = clamp(xOffset, -150, 150);
+        yOffset = clamp(yOffset, -150, 150);
+        zOffset = clamp(zOffset, -150, 50);
+        xRotation = clamp(xRotation, -180, 180);
+        yRotation = clamp(yRotation, -180, 180);
+        zRotation = clamp(zRotation, -180, 180);
+        itemScale = clamp(itemScale, 0.1f, 3.0f);
+
         if (radianceSyncOverlayMode == null) {
             radianceSyncOverlayMode = RadianceOverlayMode.CAST;
         }
+        radianceSyncSelfTier = clamp(radianceSyncSelfTier, 0, 3);
+        radianceSyncCastPromptSeconds = clamp(radianceSyncCastPromptSeconds, 0.5f, 10.0f);
+        radianceSyncPingVolume = clamp(radianceSyncPingVolume, 0.1f, 2.0f);
+        radianceSyncPingPitch = clamp(radianceSyncPingPitch, 0.5f, 2.0f);
+        radianceSyncOverlayScale = clamp(radianceSyncOverlayScale, 0.5f, 3.0f);
+        radianceSyncOverlayOffsetX = clamp(radianceSyncOverlayOffsetX, -2000, 2000);
+        radianceSyncOverlayOffsetY = clamp(radianceSyncOverlayOffsetY, -2000, 2000);
         if (radianceSyncGroupKey == null) {
             radianceSyncGroupKey = "";
         }
-        if (radianceSyncWorkerUrl == null || radianceSyncWorkerUrl.isBlank()) {
-            radianceSyncWorkerUrl = "https://radiancesync.wavelink.workers.dev";
+        radianceSyncWorkerUrl = normalizeRadianceWorkerUrl(radianceSyncWorkerUrl);
+        resTickOverlayScale = clamp(resTickOverlayScale, 0.5f, 3.0f);
+        resTickOverlayOffsetX = clamp(resTickOverlayOffsetX, -2000, 2000);
+        resTickOverlayOffsetY = clamp(resTickOverlayOffsetY, -2000, 2000);
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private float clamp(float value, float min, float max) {
+        if (!Float.isFinite(value)) {
+            return min;
         }
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private String normalizeRadianceWorkerUrl(String workerUrl) {
+        if (workerUrl == null || workerUrl.isBlank()) {
+            return DEFAULT_RADIANCE_SYNC_WORKER_URL;
+        }
+        try {
+            URI uri = URI.create(workerUrl.trim());
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (("https".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme))
+                    && ALLOWED_RADIANCE_SYNC_WORKER_HOST.equalsIgnoreCase(host)) {
+                return DEFAULT_RADIANCE_SYNC_WORKER_URL;
+            }
+        } catch (Exception ignored) {
+        }
+        return DEFAULT_RADIANCE_SYNC_WORKER_URL;
     }
 }

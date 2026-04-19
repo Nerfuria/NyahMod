@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.config.setting.SettingSection;
+import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.OverlayManager;
 import org.nia.niamod.mixin.EditBoxAccessor;
 import org.nia.niamod.mixin.GameRendererAccessor;
@@ -47,7 +48,7 @@ public class NiaClickGuiScreen extends Screen {
     private static final int MODULE_GAP = 7;
     private static final int SEARCH_BAR_HEIGHT = 24;
     private static final int MIN_PANEL_W = 320;
-    private static final int MIN_PANEL_H = 220;
+    private static final int MIN_PANEL_H = 260;
     private static final int MAX_PANEL_W = 1000;
     private static final int MAX_PANEL_H = 800;
     private static final int SCREEN_MARGIN = 12;
@@ -694,25 +695,27 @@ public class NiaClickGuiScreen extends Screen {
             catY += 30;
         }
 
-        int resetY = py + panelH - 35;
-        boolean rHovered = mx >= buttonX && mx <= buttonX + buttonW && my >= resetY && my <= resetY + 24;
+        renderSidebarActionButton(g, "Ignore", buttonX, sidebarActionY(py, 2), buttonW, mx, my, theme);
+        renderSidebarActionButton(g, "Overlays", buttonX, sidebarActionY(py, 1), buttonW, mx, my, theme);
+        renderSidebarActionButton(g, "Reset Defaults", buttonX, sidebarActionY(py, 0), buttonW, mx, my, theme);
+    }
 
-        int resetFill = rHovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
-        int resetBorder = rHovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
-        Render2D.shaderRoundedSurface(g, buttonX, resetY, buttonW, 24, 7, resetFill, resetBorder);
+    private void renderSidebarActionButton(GuiGraphics g, String label, int x, int y, int width, int mouseX, int mouseY, ClickGuiTheme theme) {
+        boolean hovered = insideSidebarAction(x, y, width, mouseX, mouseY);
+        int fill = hovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
+        int border = hovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
+        Render2D.shaderRoundedSurface(g, x, y, width, 24, 7, fill, border);
 
-        int textW = font.width(styled("Reset Defaults"));
-        g.drawString(font, styled("Reset Defaults"), buttonX + (buttonW - textW) / 2, resetY + 8, rHovered ? 0xFFFFFFFF : 0xD6FFFFFF, false);
+        int textW = font.width(styled(label));
+        g.drawString(font, styled(label), x + (width - textW) / 2, y + 8, hovered ? 0xFFFFFFFF : 0xD6FFFFFF, false);
+    }
 
-        int overlayY = resetY - 30;
-        boolean oHovered = mx >= buttonX && mx <= buttonX + buttonW && my >= overlayY && my <= overlayY + 24;
+    private int sidebarActionY(int py, int indexFromBottom) {
+        return py + panelH - 35 - indexFromBottom * 30;
+    }
 
-        int overlayFill = oHovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
-        int overlayBorder = oHovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
-        Render2D.shaderRoundedSurface(g, buttonX, overlayY, buttonW, 24, 7, overlayFill, overlayBorder);
-
-        int overlayTextW = font.width(styled("Overlays"));
-        g.drawString(font, styled("Overlays"), buttonX + (buttonW - overlayTextW) / 2, overlayY + 8, oHovered ? 0xFFFFFFFF : 0xD6FFFFFF, false);
+    private boolean insideSidebarAction(int x, int y, int width, double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + 24;
     }
 
     private void renderSearchBar(GuiGraphics g, int x, int y, int mouseX, int mouseY, ClickGuiTheme theme) {
@@ -890,15 +893,20 @@ public class NiaClickGuiScreen extends Screen {
             return true;
         }
 
-        int resetY = py + panelH - 35;
-        if (btn == 0 && mx >= px + 10 && mx <= px + SIDEBAR_W - 10 && my >= resetY && my <= resetY + 24) {
+        int actionX = px + 10;
+        int actionW = SIDEBAR_W - 20;
+        if (btn == 0 && insideSidebarAction(actionX, sidebarActionY(py, 0), actionW, mx, my)) {
             resetToDefaults();
             return true;
         }
 
-        int overlayY = resetY - 30;
-        if (btn == 0 && mx >= px + 10 && mx <= px + SIDEBAR_W - 10 && my >= overlayY && my <= overlayY + 24) {
+        if (btn == 0 && insideSidebarAction(actionX, sidebarActionY(py, 1), actionW, mx, my)) {
             OverlayManager.openConfig();
+            return true;
+        }
+
+        if (btn == 0 && insideSidebarAction(actionX, sidebarActionY(py, 2), actionW, mx, my)) {
+            FeatureManager.getIgnoreFeature().openScreen();
             return true;
         }
 

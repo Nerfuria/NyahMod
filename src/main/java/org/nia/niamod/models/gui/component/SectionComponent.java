@@ -12,7 +12,6 @@ import org.nia.niamod.config.setting.ColorSetting;
 import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.config.setting.StringSetting;
-import org.nia.niamod.models.gui.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.animation.Animation;
 import org.nia.niamod.models.gui.animation.Easing;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;

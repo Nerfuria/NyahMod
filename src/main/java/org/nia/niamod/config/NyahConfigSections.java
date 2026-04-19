@@ -118,8 +118,7 @@ final class NyahConfigSections {
                 NyahConfigData::setChatEncryptionFeatureEnabled,
                 List.of(
                         string("encryption_prefix", "Encryption Prefix", "Messages starting with this prefix are encrypted.", NyahConfigData::getEncryptionPrefix, NyahConfigData::setEncryptionPrefix),
-                        string("encryption_key", "Encryption Key", "Shared AES key material.", NyahConfigData::getEncryptionKey, NyahConfigData::setEncryptionKey),
-                        integer("salt_length", "Salt Length", "Initialization vector length in bytes.", 0, 64, NyahConfigData::getSaltLength, NyahConfigData::setSaltLength)
+                        string("encryption_key", "Encryption Key", "Shared AES key material.", NyahConfigData::getEncryptionKey, NyahConfigData::setEncryptionKey)
                 )
         );
     }

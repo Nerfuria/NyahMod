@@ -7,10 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,6 +20,8 @@ public class CloudflareSync {
     private static final long RECONNECT_INTERVAL_MS = 5000L;
     private static final long PING_INTERVAL_MS = 5000L;
     private static final long MAX_REASONABLE_RTT_MS = 10000L;
+    private static final String DEFAULT_WORKER_URL = "https://radiancesync.wavelink.workers.dev";
+    private static final String ALLOWED_WORKER_HOST = "radiancesync.wavelink.workers.dev";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final AtomicReference<Entry> pendingEntry = new AtomicReference<>(null);
@@ -102,22 +102,15 @@ public class CloudflareSync {
             return;
         }
 
-        String encodedKey = URLEncoder.encode(key, StandardCharsets.UTF_8);
-        String encodedPlayerName = URLEncoder.encode(playerName, StandardCharsets.UTF_8);
-        String encodedPlayerUuid = URLEncoder.encode(playerUuid, StandardCharsets.UTF_8);
-
-        String workerUrl = NyahConfig.getData().getRadianceSyncWorkerUrl();
-        if (workerUrl == null || workerUrl.isBlank()) {
-            workerUrl = "https://radiancesync.wavelink.workers.dev";
+        URI wsUri = workerWebSocketUri();
+        if (wsUri == null) {
+            connecting.set(false);
+            return;
         }
-        String wsUrl = workerUrl.replaceFirst("^https://", "wss://")
-                + "?key=" + encodedKey
-                + "&ign=" + encodedPlayerName
-                + "&uuid=" + encodedPlayerUuid;
 
         try {
             httpClient.newWebSocketBuilder()
-                    .buildAsync(URI.create(wsUrl), new WebSocket.Listener() {
+                    .buildAsync(wsUri, new WebSocket.Listener() {
                         private final StringBuilder textBuffer = new StringBuilder();
 
                         @Override
@@ -129,6 +122,7 @@ public class CloudflareSync {
                             lastPingSentMs = 0L;
                             connecting.set(false);
                             LOGGER.info("[RadianceSync] WebSocket connected");
+                            sendHello(ws, key, playerName, playerUuid);
                             ws.request(1);
                         }
 
@@ -175,6 +169,45 @@ public class CloudflareSync {
             connecting.set(false);
             LOGGER.warn("[RadianceSync] Failed to start WS connect: {}", e.getMessage());
         }
+    }
+
+    private URI workerWebSocketUri() {
+        String workerUrl = NyahConfig.getData().getRadianceSyncWorkerUrl();
+        if (workerUrl == null || workerUrl.isBlank()) {
+            workerUrl = DEFAULT_WORKER_URL;
+        }
+
+        try {
+            URI uri = URI.create(workerUrl.trim());
+            String host = uri.getHost();
+            if (!ALLOWED_WORKER_HOST.equalsIgnoreCase(host)) {
+                LOGGER.warn("[RadianceSync] Refusing untrusted worker host: {}", host);
+                return defaultWorkerWebSocketUri();
+            }
+            String scheme = uri.getScheme();
+            if ("https".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)) {
+                String path = uri.getPath() == null ? "" : uri.getPath();
+                return new URI("wss", null, host, uri.getPort(), path, null, null);
+            }
+            LOGGER.warn("[RadianceSync] Refusing unsupported worker URL scheme: {}", scheme);
+            return defaultWorkerWebSocketUri();
+        } catch (Exception exception) {
+            LOGGER.warn("[RadianceSync] Invalid worker URL, using default: {}", exception.getMessage());
+            return defaultWorkerWebSocketUri();
+        }
+    }
+
+    private URI defaultWorkerWebSocketUri() {
+        return URI.create(DEFAULT_WORKER_URL.replaceFirst("^https://", "wss://"));
+    }
+
+    private void sendHello(WebSocket ws, String key, String playerName, String playerUuid) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", "hello");
+        payload.addProperty("key", key);
+        payload.addProperty("ign", playerName);
+        payload.addProperty("uuid", playerUuid);
+        sendText(ws, GSON.toJson(payload));
     }
 
     public void send(int tier, long remainingMs) {

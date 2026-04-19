@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,11 +31,14 @@ public class ChatEncryptionFeature extends Feature {
 
     private static final int AAD_VALUE = 67;
     private static final int GCM_TAG_LENGTH = 128;
+    private static final int GCM_NONCE_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH_BYTES = GCM_TAG_LENGTH / 8;
     private static final String CIPHER_ALGO = "AES/GCM/NoPadding";
     private static final String KEY_ALGO = "AES";
     private static final String HASH_ALGO = "SHA-256";
-    private static final String MSG_START = "Â£\uDB8D\uDE37-";
+    private static final String MSG_START = "£\uDB8D\uDE37-";
     private static final String MSG_END = "-\uDB8D\uDE37$";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private static String encode(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length / 2 + bytes.length % 2);
@@ -85,8 +87,6 @@ public class ChatEncryptionFeature extends Feature {
     public void init() {
         ClientSendMessageEvents.MODIFY_CHAT.register(message ->
                 callSafe("processMessage", () -> processMessage(message), message));
-        ClientSendMessageEvents.MODIFY_COMMAND.register(message ->
-                callSafe("processMessage", () -> processMessage(message), message));
         NiaEventBus.subscribe(this);
     }
 
@@ -103,9 +103,10 @@ public class ChatEncryptionFeature extends Feature {
     }
 
     private GCMParameterSpec gcmSpec(byte[] iv) {
-        int saltLength = NyahConfig.getData().getSaltLength();
-        byte[] effectiveIv = saltLength == 16 ? iv : Arrays.copyOf(iv, 16);
-        return new GCMParameterSpec(GCM_TAG_LENGTH, effectiveIv);
+        if (iv.length != GCM_NONCE_LENGTH) {
+            throw new IllegalArgumentException("Invalid GCM nonce length");
+        }
+        return new GCMParameterSpec(GCM_TAG_LENGTH, iv);
     }
 
     private Cipher initCipher(int mode, byte[] iv) {
@@ -121,8 +122,8 @@ public class ChatEncryptionFeature extends Feature {
 
     private String encryptMessage(String message) {
         try {
-            byte[] iv = new byte[NyahConfig.getData().getSaltLength()];
-            new SecureRandom().nextBytes(iv);
+            byte[] iv = new byte[GCM_NONCE_LENGTH];
+            SECURE_RANDOM.nextBytes(iv);
             Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, iv);
             byte[] encrypted = cipher.doFinal(message.trim().getBytes());
             return MSG_START + encode(iv) + encode(encrypted) + MSG_END;
@@ -134,10 +135,12 @@ public class ChatEncryptionFeature extends Feature {
     private String decrypt(String message) throws AEADBadTagException {
         try {
             byte[] bytes = decode(message);
-            int saltLength = NyahConfig.getData().getSaltLength();
-            byte[] iv = Arrays.copyOfRange(bytes, 0, saltLength);
+            if (bytes.length < GCM_NONCE_LENGTH + GCM_TAG_LENGTH_BYTES) {
+                return message;
+            }
+            byte[] iv = java.util.Arrays.copyOfRange(bytes, 0, GCM_NONCE_LENGTH);
             Cipher cipher = initCipher(Cipher.DECRYPT_MODE, iv);
-            byte[] decrypted = cipher.doFinal(bytes, saltLength, bytes.length - saltLength);
+            byte[] decrypted = cipher.doFinal(bytes, GCM_NONCE_LENGTH, bytes.length - GCM_NONCE_LENGTH);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (AEADBadTagException e) {
             throw e;
@@ -149,9 +152,10 @@ public class ChatEncryptionFeature extends Feature {
     @Safe(ordinal = 0)
     public String processMessage(String message) {
         String prefix = NyahConfig.getData().getEncryptionPrefix();
-        int idx = message.indexOf(prefix);
-        if (idx == -1) return message;
-        return message.substring(0, idx) + encryptMessage(message.substring(idx + prefix.length()));
+        if (prefix == null || prefix.isBlank() || !message.startsWith(prefix)) {
+            return message;
+        }
+        return encryptMessage(message.substring(prefix.length()));
     }
 
     public String decodeMessage(String message) {

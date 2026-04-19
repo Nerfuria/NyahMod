@@ -3,6 +3,7 @@ package org.nia.niamod.features;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
@@ -17,28 +18,21 @@ import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.util.WynncraftAPI;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @SuppressWarnings("unused")
 public class IgnoreFeature extends Feature {
-    private static final int IGNORE_GAP_TICKS = 10;
+    private static final int IGNORE_QUEUE_INTERVAL_TICKS = 10;
     private static final Pattern CHAT_PLAYER_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
     private static final Pattern CHAT_ALREADY_IGNORED_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) is already ignored!");
     private static final Pattern CHAT_UNIGNORED_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
 
     private final Set<String> ignoredPlayers = new HashSet<>();
     private final Set<String> chatDetectedPlayers = new HashSet<>();
-    private int ignoreRun;
+    private final Deque<QueuedIgnoreCommand> queuedCommands = new ArrayDeque<>();
     @Getter
     private IgnoreAction nextFavouriteAction = IgnoreAction.IGNORE;
     @Getter
@@ -59,7 +53,23 @@ public class IgnoreFeature extends Feature {
                 safeRunnable("toggle_favourite_ignores", this::toggleFavourites)
         );
         NiaEventBus.subscribe(this);
-        players = WynncraftAPI.guildResponse(NyahConfig.getData().getGuildName()).allUsernames();
+        players = List.of();
+        loadGuildPlayersAsync();
+        scheduleQueuedCommands();
+    }
+
+    private void loadGuildPlayersAsync() {
+        WynncraftAPI.guildResponseAsync(NyahConfig.getData().getGuildName()).whenComplete((response, throwable) -> {
+            if (throwable != null) {
+                NiamodClient.LOGGER.warn("Failed to load guild players", throwable);
+                return;
+            }
+            List<String> loadedPlayers = response == null ? List.of() : response.allUsernames();
+            Minecraft.getInstance().execute(() -> {
+                players = loadedPlayers;
+                markChanged();
+            });
+        });
     }
 
     public List<IgnorePlayerEntry> getVisiblePlayers(String searchQuery) {
@@ -164,13 +174,7 @@ public class IgnoreFeature extends Feature {
     public void toggleIgnored(String playerName) {
         String normalized = normalize(playerName);
         boolean ignored = ignoredPlayers.contains(normalized);
-        sendIgnoreCommand(playerName, ignored);
-        if (ignored) {
-            ignoredPlayers.remove(normalized);
-        } else {
-            ignoredPlayers.add(normalized);
-        }
-        markChanged();
+        queueAction(playerName, ignored ? IgnoreAction.UNIGNORE : IgnoreAction.IGNORE);
     }
 
     public void toggleFavourites() {
@@ -191,7 +195,7 @@ public class IgnoreFeature extends Feature {
     }
 
     public void unignoreEveryone() {
-        queue(ignoredNames(), IgnoreAction.UNIGNORE);
+        queue(ignoredNames(), IgnoreAction.UNIGNORE, false);
     }
 
     @Subscribe
@@ -334,6 +338,48 @@ public class IgnoreFeature extends Feature {
         return ignoredPlayers.remove(normalized);
     }
 
+    private void scheduleQueuedCommands() {
+        Scheduler.scheduleRepeating(
+                safeRunnable("ignore_queue", this::runNextQueuedCommand),
+                IGNORE_QUEUE_INTERVAL_TICKS,
+                IGNORE_QUEUE_INTERVAL_TICKS,
+                () -> false
+        );
+    }
+
+    private void queueAction(String playerName, IgnoreAction action) {
+        queueAction(playerName, action, true);
+    }
+
+    private void queueAction(String playerName, IgnoreAction action, boolean optimisticStateUpdate) {
+        if (action == null || playerName == null || playerName.isBlank()) {
+            return;
+        }
+
+        String trimmed = playerName.trim();
+        String normalized = normalize(trimmed);
+        if (optimisticStateUpdate || !hasQueuedAction(normalized, action)) {
+            queuedCommands.addLast(new QueuedIgnoreCommand(trimmed, action));
+        }
+        if (optimisticStateUpdate && setIgnored(trimmed, action.isIgnoredState())) {
+            markChanged();
+        }
+    }
+
+    private boolean hasQueuedAction(String normalizedPlayerName, IgnoreAction action) {
+        return queuedCommands.stream()
+                .anyMatch(command -> command.action() == action && normalize(command.playerName()).equals(normalizedPlayerName));
+    }
+
+    private void runNextQueuedCommand() {
+        if (isDisabled() || queuedCommands.isEmpty()) {
+            return;
+        }
+
+        QueuedIgnoreCommand command = queuedCommands.removeFirst();
+        sendIgnoreCommand(command.playerName(), command.action());
+    }
+
     private void markChanged() {
         revision++;
     }
@@ -381,40 +427,23 @@ public class IgnoreFeature extends Feature {
         return names.stream().anyMatch(name -> normalize(name).equals(normalized));
     }
 
-    private void openScreen() {
+    public void openScreen() {
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.setScreen(new IgnoreManagerScreen(minecraft.screen, this));
     }
 
     private void queue(List<String> playerNames, IgnoreAction action) {
+        queue(playerNames, action, true);
+    }
+
+    private void queue(List<String> playerNames, IgnoreAction action, boolean optimisticStateUpdate) {
         if (action == null) {
             return;
         }
 
-        int runId = ++ignoreRun;
-        for (int index = 0; index < playerNames.size(); index++) {
-            String playerName = playerNames.get(index);
-            int delayTicks = index * IGNORE_GAP_TICKS;
-            Scheduler.schedule(
-                    safeRunnable("ignore_action", () -> runAction(playerName, action, runId)),
-                    delayTicks
-            );
+        for (String playerName : playerNames) {
+            queueAction(playerName, action, optimisticStateUpdate);
         }
-    }
-
-    private void runAction(String playerName, IgnoreAction action, int runId) {
-        if (runId != ignoreRun) {
-            return;
-        }
-
-        sendIgnoreCommand(playerName, action);
-        if (setIgnored(playerName, action.isIgnoredState())) {
-            markChanged();
-        }
-    }
-
-    private void sendIgnoreCommand(String playerName, boolean currentlyIgnored) {
-        sendIgnoreCommand(playerName, currentlyIgnored ? IgnoreAction.UNIGNORE : IgnoreAction.IGNORE);
     }
 
     private void sendIgnoreCommand(String playerName, IgnoreAction action) {
@@ -427,5 +456,8 @@ public class IgnoreFeature extends Feature {
 
     private String normalize(String playerName) {
         return playerName == null ? "" : playerName.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private record QueuedIgnoreCommand(String playerName, IgnoreAction action) {
     }
 }
