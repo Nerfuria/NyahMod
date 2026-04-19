@@ -124,7 +124,7 @@ public class ColorPickerComponent {
 
         if (hexInput != null) {
             int hexBorder = hexInput.isFocused()
-                    ? Render2D.withAlpha(theme.getAccentColor(), Math.min(120, opacity + 30))
+                    ? Render2D.withAlpha(theme.accentColor(), Math.min(120, opacity + 30))
                     : Render2D.withAlpha(0xFFFFFF, Math.min(34, opacity / 6 + 18));
             Render2D.shaderRoundedSurface(
                     g,
@@ -133,7 +133,7 @@ public class ColorPickerComponent {
                     HEX_WIDTH,
                     hexHeight,
                     5,
-                    Render2D.withAlpha(theme.getSecondary(), Math.min(200, opacity)),
+                    Render2D.withAlpha(theme.secondary(), Math.min(200, opacity)),
                     hexBorder
             );
 
@@ -164,7 +164,7 @@ public class ColorPickerComponent {
                 panelW,
                 panelH,
                 6,
-                Render2D.withAlpha(theme.getSecondary(), opacity),
+                Render2D.withAlpha(theme.secondary(), opacity),
                 Render2D.withAlpha(0xFFFFFF, Math.min(28, opacity / 6 + 16))
         );
 

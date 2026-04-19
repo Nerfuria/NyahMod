@@ -16,7 +16,7 @@ public class ClientPacketListenerMixin {
     @WrapOperation(method = "handleSystemChat", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/chat/ChatListener;handleSystemMessage(Lnet/minecraft/network/chat/Component;Z)V"))
     public void wrap(ChatListener instance, Component component, boolean bl, Operation<Void> original) {
         if (bl) {
-            original.call(instance, component, bl);
+            original.call(instance, component, true);
             return;
         }
         ChatModifyEvent event = new ChatModifyEvent(component);
@@ -24,6 +24,6 @@ public class ClientPacketListenerMixin {
         Component modified = event.getMessage();
         if (modified == null) return;
         NiaEventBus.dispatch(new ChatMessageReceivedEvent(modified));
-        original.call(instance, modified, bl);
+        original.call(instance, modified, false);
     }
 }

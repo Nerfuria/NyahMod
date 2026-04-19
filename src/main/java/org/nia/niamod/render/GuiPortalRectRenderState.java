@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.state.GuiElementRenderState;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fc;
 import org.joml.Vector2f;
@@ -72,7 +73,7 @@ public final class GuiPortalRectRenderState implements GuiElementRenderState {
     }
 
     @Override
-    public void buildVertices(VertexConsumer consumer) {
+    public void buildVertices(@NotNull VertexConsumer consumer) {
         submitVertex(consumer, x, y, 0.0f, 0.0f);
         submitVertex(consumer, x + width, y, 1.0f, 0.0f);
         submitVertex(consumer, x + width, y + height, 1.0f, 1.0f);
@@ -93,12 +94,12 @@ public final class GuiPortalRectRenderState implements GuiElementRenderState {
     }
 
     @Override
-    public RenderPipeline pipeline() {
+    public @NotNull RenderPipeline pipeline() {
         return pipeline;
     }
 
     @Override
-    public TextureSetup textureSetup() {
+    public @NotNull TextureSetup textureSetup() {
         return textureSetup;
     }
 

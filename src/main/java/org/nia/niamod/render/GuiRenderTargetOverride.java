@@ -18,20 +18,15 @@ public final class GuiRenderTargetOverride {
         return new Scope(previous);
     }
 
-    public static final class Scope implements AutoCloseable {
-        private final RenderTarget previous;
-
-        private Scope(RenderTarget previous) {
-            this.previous = previous;
-        }
+    public record Scope(RenderTarget previous) implements AutoCloseable {
 
         @Override
-        public void close() {
-            if (previous == null) {
-                CURRENT.remove();
-            } else {
-                CURRENT.set(previous);
+            public void close() {
+                if (previous == null) {
+                    CURRENT.remove();
+                } else {
+                    CURRENT.set(previous);
+                }
             }
         }
-    }
 }

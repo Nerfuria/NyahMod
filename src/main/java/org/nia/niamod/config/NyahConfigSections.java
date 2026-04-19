@@ -449,21 +449,21 @@ final class NyahConfigSections {
         if (NyahConfig.getClickGuiThemeOption() == ClickGuiThemeOption.CUSTOM) {
             return data.getCustomGuiBackground() & 0xFFFFFF;
         }
-        return NyahConfig.getClickGuiThemeOption().getTheme().getBackground() & 0xFFFFFF;
+        return NyahConfig.getClickGuiThemeOption().getTheme().background() & 0xFFFFFF;
     }
 
     private static int getVisibleCustomGuiSecondary(NyahConfigData data) {
         if (NyahConfig.getClickGuiThemeOption() == ClickGuiThemeOption.CUSTOM) {
             return data.getCustomGuiSecondary() & 0xFFFFFF;
         }
-        return NyahConfig.getClickGuiThemeOption().getTheme().getSecondary() & 0xFFFFFF;
+        return NyahConfig.getClickGuiThemeOption().getTheme().secondary() & 0xFFFFFF;
     }
 
     private static int getVisibleCustomGuiAccent(NyahConfigData data) {
         if (NyahConfig.getClickGuiThemeOption() == ClickGuiThemeOption.CUSTOM) {
             return data.getCustomGuiAccent() & 0xFFFFFF;
         }
-        return NyahConfig.getClickGuiThemeOption().getTheme().getAccentColor() & 0xFFFFFF;
+        return NyahConfig.getClickGuiThemeOption().getTheme().accentColor() & 0xFFFFFF;
     }
 
     private static void keepCustomTheme(NyahConfigData data) {
@@ -473,9 +473,9 @@ final class NyahConfigSections {
     }
 
     private static void copyThemeToCustom(NyahConfigData data, ClickGuiTheme theme) {
-        data.setCustomGuiBackground(theme.getBackground() & 0xFFFFFF);
-        data.setCustomGuiSecondary(theme.getSecondary() & 0xFFFFFF);
-        data.setCustomGuiAccent(theme.getAccentColor() & 0xFFFFFF);
+        data.setCustomGuiBackground(theme.background() & 0xFFFFFF);
+        data.setCustomGuiSecondary(theme.secondary() & 0xFFFFFF);
+        data.setCustomGuiAccent(theme.accentColor() & 0xFFFFFF);
     }
 
     @FunctionalInterface

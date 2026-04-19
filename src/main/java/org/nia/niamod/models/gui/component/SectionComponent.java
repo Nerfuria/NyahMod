@@ -1,5 +1,7 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -33,12 +35,15 @@ public class SectionComponent {
     private static final int HEADER_LINE_GAP = 2;
     private static final int HEADER_BOTTOM_PADDING = 6;
 
+    @Getter
     private final SettingSection section;
     private final List<Object> children = new ArrayList<>();
     private final Animation opening = new Animation(Easing.EASE_OUT_EXPO, 200);
     private final Animation settingOpacity = new Animation(Easing.LINEAR, 100);
     private final Animation hoverAnimation = new Animation(Easing.LINEAR, 50);
     private float headerToggleAnim = -1;
+    @Setter
+    @Getter
     private boolean expanded;
     private int x, y, width;
     private int viewportClipTop = Integer.MIN_VALUE;
@@ -54,10 +59,6 @@ public class SectionComponent {
         for (ConfigSetting<?> setting : section.settings()) {
             children.add(createChild(setting));
         }
-    }
-
-    public SettingSection getSection() {
-        return section;
     }
 
     private Object createChild(ConfigSetting<?> setting) {
@@ -118,7 +119,7 @@ public class SectionComponent {
         settingOpacity.run(expanded ? 255 : 0);
 
         int totalHeight = getHeight();
-        Render2D.shaderRoundedRect(g, x, y, width, totalHeight, 8, theme.getOverlay());
+        Render2D.shaderRoundedRect(g, x, y, width, totalHeight, 8, theme.overlay());
 
         boolean headerHovered = mouseX >= x && mouseX <= x + width
                 && mouseY >= y && mouseY <= y + headerHeight;
@@ -130,7 +131,7 @@ public class SectionComponent {
 
         boolean enabled = !section.hasToggle() || section.isEnabled();
         int nameColor = enabled
-                ? (0xFF000000 | (theme.getAccentColor() & 0x00FFFFFF))
+                ? (0xFF000000 | (theme.accentColor() & 0x00FFFFFF))
                 : 0xC8FFFFFF;
         renderHeaderText(g, font, nameColor);
 
@@ -208,10 +209,7 @@ public class SectionComponent {
     }
 
     private List<FormattedCharSequence> wrappedText(Font font, String text, int maxWidth) {
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
-        return font.split(NiaClickGuiScreen.styled(text), Math.max(1, maxWidth));
+        return WrappedText.lines(font, text, maxWidth);
     }
 
     private int headerTextWidth() {
@@ -364,14 +362,6 @@ public class SectionComponent {
         if (child instanceof SliderComponent c) return c.mouseReleased(mx, my, button);
         if (child instanceof ColorPickerComponent c) return c.mouseReleased(mx, my, button);
         return false;
-    }
-
-    public boolean isExpanded() {
-        return expanded;
-    }
-
-    public void setExpanded(boolean expanded) {
-        this.expanded = expanded;
     }
 
     private int headerSwitchX() {

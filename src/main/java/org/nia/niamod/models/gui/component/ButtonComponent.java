@@ -1,5 +1,6 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,16 +22,13 @@ public class ButtonComponent {
 
     private final ButtonSetting setting;
     private int x, y, width;
+    @Getter
     private int height = HEIGHT;
 
     public void setPosition(int x, int y, int width) {
         this.x = x;
         this.y = y;
         this.width = width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public void updateLabelLayout(Font font, int width) {
@@ -52,7 +50,7 @@ public class ButtonComponent {
         int buttonY = centerY - BUTTON_HEIGHT / 2;
         boolean hovered = mouseX >= buttonX && mouseX <= buttonX + BUTTON_WIDTH && mouseY >= buttonY && mouseY <= buttonY + BUTTON_HEIGHT;
 
-        int buttonFill = hovered ? Render2D.withAlpha(theme.getSecondary(), Math.min(242, opacity)) : Render2D.withAlpha(theme.getSecondary(), Math.min(224, opacity));
+        int buttonFill = hovered ? Render2D.withAlpha(theme.secondary(), Math.min(242, opacity)) : Render2D.withAlpha(theme.secondary(), Math.min(224, opacity));
         int buttonBorder = hovered ? Render2D.withAlpha(0xFFFFFF, Math.min(56, opacity)) : Render2D.withAlpha(0xFFFFFF, Math.min(26, opacity));
 
         Render2D.shaderRoundedSurface(

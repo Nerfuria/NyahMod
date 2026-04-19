@@ -1,5 +1,6 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Getter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -25,8 +26,9 @@ public class SliderComponent {
     private final boolean isInt;
 
     private int x, y, width;
-    private int trackX, trackY;
+    private int trackX;
     private int trackWidth;
+    @Getter
     private int height = HEIGHT;
     private boolean dragging;
     private float renderPercentage;
@@ -86,10 +88,6 @@ public class SliderComponent {
         this.width = width;
     }
 
-    public int getHeight() {
-        return height;
-    }
-
     public void updateLabelLayout(Font font, int width) {
         this.width = width;
         List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
@@ -118,10 +116,10 @@ public class SliderComponent {
         trackWidth = Math.max(50, valueX - 8 - controlX);
 
         trackX = controlX;
-        trackY = centerY - TRACK_HEIGHT / 2;
+        int trackY = centerY - TRACK_HEIGHT / 2;
 
-        int bgColor = Render2D.withAlpha(theme.getBackground(), Math.min(254, opacity));
-        int filledColor = Render2D.withAlpha(theme.getAccentColor(), Math.min(180, opacity));
+        int bgColor = Render2D.withAlpha(theme.background(), Math.min(254, opacity));
+        int filledColor = Render2D.withAlpha(theme.accentColor(), Math.min(180, opacity));
         g.fill(trackX, trackY, trackX + trackWidth, trackY + TRACK_HEIGHT, bgColor);
         int fillWidth = Math.round(renderPercentage * trackWidth);
         g.fill(trackX, trackY, trackX + fillWidth, trackY + TRACK_HEIGHT, filledColor);
@@ -131,13 +129,13 @@ public class SliderComponent {
         int knobHeight = GRABBER_SIZE + Math.round(dragSquish * 0.65f);
         int gx = Math.round(grabberCenterX - knobWidth / 2.0f);
         int gy = centerY - knobHeight / 2;
-        int accent = Render2D.withAlpha(theme.getAccentColor(), Math.min(255, opacity));
+        int accent = Render2D.withAlpha(theme.accentColor(), Math.min(255, opacity));
         g.fill(gx, gy, gx + knobWidth, gy + knobHeight, accent);
 
         int boxHeight = editBox != null ? editBox.getHeight() : Math.max(18, font.lineHeight + 6);
         int boxY = centerY - boxHeight / 2;
         int boxBorder = editBox != null && editBox.isFocused()
-                ? Render2D.withAlpha(theme.getAccentColor(), Math.min(120, opacity + 30))
+                ? Render2D.withAlpha(theme.accentColor(), Math.min(120, opacity + 30))
                 : Render2D.withAlpha(0xFFFFFF, Math.min(34, opacity / 6 + 18));
         Render2D.shaderRoundedSurface(
                 g,
@@ -146,7 +144,7 @@ public class SliderComponent {
                 valueWidth,
                 boxHeight,
                 5,
-                Render2D.withAlpha(theme.getSecondary(), Math.min(200, opacity)),
+                Render2D.withAlpha(theme.secondary(), Math.min(200, opacity)),
                 boxBorder
         );
 

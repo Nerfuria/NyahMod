@@ -1,5 +1,6 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -26,6 +27,7 @@ public class ChoiceComponent {
     private int x;
     private int y;
     private int width;
+    @Getter
     private int height = HEIGHT;
     private Font lastFont;
 
@@ -33,10 +35,6 @@ public class ChoiceComponent {
         this.x = x;
         this.y = y;
         this.width = width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public void updateLabelLayout(Font font, int width) {
@@ -58,10 +56,10 @@ public class ChoiceComponent {
                 && mouseY >= control.y() && mouseY <= control.bottom();
 
         int fillColor = hovered
-                ? Render2D.withAlpha(theme.getSecondary(), Math.min(245, opacity + 24))
-                : Render2D.withAlpha(theme.getSecondary(), Math.min(225, opacity));
+                ? Render2D.withAlpha(theme.secondary(), Math.min(245, opacity + 24))
+                : Render2D.withAlpha(theme.secondary(), Math.min(225, opacity));
         int borderColor = hovered
-                ? Render2D.withAlpha(theme.getAccentColor(), Math.min(96, opacity + 18))
+                ? Render2D.withAlpha(theme.accentColor(), Math.min(96, opacity + 18))
                 : Render2D.withAlpha(0xFFFFFF, Math.min(28, textAlpha));
         Render2D.shaderRoundedSurface(g, control.x(), control.y(), control.width(), control.height(), 5, fillColor, borderColor);
 
@@ -78,7 +76,7 @@ public class ChoiceComponent {
         int maxLabelWidth = control.width() - (ARROW_WIDTH * 2) - 4;
 
         if (NiaClickGuiScreen.styledWidth(font, label) > maxLabelWidth) {
-            while (label.length() > 0 && NiaClickGuiScreen.styledWidth(font, label + "...") > maxLabelWidth) {
+            while (!label.isEmpty() && NiaClickGuiScreen.styledWidth(font, label + "...") > maxLabelWidth) {
                 label = label.substring(0, label.length() - 1);
             }
             label += "...";

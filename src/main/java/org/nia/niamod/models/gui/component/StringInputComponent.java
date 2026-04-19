@@ -75,7 +75,7 @@ public class StringInputComponent {
             int fieldHeight = editBox.getHeight();
             int fieldY = y + Math.max(0, (rowHeight - fieldHeight) / 2);
             int border = editBox.isFocused()
-                    ? Render2D.withAlpha(theme.getAccentColor(), Math.min(120, opacity + 30))
+                    ? Render2D.withAlpha(theme.accentColor(), Math.min(120, opacity + 30))
                     : Render2D.withAlpha(0xFFFFFF, Math.min(34, opacity / 6 + 18));
             Render2D.shaderRoundedSurface(
                     g,
@@ -84,7 +84,7 @@ public class StringInputComponent {
                     fieldWidth,
                     fieldHeight,
                     5,
-                    Render2D.withAlpha(theme.getSecondary(), Math.min(210, opacity)),
+                    Render2D.withAlpha(theme.secondary(), Math.min(210, opacity)),
                     border
             );
 

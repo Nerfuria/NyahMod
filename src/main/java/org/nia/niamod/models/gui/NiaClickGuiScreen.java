@@ -163,16 +163,16 @@ public class NiaClickGuiScreen extends Screen {
             alpha = Math.max(0, Math.min(255, alpha));
 
             return ClickGuiTheme.builder()
-                    .background((base.getBackground() & 0x00FFFFFF) | (alpha << 24))
-                    .secondary((base.getSecondary() & 0x00FFFFFF) | (alpha << 24))
-                    .textColor(base.getTextColor())
-                    .secondaryText(base.getSecondaryText())
-                    .trinaryText(base.getTrinaryText())
-                    .overlay(base.getOverlay())
-                    .accentColor((base.getAccentColor() & 0x00FFFFFF) | 0xFF000000)
-                    .shadowColor(base.getShadowColor())
-                    .sliderTrack((base.getSliderTrack() & 0x00FFFFFF) | (alpha << 24))
-                    .scrollbarColor(base.getScrollbarColor())
+                    .background((base.background() & 0x00FFFFFF) | (alpha << 24))
+                    .secondary((base.secondary() & 0x00FFFFFF) | (alpha << 24))
+                    .textColor(base.textColor())
+                    .secondaryText(base.secondaryText())
+                    .trinaryText(base.trinaryText())
+                    .overlay(base.overlay())
+                    .accentColor((base.accentColor() & 0x00FFFFFF) | 0xFF000000)
+                    .shadowColor(base.shadowColor())
+                    .sliderTrack((base.sliderTrack() & 0x00FFFFFF) | (alpha << 24))
+                    .scrollbarColor(base.scrollbarColor())
                     .build();
         } catch (Exception e) {
             return ClickGuiTheme.defaultTheme();
@@ -458,8 +458,8 @@ public class NiaClickGuiScreen extends Screen {
 
     private void renderPanelFrame(GuiGraphics g, int mouseX, int mouseY, float dt, int px, int py, ClickGuiTheme theme) {
         Render2D.dropShadow(g, new UiRect(px, py, panelW, panelH), 6, 0x26000000, ROUND);
-        Render2D.shaderRoundedRect(g, px, py, panelW, panelH, ROUND, theme.getBackground());
-        Render2D.shaderRoundedRect(g, px, py, SIDEBAR_W, panelH, ROUND, theme.getSecondary());
+        Render2D.shaderRoundedRect(g, px, py, panelW, panelH, ROUND, theme.background());
+        Render2D.shaderRoundedRect(g, px, py, SIDEBAR_W, panelH, ROUND, theme.secondary());
         g.nextStratum();
 
         g.enableScissor(px + 1, py + 1, px + panelW - 1, py + panelH - 1);
@@ -683,8 +683,8 @@ public class NiaClickGuiScreen extends Screen {
             }
 
             if (sel) {
-                Render2D.shaderRoundedRect(g, buttonX, by, buttonW, buttonH, 7, Render2D.withAlpha(theme.getAccentColor(), 32));
-                Render2D.shaderRoundedRect(g, buttonX + 7, by + 10, 4, 4, 2, theme.getAccentColor());
+                Render2D.shaderRoundedRect(g, buttonX, by, buttonW, buttonH, 7, Render2D.withAlpha(theme.accentColor(), 32));
+                Render2D.shaderRoundedRect(g, buttonX + 7, by + 10, 4, 4, 2, theme.accentColor());
             }
 
             int textColor = sel ? 0xFFFFFFFF : 0xC8FFFFFF;
@@ -697,7 +697,7 @@ public class NiaClickGuiScreen extends Screen {
         int resetY = py + panelH - 35;
         boolean rHovered = mx >= buttonX && mx <= buttonX + buttonW && my >= resetY && my <= resetY + 24;
 
-        int resetFill = rHovered ? Render2D.withAlpha(theme.getSecondary(), 242) : Render2D.withAlpha(theme.getSecondary(), 224);
+        int resetFill = rHovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
         int resetBorder = rHovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
         Render2D.shaderRoundedSurface(g, buttonX, resetY, buttonW, 24, 7, resetFill, resetBorder);
 
@@ -707,7 +707,7 @@ public class NiaClickGuiScreen extends Screen {
         int overlayY = resetY - 30;
         boolean oHovered = mx >= buttonX && mx <= buttonX + buttonW && my >= overlayY && my <= overlayY + 24;
 
-        int overlayFill = oHovered ? Render2D.withAlpha(theme.getSecondary(), 242) : Render2D.withAlpha(theme.getSecondary(), 224);
+        int overlayFill = oHovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
         int overlayBorder = oHovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
         Render2D.shaderRoundedSurface(g, buttonX, overlayY, buttonW, 24, 7, overlayFill, overlayBorder);
 
@@ -720,12 +720,12 @@ public class NiaClickGuiScreen extends Screen {
         boolean focused = searchBox.isFocused();
         boolean hovered = mouseX >= rect.x() && mouseX <= rect.right() && mouseY >= rect.y() && mouseY <= rect.bottom();
         int fill = focused
-                ? Render2D.withAlpha(theme.getSecondary(), 245)
-                : hovered ? Render2D.withAlpha(theme.getSecondary(), 228) : Render2D.withAlpha(theme.getSecondary(), 214);
-        int border = focused ? Render2D.withAlpha(theme.getAccentColor(), 105) : 0x20FFFFFF;
+                ? Render2D.withAlpha(theme.secondary(), 245)
+                : hovered ? Render2D.withAlpha(theme.secondary(), 228) : Render2D.withAlpha(theme.secondary(), 214);
+        int border = focused ? Render2D.withAlpha(theme.accentColor(), 105) : 0x20FFFFFF;
 
         Render2D.shaderRoundedSurface(g, rect.x(), rect.y(), rect.width(), rect.height(), 8, fill, border);
-        Render2D.circle(g, rect.x() + 12, rect.y() + rect.height() / 2, 5, focused ? Render2D.withAlpha(theme.getAccentColor(), 220) : 0x66FFFFFF);
+        Render2D.circle(g, rect.x() + 12, rect.y() + rect.height() / 2, 5, focused ? Render2D.withAlpha(theme.accentColor(), 220) : 0x66FFFFFF);
 
         layoutBorderlessEditBox(searchBox, font, rect.x() + 22, rect.y(), rect.width() - 58, rect.height());
 
@@ -756,7 +756,7 @@ public class NiaClickGuiScreen extends Screen {
         int thumbH = Math.max(15, Math.round(sh * (float) sh / (sh + maxScroll)));
         float progress = (float) (-scroll / maxScroll);
         int thumbY = sy + Math.round((sh - thumbH) * progress);
-        g.fill(sx, thumbY, sx + 1, thumbY + thumbH, theme.getScrollbarColor());
+        g.fill(sx, thumbY, sx + 1, thumbY + thumbH, theme.scrollbarColor());
     }
 
     private int totalHeight() {

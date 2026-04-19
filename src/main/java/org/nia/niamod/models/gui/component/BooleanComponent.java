@@ -1,5 +1,6 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +21,7 @@ public class BooleanComponent {
 
     private final BooleanSetting setting;
     private int x, y, width;
+    @Getter
     private int height = HEIGHT;
     private float animAmount = -1;
 
@@ -47,8 +49,8 @@ public class BooleanComponent {
     }
 
     public static void renderToggle(GuiGraphics g, ClickGuiTheme theme, int switchX, int switchY, float animAmount, int opacity) {
-        int trackColor = Render2D.withAlpha(theme.getSecondary(), Math.min(240, opacity));
-        int onColor = Render2D.withAlpha(theme.getAccentColor(), Math.min(255, opacity));
+        int trackColor = Render2D.withAlpha(theme.secondary(), Math.min(240, opacity));
+        int onColor = Render2D.withAlpha(theme.accentColor(), Math.min(255, opacity));
         int currentColor = Render2D.lerpColor(trackColor, onColor, animAmount);
 
         Render2D.shaderRoundedSurface(
@@ -77,10 +79,6 @@ public class BooleanComponent {
         this.width = width;
     }
 
-    public int getHeight() {
-        return height;
-    }
-
     public void updateLabelLayout(Font font, int width) {
         this.width = width;
         List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
@@ -95,7 +93,7 @@ public class BooleanComponent {
 
         int textAlpha = Math.min(220, opacity);
         int textColor = active
-                ? Render2D.withAlpha(theme.getAccentColor(), textAlpha)
+                ? Render2D.withAlpha(theme.accentColor(), textAlpha)
                 : Render2D.withAlpha(0xFFFFFF, textAlpha);
         List<FormattedCharSequence> lines = WrappedText.lines(font, setting.getTitle(), labelMaxWidth(width));
         WrappedText.draw(g, font, lines, x, WrappedText.centeredY(y, height, WrappedText.height(font, lines)), textColor);

@@ -136,7 +136,7 @@ public class CloudflareSync {
                         public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
                             if (last) {
                                 String payload;
-                                if (textBuffer.length() == 0) {
+                                if (textBuffer.isEmpty()) {
                                     payload = data.toString();
                                 } else {
                                     textBuffer.append(data);

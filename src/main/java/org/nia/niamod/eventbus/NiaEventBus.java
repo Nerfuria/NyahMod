@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 
 @UtilityClass
 public class NiaEventBus {
-    EventBus EVENT_BUS = new EventBus(task -> Minecraft.getInstance().execute(task));
+    final EventBus EVENT_BUS = new EventBus(task -> Minecraft.getInstance().execute(task));
 
     public void subscribe(Object listener) {
         EVENT_BUS.subscribe(listener);

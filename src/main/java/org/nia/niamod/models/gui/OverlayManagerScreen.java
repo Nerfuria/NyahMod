@@ -1,10 +1,13 @@
 package org.nia.niamod.models.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.render.TextOverlay;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
@@ -56,14 +59,14 @@ public class OverlayManagerScreen extends Screen {
 
         addRenderableWidget(new ThemeButton(centerX - buttonWidth - 52, buttonY, buttonWidth, 20, Component.literal("Done")) {
             @Override
-            public void onPress(InputWithModifiers in) {
+            public void onPress(@NotNull InputWithModifiers in) {
                 commitAndClose();
             }
         });
 
         addRenderableWidget(new ThemeButton(centerX - 49, buttonY, buttonWidth, 20, Component.literal("Reset All")) {
             @Override
-            public void onPress(InputWithModifiers in) {
+            public void onPress(@NotNull InputWithModifiers in) {
                 for (TextOverlay overlay : overlays) {
                     overlay.setScale(1.0f);
                     overlay.setXOffset(0);
@@ -75,7 +78,7 @@ public class OverlayManagerScreen extends Screen {
 
         addRenderableWidget(new ThemeButton(centerX + 52, buttonY, buttonWidth, 20, Component.literal("Cancel")) {
             @Override
-            public void onPress(InputWithModifiers in) {
+            public void onPress(@NotNull InputWithModifiers in) {
                 restoreOriginalValues();
                 closeHandled = true;
                 onClose();
@@ -89,13 +92,11 @@ public class OverlayManagerScreen extends Screen {
             restoreOriginalValues();
         }
         draggingOverlay = null;
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
-        }
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    public void render(@NotNull GuiGraphics context, int mouseX, int mouseY, float delta) {
         ClickGuiTheme theme = theme();
 
         for (TextOverlay overlay : overlays) {
@@ -106,15 +107,15 @@ public class OverlayManagerScreen extends Screen {
         String hintB = "Hover and scroll wheel/drag left corner to resize.";
         String hintC = "Middle-click an overlay to toggle it on or off.";
 
-        drawCenteredText(context, hintA, 8, theme.getTextColor());
-        drawCenteredText(context, hintB, 20, theme.getSecondaryText());
-        drawCenteredText(context, hintC, 32, theme.getTrinaryText());
+        drawCenteredText(context, hintA, 8, theme.textColor());
+        drawCenteredText(context, hintB, 20, theme.secondaryText());
+        drawCenteredText(context, hintC, 32, theme.trinaryText());
 
         super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
+    public boolean mouseClicked(@NotNull MouseButtonEvent click, boolean doubleClick) {
         if (super.mouseClicked(click, doubleClick)) {
             return true;
         }
@@ -153,14 +154,14 @@ public class OverlayManagerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
+    public boolean mouseDragged(@NotNull MouseButtonEvent click, double deltaX, double deltaY) {
         if (draggingOverlay == null || click.input() != 0) {
             return super.mouseDragged(click, deltaX, deltaY);
         }
 
         if (resizingMode) {
-            double delta = dragOffsetX - click.x(); // Moving left increases box size
-            double deltaVertical = dragOffsetY - click.y(); // Moving up increases box size
+            double delta = dragOffsetX - click.x();
+            double deltaVertical = dragOffsetY - click.y();
             float scaleDelta = (float) ((delta + deltaVertical) / 100.0);
             adjustScale(draggingOverlay, scaleDelta);
             dragOffsetX = click.x();
@@ -213,17 +214,17 @@ public class OverlayManagerScreen extends Screen {
         int outlineColor;
         int textColor;
         if (overlay.isEnabled()) {
-            outlineColor = hovered ? Render2D.withAlpha(theme.getAccentColor(), 150) : Render2D.withAlpha(theme.getTextColor(), 100);
-            textColor = theme.getTextColor();
+            outlineColor = hovered ? Render2D.withAlpha(theme.accentColor(), 150) : Render2D.withAlpha(theme.textColor(), 100);
+            textColor = theme.textColor();
         } else {
-            outlineColor = hovered ? Render2D.withAlpha(theme.getTrinaryText(), 150) : Render2D.withAlpha(theme.getTrinaryText(), 100);
-            textColor = theme.getTrinaryText();
+            outlineColor = hovered ? Render2D.withAlpha(theme.trinaryText(), 150) : Render2D.withAlpha(theme.trinaryText(), 100);
+            textColor = theme.trinaryText();
         }
 
         drawOutline(context, bounds, outlineColor);
 
-        int cornerColor = hoveredCorner ? (overlay.isEnabled() ? theme.getAccentColor() : theme.getTrinaryText())
-                : (overlay.isEnabled() ? Render2D.withAlpha(theme.getAccentColor(), 150) : Render2D.withAlpha(theme.getTrinaryText(), 150));
+        int cornerColor = hoveredCorner ? (overlay.isEnabled() ? theme.accentColor() : theme.trinaryText())
+                : (overlay.isEnabled() ? Render2D.withAlpha(theme.accentColor(), 150) : Render2D.withAlpha(theme.trinaryText(), 150));
 
         context.fill(bounds.left - 2, bounds.top - 2, bounds.left + 4, bounds.top + 4, cornerColor);
 
@@ -334,26 +335,26 @@ public class OverlayManagerScreen extends Screen {
     private record OverlayState(int offsetX, int offsetY, float scale, boolean enabled) {
     }
 
-    private abstract class ThemeButton extends net.minecraft.client.gui.components.AbstractButton {
+    private abstract class ThemeButton extends AbstractButton {
         public ThemeButton(int x, int y, int width, int height, Component message) {
             super(x, y, width, height, message);
         }
 
         @Override
-        public void renderContents(GuiGraphics context, int mouseX, int mouseY, float partialTick) {
+        public void renderContents(@NotNull GuiGraphics context, int mouseX, int mouseY, float partialTick) {
             ClickGuiTheme theme = theme();
             boolean hovered = isHoveredOrFocused();
-            int fill = hovered ? Render2D.withAlpha(theme.getSecondary(), 242) : Render2D.withAlpha(theme.getSecondary(), 224);
+            int fill = hovered ? Render2D.withAlpha(theme.secondary(), 242) : Render2D.withAlpha(theme.secondary(), 224);
             int border = hovered ? Render2D.withAlpha(0xFFFFFF, 56) : Render2D.withAlpha(0xFFFFFF, 26);
             Render2D.shaderRoundedSurface(context, getX(), getY(), width, height, 7, fill, border);
-            int textColor = hovered ? theme.getAccentColor() : theme.getTextColor();
+            int textColor = hovered ? theme.accentColor() : theme.textColor();
             Component styledMessage = NiaClickGuiScreen.styled(getMessage().getString());
             int textWidth = OverlayManagerScreen.this.font.width(styledMessage);
             context.drawString(OverlayManagerScreen.this.font, styledMessage, getX() + (width - textWidth) / 2, getY() + (height - OverlayManagerScreen.this.font.lineHeight) / 2, textColor, false);
         }
 
         @Override
-        public void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput narrationElementOutput) {
+        public void updateWidgetNarration(@NotNull NarrationElementOutput narrationElementOutput) {
             this.defaultButtonNarrationText(narrationElementOutput);
         }
     }

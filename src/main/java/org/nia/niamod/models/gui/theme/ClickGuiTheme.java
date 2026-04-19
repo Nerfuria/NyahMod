@@ -1,22 +1,10 @@
 package org.nia.niamod.models.gui.theme;
 
 import lombok.Builder;
-import lombok.Value;
 
-@Value
 @Builder
-public class ClickGuiTheme {
-    int background;
-    int secondary;
-    int textColor;
-    int secondaryText;
-    int trinaryText;
-    int overlay;
-    int accentColor;
-    int shadowColor;
-    int sliderTrack;
-    int scrollbarColor;
-
+public record ClickGuiTheme(int background, int secondary, int textColor, int secondaryText, int trinaryText,
+                            int overlay, int accentColor, int shadowColor, int sliderTrack, int scrollbarColor) {
     public static ClickGuiTheme defaultTheme() {
         return ClickGuiTheme.builder()
                 .background(0xFF171A21)

@@ -94,9 +94,9 @@ public class IgnoreManagerScreen extends Screen {
         reloadIfNeeded();
         updateScroll();
 
-        Render2D.dropShadow(g, new UiRect(panelX, panelY, panelW, panelH), 7, theme.getShadowColor(), PANEL_RADIUS);
-        Render2D.shaderRoundedRect(g, panelX, panelY, panelW, panelH, PANEL_RADIUS, theme.getBackground());
-        Render2D.shaderRoundedRect(g, panelX, panelY, panelW, HEADER_H, PANEL_RADIUS, theme.getSecondary());
+        Render2D.dropShadow(g, new UiRect(panelX, panelY, panelW, panelH), 7, theme.shadowColor(), PANEL_RADIUS);
+        Render2D.shaderRoundedRect(g, panelX, panelY, panelW, panelH, PANEL_RADIUS, theme.background());
+        Render2D.shaderRoundedRect(g, panelX, panelY, panelW, HEADER_H, PANEL_RADIUS, theme.secondary());
         g.nextStratum();
 
         drawTopBar(g, mouseX, mouseY, theme);
@@ -112,7 +112,7 @@ public class IgnoreManagerScreen extends Screen {
         int titleW = Math.round(font.width(title) * titleScale);
         int titleX = panelX + (panelW - titleW) / 2;
         int titleY = Math.round(panelY + (HEADER_H - font.lineHeight * titleScale) / 2.0f);
-        drawBig(g, title, titleX, titleY, titleScale, theme.getTextColor());
+        drawBig(g, title, titleX, titleY, titleScale, theme.textColor());
 
         drawUnignoreAll(g, mouseX, mouseY, theme);
         drawSearch(g, mouseX, mouseY, theme);
@@ -122,10 +122,10 @@ public class IgnoreManagerScreen extends Screen {
         UiRect button = unignoreBounds();
         boolean active = feature.hasIgnoredPlayers();
         boolean hovered = active && inside(button, mouseX, mouseY);
-        int stateColor = active ? IGNORE_ON_COLOR : theme.getTrinaryText();
-        int fill = hovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.getSecondary(), active ? 196 : 150);
+        int stateColor = active ? IGNORE_ON_COLOR : theme.trinaryText();
+        int fill = hovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.secondary(), active ? 196 : 150);
         int border = Render2D.withAlpha(stateColor, active ? hovered ? 140 : 82 : 42);
-        int textColor = active ? stateColor : Render2D.withAlpha(theme.getTrinaryText(), 150);
+        int textColor = active ? stateColor : Render2D.withAlpha(theme.trinaryText(), 150);
 
         Render2D.shaderRoundedSurface(g, button.x(), button.y(), button.width(), button.height(), 6, fill, border);
         String label = "Unignore All";
@@ -138,11 +138,11 @@ public class IgnoreManagerScreen extends Screen {
         UiRect search = searchBounds();
         boolean hovered = inside(search, mouseX, mouseY);
         int fill = searchBox.isFocused()
-                ? Render2D.withAlpha(theme.getSecondary(), 245)
-                : hovered ? Render2D.withAlpha(theme.getSecondary(), 228) : Render2D.withAlpha(theme.getSecondary(), 214);
-        int border = searchBox.isFocused() ? Render2D.withAlpha(theme.getAccentColor(), 105) : 0x20FFFFFF;
+                ? Render2D.withAlpha(theme.secondary(), 245)
+                : hovered ? Render2D.withAlpha(theme.secondary(), 228) : Render2D.withAlpha(theme.secondary(), 214);
+        int border = searchBox.isFocused() ? Render2D.withAlpha(theme.accentColor(), 105) : 0x20FFFFFF;
         Render2D.shaderRoundedSurface(g, search.x(), search.y(), search.width(), search.height(), 7, fill, border);
-        Render2D.circle(g, search.x() + 11, search.y() + search.height() / 2, 4, searchBox.isFocused() ? Render2D.withAlpha(theme.getAccentColor(), 220) : 0x66FFFFFF);
+        Render2D.circle(g, search.x() + 11, search.y() + search.height() / 2, 4, searchBox.isFocused() ? Render2D.withAlpha(theme.accentColor(), 220) : 0x66FFFFFF);
         NiaClickGuiScreen.layoutBorderlessEditBox(searchBox, font, search.x() + 21, search.y() + 1, search.width() - 28, search.height());
         searchBox.visible = true;
         searchBox.active = true;
@@ -168,7 +168,7 @@ public class IgnoreManagerScreen extends Screen {
     private void drawPlayer(GuiGraphics g, IgnorePlayerEntry player, UiRect bounds, int mouseX, int mouseY, ClickGuiTheme theme) {
         boolean hovered = inside(bounds, mouseX, mouseY);
         int modeColor = starColor(player.mode(), theme);
-        int rowFill = hovered ? Render2D.withAlpha(theme.getOverlay(), 185) : theme.getOverlay();
+        int rowFill = hovered ? Render2D.withAlpha(theme.overlay(), 185) : theme.overlay();
         int rowBorder = Render2D.withAlpha(0xFFFFFF, hovered ? 34 : 16);
         Render2D.shaderRoundedSurface(g, bounds.x(), bounds.y(), bounds.width(), bounds.height(), 7, rowFill, rowBorder);
 
@@ -184,13 +184,13 @@ public class IgnoreManagerScreen extends Screen {
         int nameX = bounds.x() + STAR_W + 6;
         int nameMaxW = bounds.width() - STAR_W - IGNORE_W - 22;
         String displayName = fit(player.playerName(), nameMaxW);
-        g.drawString(font, NiaClickGuiScreen.styled(displayName), nameX, bounds.y() + 11, theme.getTextColor(), false);
+        g.drawString(font, NiaClickGuiScreen.styled(displayName), nameX, bounds.y() + 11, theme.textColor(), false);
 
         UiRect ignore = ignoreBounds(bounds);
         boolean ignored = player.ignored();
         boolean buttonHovered = inside(ignore, mouseX, mouseY);
         int stateColor = ignored ? IGNORE_ON_COLOR : IGNORE_OFF_COLOR;
-        int buttonFill = buttonHovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.getSecondary(), 196);
+        int buttonFill = buttonHovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.secondary(), 196);
         int buttonBorder = Render2D.withAlpha(stateColor, buttonHovered ? 150 : 92);
         Render2D.shaderRoundedSurface(g, ignore.x(), ignore.y(), ignore.width(), ignore.height(), 6, buttonFill, buttonBorder);
         String label = ignored ? "Ignored" : "Ignore";
@@ -208,7 +208,7 @@ public class IgnoreManagerScreen extends Screen {
         UiRect track = scrollTrack();
         UiRect thumb = scrollThumb(maxScroll);
         int thumbX = track.x() + (track.width() - SCROLLBAR_W) / 2;
-        g.fill(thumbX, thumb.y(), thumbX + SCROLLBAR_W, thumb.bottom(), theme.getScrollbarColor());
+        g.fill(thumbX, thumb.y(), thumbX + SCROLLBAR_W, thumb.bottom(), theme.scrollbarColor());
     }
 
     @Override
@@ -331,9 +331,7 @@ public class IgnoreManagerScreen extends Screen {
     @Override
     public void onClose() {
         draggingScrollbar = false;
-        if (minecraft != null) {
-            minecraft.setScreen(parent);
-        }
+        minecraft.setScreen(parent);
     }
 
     @Override
@@ -446,7 +444,7 @@ public class IgnoreManagerScreen extends Screen {
         return switch (mode) {
             case FAVOURITE -> FAVOURITE_COLOR;
             case AVOID -> AVOID_COLOR;
-            case NONE -> theme.getTrinaryText();
+            case NONE -> theme.trinaryText();
         };
     }
 
