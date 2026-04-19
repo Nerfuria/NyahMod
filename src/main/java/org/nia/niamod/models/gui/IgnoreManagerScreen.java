@@ -22,8 +22,6 @@ import java.util.List;
 public class IgnoreManagerScreen extends Screen {
     private static final int PANEL_MAX_W = 620;
     private static final int PANEL_MAX_H = 430;
-    private static final int PANEL_MIN_W = 360;
-    private static final int PANEL_MIN_H = 260;
     private static final int PANEL_MARGIN = 24;
     private static final int PANEL_RADIUS = 12;
     private static final int HEADER_H = 54;
@@ -33,6 +31,7 @@ public class IgnoreManagerScreen extends Screen {
     private static final int IGNORE_W = 96;
     private static final int SEARCH_W = 170;
     private static final int SEARCH_H = 22;
+    private static final int UNIGNORE_W = 96;
     private static final int SCROLLBAR_W = 1;
     private static final int SCROLLBAR_HIT_W = 10;
     private static final int FAVOURITE_COLOR = 0xFFFFD166;
@@ -42,7 +41,7 @@ public class IgnoreManagerScreen extends Screen {
 
     private final Screen parent;
     private final IgnoreFeature feature;
-    private final List<IgnorePlayerEntry> visibleRows = new ArrayList<>();
+    private final List<IgnorePlayerEntry> players = new ArrayList<>();
     private EditBox searchBox;
     private String searchQuery = "";
     private int panelX;
@@ -65,8 +64,8 @@ public class IgnoreManagerScreen extends Screen {
     protected void init() {
         int availableW = Math.max(1, width - PANEL_MARGIN * 2);
         int availableH = Math.max(1, height - PANEL_MARGIN * 2);
-        panelW = Math.max(Math.min(PANEL_MIN_W, availableW), Math.min(PANEL_MAX_W, availableW));
-        panelH = Math.max(Math.min(PANEL_MIN_H, availableH), Math.min(PANEL_MAX_H, availableH));
+        panelW = Math.min(PANEL_MAX_W, availableW);
+        panelH = Math.min(PANEL_MAX_H, availableH);
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
 
@@ -80,19 +79,19 @@ public class IgnoreManagerScreen extends Screen {
         searchBox.setResponder(value -> {
             searchQuery = value;
             scroll = scrollTarget = 0;
-            refreshRows();
+            reloadPlayers();
         });
         searchBox.setValue(searchQuery);
         searchBox.setFocused(false);
         addRenderableWidget(searchBox);
         setFocused(null);
-        refreshRows();
+        reloadPlayers();
     }
 
     @Override
     public void render(@NotNull GuiGraphics g, int mouseX, int mouseY, float delta) {
         ClickGuiTheme theme = NiaClickGuiScreen.configuredTheme();
-        refreshRowsIfChanged();
+        reloadIfNeeded();
         updateScroll();
 
         Render2D.dropShadow(g, new UiRect(panelX, panelY, panelW, panelH), 7, theme.getShadowColor(), PANEL_RADIUS);
@@ -100,72 +99,96 @@ public class IgnoreManagerScreen extends Screen {
         Render2D.shaderRoundedRect(g, panelX, panelY, panelW, HEADER_H, PANEL_RADIUS, theme.getSecondary());
         g.nextStratum();
 
-        renderHeader(g, mouseX, mouseY, theme);
-        renderRows(g, mouseX, mouseY, theme);
-        renderScrollbar(g, theme);
+        drawTopBar(g, mouseX, mouseY, theme);
+        drawPlayers(g, mouseX, mouseY, theme);
+        drawScrollbar(g, theme);
 
         super.render(g, mouseX, mouseY, delta);
     }
 
-    private void renderHeader(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
+    private void drawTopBar(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
         float titleScale = 1.35f;
+        Component title = NiaClickGuiScreen.styled("Ignore Manager");
+        int titleW = Math.round(font.width(title) * titleScale);
+        int titleX = panelX + (panelW - titleW) / 2;
         int titleY = Math.round(panelY + (HEADER_H - font.lineHeight * titleScale) / 2.0f);
-        drawScaledString(g, NiaClickGuiScreen.styled("Ignore"), panelX + 16, titleY, titleScale, theme.getTextColor());
+        drawBig(g, title, titleX, titleY, titleScale, theme.getTextColor());
 
-        UiRect search = searchRect();
-        boolean hovered = mouseX >= search.x() && mouseX <= search.right() && mouseY >= search.y() && mouseY <= search.bottom();
+        drawUnignoreAll(g, mouseX, mouseY, theme);
+        drawSearch(g, mouseX, mouseY, theme);
+    }
+
+    private void drawUnignoreAll(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
+        UiRect button = unignoreBounds();
+        boolean active = feature.hasIgnoredPlayers();
+        boolean hovered = active && inside(button, mouseX, mouseY);
+        int stateColor = active ? IGNORE_ON_COLOR : theme.getTrinaryText();
+        int fill = hovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.getSecondary(), active ? 196 : 150);
+        int border = Render2D.withAlpha(stateColor, active ? hovered ? 140 : 82 : 42);
+        int textColor = active ? stateColor : Render2D.withAlpha(theme.getTrinaryText(), 150);
+
+        Render2D.shaderRoundedSurface(g, button.x(), button.y(), button.width(), button.height(), 6, fill, border);
+        String label = "Unignore All";
+        int labelW = font.width(NiaClickGuiScreen.styled(label));
+        int labelY = button.y() + (button.height() - font.lineHeight) / 2 + 1;
+        g.drawString(font, NiaClickGuiScreen.styled(label), button.x() + (button.width() - labelW) / 2, labelY, textColor, false);
+    }
+
+    private void drawSearch(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
+        UiRect search = searchBounds();
+        boolean hovered = inside(search, mouseX, mouseY);
         int fill = searchBox.isFocused()
                 ? Render2D.withAlpha(theme.getSecondary(), 245)
                 : hovered ? Render2D.withAlpha(theme.getSecondary(), 228) : Render2D.withAlpha(theme.getSecondary(), 214);
         int border = searchBox.isFocused() ? Render2D.withAlpha(theme.getAccentColor(), 105) : 0x20FFFFFF;
         Render2D.shaderRoundedSurface(g, search.x(), search.y(), search.width(), search.height(), 7, fill, border);
         Render2D.circle(g, search.x() + 11, search.y() + search.height() / 2, 4, searchBox.isFocused() ? Render2D.withAlpha(theme.getAccentColor(), 220) : 0x66FFFFFF);
-        NiaClickGuiScreen.layoutBorderlessEditBox(searchBox, font, search.x() + 21, search.y(), search.width() - 28, search.height());
+        NiaClickGuiScreen.layoutBorderlessEditBox(searchBox, font, search.x() + 21, search.y() + 1, search.width() - 28, search.height());
         searchBox.visible = true;
         searchBox.active = true;
         searchBox.setEditable(true);
     }
 
-    private void renderRows(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
-        int listTop = panelY + HEADER_H + 10;
-        int listBottom = panelY + panelH - 10;
+    private void drawPlayers(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
+        int top = listTop();
+        int bottom = panelY + panelH - 10;
         int contentX = panelX + 12;
         int contentW = panelW - 24;
 
-        g.enableScissor(contentX, listTop, contentX + contentW, listBottom);
-        double rowY = listTop + scroll;
-        for (int i = 0; i < visibleRows.size(); i++) {
+        g.enableScissor(contentX, top, contentX + contentW, bottom);
+        double rowY = top + scroll;
+        for (IgnorePlayerEntry player : players) {
             UiRect bounds = new UiRect(contentX, (int) Math.round(rowY), contentW, ROW_H);
-            renderRow(g, visibleRows.get(i), bounds, mouseX, mouseY, theme);
+            drawPlayer(g, player, bounds, mouseX, mouseY, theme);
             rowY += ROW_H + ROW_GAP;
         }
         g.disableScissor();
     }
 
-    private void renderRow(GuiGraphics g, IgnorePlayerEntry row, UiRect bounds, int mouseX, int mouseY, ClickGuiTheme theme) {
-        boolean hovered = mouseX >= bounds.x() && mouseX <= bounds.right() && mouseY >= bounds.y() && mouseY <= bounds.bottom();
-        int modeColor = modeColor(row.mode(), theme);
+    private void drawPlayer(GuiGraphics g, IgnorePlayerEntry player, UiRect bounds, int mouseX, int mouseY, ClickGuiTheme theme) {
+        boolean hovered = inside(bounds, mouseX, mouseY);
+        int modeColor = starColor(player.getMode(), theme);
         int rowFill = hovered ? Render2D.withAlpha(theme.getOverlay(), 185) : theme.getOverlay();
         int rowBorder = Render2D.withAlpha(0xFFFFFF, hovered ? 34 : 16);
         Render2D.shaderRoundedSurface(g, bounds.x(), bounds.y(), bounds.width(), bounds.height(), 7, rowFill, rowBorder);
 
-        UiRect star = starRect(bounds);
-        int starFill = Render2D.withAlpha(modeColor, row.mode() == IgnorePlayerMode.NONE ? 20 : 38);
-        int starBorder = Render2D.withAlpha(modeColor, row.mode() == IgnorePlayerMode.NONE ? 46 : 90);
+        UiRect star = starBounds(bounds);
+        int starFill = Render2D.withAlpha(modeColor, player.getMode() == IgnorePlayerMode.NONE ? 20 : 38);
+        int starBorder = Render2D.withAlpha(modeColor, player.getMode() == IgnorePlayerMode.NONE ? 46 : 90);
         Render2D.shaderRoundedSurface(g, star.x() + 8, star.y() + 6, 20, 20, 6, starFill, starBorder);
         String starText = "★";
         int starWidth = font.width(NiaClickGuiScreen.styled(starText));
-        int starTextY = star.y() + (star.height() - font.lineHeight) / 2;
+        int starTextY = star.y() + (star.height() - font.lineHeight) / 2 + 2;
         g.drawString(font, NiaClickGuiScreen.styled(starText), star.x() + (star.width() - starWidth) / 2, starTextY, modeColor, false);
 
         int nameX = bounds.x() + STAR_W + 6;
         int nameMaxW = bounds.width() - STAR_W - IGNORE_W - 22;
-        String displayName = trimToWidth(row.playerName(), nameMaxW);
+        String displayName = fit(player.getPlayerName(), nameMaxW);
         g.drawString(font, NiaClickGuiScreen.styled(displayName), nameX, bounds.y() + 11, theme.getTextColor(), false);
 
-        UiRect ignore = ignoreRect(bounds);
-        boolean ignored = row.ignored();
-        boolean buttonHovered = mouseX >= ignore.x() && mouseX <= ignore.right() && mouseY >= ignore.y() && mouseY <= ignore.bottom();
+        UiRect ignore = ignoreBounds(bounds);
+        boolean ignored = player.isIgnored();
+        boolean buttonHovered = inside(ignore, mouseX, mouseY);
         int stateColor = ignored ? IGNORE_ON_COLOR : IGNORE_OFF_COLOR;
         int buttonFill = buttonHovered ? Render2D.withAlpha(stateColor, 44) : Render2D.withAlpha(theme.getSecondary(), 196);
         int buttonBorder = Render2D.withAlpha(stateColor, buttonHovered ? 150 : 92);
@@ -176,14 +199,14 @@ public class IgnoreManagerScreen extends Screen {
         g.drawString(font, NiaClickGuiScreen.styled(label), ignore.x() + (ignore.width() - labelW) / 2, labelY, stateColor, false);
     }
 
-    private void renderScrollbar(GuiGraphics g, ClickGuiTheme theme) {
+    private void drawScrollbar(GuiGraphics g, ClickGuiTheme theme) {
         int maxScroll = maxScroll();
         if (maxScroll <= 0) {
             return;
         }
 
-        UiRect track = scrollbarTrackRect();
-        UiRect thumb = scrollbarThumbRect(maxScroll);
+        UiRect track = scrollTrack();
+        UiRect thumb = scrollThumb(maxScroll);
         int thumbX = track.x() + (track.width() - SCROLLBAR_W) / 2;
         g.fill(thumbX, thumb.y(), thumbX + SCROLLBAR_W, thumb.bottom(), theme.getScrollbarColor());
     }
@@ -193,40 +216,48 @@ public class IgnoreManagerScreen extends Screen {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.input();
-        boolean clickedSearch = isInside(searchRect(), mouseX, mouseY);
+        boolean clickedSearch = inside(searchBounds(), mouseX, mouseY);
         if (!clickedSearch) {
             blurSearch();
         }
 
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && startScrollbarDrag(mouseX, mouseY)) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && grabScrollbar(mouseX, mouseY)) {
             return true;
         }
 
-        for (int i = 0; i < visibleRows.size(); i++) {
-            IgnorePlayerEntry row = visibleRows.get(i);
-            UiRect bounds = rowBounds(i);
-            if (mouseX < bounds.x() || mouseX > bounds.right() || mouseY < bounds.y() || mouseY > bounds.bottom()) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && inside(unignoreBounds(), mouseX, mouseY)) {
+            if (feature.hasIgnoredPlayers()) {
+                feature.unignoreEveryone();
+                reloadPlayers();
+            }
+            return true;
+        }
+
+        for (int i = 0; i < players.size(); i++) {
+            IgnorePlayerEntry player = players.get(i);
+            UiRect bounds = playerBounds(i);
+            if (!inside(bounds, mouseX, mouseY)) {
                 continue;
             }
 
-            if (isInside(starRect(bounds), mouseX, mouseY)) {
-                if (!row.modeEditable()) {
+            if (inside(starBounds(bounds), mouseX, mouseY)) {
+                if (!player.isModeEditable()) {
                     return true;
                 }
                 if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                    feature.setMode(row.playerName(), IgnorePlayerMode.FAVOURITE);
+                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.FAVOURITE);
                 } else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-                    feature.setMode(row.playerName(), IgnorePlayerMode.AVOID);
+                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.AVOID);
                 } else if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-                    feature.setMode(row.playerName(), IgnorePlayerMode.NONE);
+                    feature.setMode(player.getPlayerName(), IgnorePlayerMode.NONE);
                 }
-                refreshRows();
+                reloadPlayers();
                 return true;
             }
 
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && isInside(ignoreRect(bounds), mouseX, mouseY)) {
-                feature.toggleIgnored(row.playerName());
-                refreshRows();
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && inside(ignoreBounds(bounds), mouseX, mouseY)) {
+                feature.toggleIgnored(player.getPlayerName());
+                reloadPlayers();
                 return true;
             }
         }
@@ -240,7 +271,7 @@ public class IgnoreManagerScreen extends Screen {
     @Override
     public boolean mouseDragged(@NotNull MouseButtonEvent event, double deltaX, double deltaY) {
         if (draggingScrollbar) {
-            setScrollFromScrollbar(event.y(), scrollbarDragOffset);
+            dragScrollbarTo(event.y(), scrollbarDragOffset);
             return true;
         }
         return super.mouseDragged(event, deltaX, deltaY);
@@ -275,6 +306,10 @@ public class IgnoreManagerScreen extends Screen {
             onClose();
             return true;
         }
+        if (shouldFocusSearchForEditKey(event)) {
+            focusSearch();
+            return searchBox.keyPressed(event);
+        }
         return super.keyPressed(event);
     }
 
@@ -306,9 +341,9 @@ public class IgnoreManagerScreen extends Screen {
         return false;
     }
 
-    private void refreshRows() {
-        visibleRows.clear();
-        visibleRows.addAll(feature.getVisiblePlayers(searchQuery));
+    private void reloadPlayers() {
+        players.clear();
+        players.addAll(feature.getVisiblePlayers(searchQuery));
         featureRevision = feature.getRevision();
         if (maxScroll() <= 0) {
             draggingScrollbar = false;
@@ -316,63 +351,66 @@ public class IgnoreManagerScreen extends Screen {
         clampScroll();
     }
 
-    private void refreshRowsIfChanged() {
+    private void reloadIfNeeded() {
         if (featureRevision != feature.getRevision()) {
-            refreshRows();
+            reloadPlayers();
         }
     }
 
-    private UiRect rowBounds(int index) {
-        int listTop = panelY + HEADER_H + 10;
+    private UiRect playerBounds(int index) {
         int contentX = panelX + 12;
         int contentW = panelW - 24;
-        int y = (int) Math.round(listTop + scroll + index * (ROW_H + ROW_GAP));
+        int y = (int) Math.round(listTop() + scroll + index * (ROW_H + ROW_GAP));
         return new UiRect(contentX, y, contentW, ROW_H);
     }
 
-    private UiRect searchRect() {
-        int width = Math.min(SEARCH_W, Math.max(96, panelW - 150));
-        return new UiRect(panelX + panelW - width - 14, panelY + 16, width, SEARCH_H);
+    private UiRect searchBounds() {
+        int width = Math.min(SEARCH_W, Math.max(96, panelW / 3 - 14));
+        return new UiRect(panelX + 14, panelY + 16, width, SEARCH_H);
     }
 
-    private UiRect starRect(UiRect row) {
+    private UiRect unignoreBounds() {
+        return new UiRect(panelX + panelW - UNIGNORE_W - 18, panelY + 16, UNIGNORE_W, SEARCH_H);
+    }
+
+    private UiRect starBounds(UiRect row) {
         return new UiRect(row.x(), row.y(), STAR_W, row.height());
     }
 
-    private UiRect ignoreRect(UiRect row) {
+    private UiRect ignoreBounds(UiRect row) {
         return new UiRect(row.right() - IGNORE_W - 6, row.y() + 5, IGNORE_W, row.height() - 10);
     }
 
-    private UiRect scrollbarTrackRect() {
+    private UiRect scrollTrack() {
         return new UiRect(panelX + panelW - 11, listTop(), SCROLLBAR_HIT_W, listHeight());
     }
 
-    private UiRect scrollbarThumbRect(int maxScroll) {
-        UiRect track = scrollbarTrackRect();
-        int thumbH = scrollbarThumbHeight(maxScroll);
-        int thumbY = track.y() + Math.round((track.height() - thumbH) * (float) (-scroll / maxScroll));
-        return new UiRect(track.x(), thumbY, track.width(), thumbH);
+    private UiRect scrollThumb(int maxScroll) {
+        UiRect track = scrollTrack();
+        int height = thumbHeight(maxScroll);
+        int y = track.y() + Math.round((track.height() - height) * (float) (-scroll / maxScroll));
+        return new UiRect(track.x(), y, track.width(), height);
     }
 
-    private int scrollbarThumbHeight(int maxScroll) {
+    private int thumbHeight(int maxScroll) {
         int listH = listHeight();
         return Math.max(18, Math.round(listH * (float) listH / (listH + maxScroll)));
     }
 
-    private boolean startScrollbarDrag(double mouseX, double mouseY) {
+    private boolean grabScrollbar(double mouseX, double mouseY) {
         int maxScroll = maxScroll();
-        if (maxScroll <= 0 || !isInside(scrollbarTrackRect(), mouseX, mouseY)) {
+        if (maxScroll <= 0 || !inside(scrollTrack(), mouseX, mouseY)) {
             return false;
         }
 
-        UiRect thumb = scrollbarThumbRect(maxScroll);
+        UiRect thumb = scrollThumb(maxScroll);
         draggingScrollbar = true;
-        scrollbarDragOffset = isInside(thumb, mouseX, mouseY) ? mouseY - thumb.y() : thumb.height() / 2.0;
-        setScrollFromScrollbar(mouseY, scrollbarDragOffset);
+        scrollbarDragOffset = inside(thumb, mouseX, mouseY) ? mouseY - thumb.y() : thumb.height() / 2.0;
+        dragScrollbarTo(mouseY, scrollbarDragOffset);
         return true;
     }
 
-    private void setScrollFromScrollbar(double mouseY, double thumbOffset) {
+    private void dragScrollbarTo(double mouseY, double thumbOffset) {
         int maxScroll = maxScroll();
         if (maxScroll <= 0) {
             scroll = scrollTarget = 0;
@@ -380,20 +418,20 @@ public class IgnoreManagerScreen extends Screen {
             return;
         }
 
-        UiRect track = scrollbarTrackRect();
-        int thumbH = scrollbarThumbHeight(maxScroll);
-        double travel = Math.max(1.0, track.height() - thumbH);
+        UiRect track = scrollTrack();
+        int height = thumbHeight(maxScroll);
+        double travel = Math.max(1.0, track.height() - height);
         double thumbTop = mouseY - thumbOffset;
         double progress = (thumbTop - track.y()) / travel;
         progress = Math.max(0.0, Math.min(1.0, progress));
         scroll = scrollTarget = -maxScroll * progress;
     }
 
-    private boolean isInside(UiRect rect, double mouseX, double mouseY) {
+    private boolean inside(UiRect rect, double mouseX, double mouseY) {
         return mouseX >= rect.x() && mouseX <= rect.right() && mouseY >= rect.y() && mouseY <= rect.bottom();
     }
 
-    private String trimToWidth(String text, int maxWidth) {
+    private String fit(String text, int maxWidth) {
         if (font.width(NiaClickGuiScreen.styled(text)) <= maxWidth) {
             return text;
         }
@@ -404,7 +442,7 @@ public class IgnoreManagerScreen extends Screen {
         return trimmed + "...";
     }
 
-    private int modeColor(IgnorePlayerMode mode, ClickGuiTheme theme) {
+    private int starColor(IgnorePlayerMode mode, ClickGuiTheme theme) {
         return switch (mode) {
             case FAVOURITE -> FAVOURITE_COLOR;
             case AVOID -> AVOID_COLOR;
@@ -412,7 +450,7 @@ public class IgnoreManagerScreen extends Screen {
         };
     }
 
-    private void drawScaledString(GuiGraphics g, Component text, int x, int y, float scale, int color) {
+    private void drawBig(GuiGraphics g, Component text, int x, int y, float scale, int color) {
         g.pose().pushMatrix();
         g.pose().translate(x, y);
         g.pose().scale(scale, scale);
@@ -425,6 +463,12 @@ public class IgnoreManagerScreen extends Screen {
             searchBox.setFocused(true);
             setFocused(searchBox);
         }
+    }
+
+    private boolean shouldFocusSearchForEditKey(KeyEvent event) {
+        return searchBox != null
+                && !searchBox.isFocused()
+                && (event.isSelectAll() || event.key() == GLFW.GLFW_KEY_BACKSPACE);
     }
 
     private void blurSearch() {
@@ -450,7 +494,7 @@ public class IgnoreManagerScreen extends Screen {
 
     private int maxScroll() {
         int listH = listHeight();
-        int contentH = visibleRows.isEmpty() ? 0 : visibleRows.size() * ROW_H + (visibleRows.size() - 1) * ROW_GAP;
+        int contentH = players.isEmpty() ? 0 : players.size() * ROW_H + (players.size() - 1) * ROW_GAP;
         return Math.max(0, contentH - listH);
     }
 

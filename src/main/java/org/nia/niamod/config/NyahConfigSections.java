@@ -17,6 +17,7 @@ import org.nia.niamod.models.config.RadianceOverlayMode;
 import org.nia.niamod.models.config.SettingCategory;
 import org.nia.niamod.models.config.ShoutReplacement;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
+import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ final class NyahConfigSections {
                 null,
                 List.of(
                         string("api_base", "API URL", "Base Wynncraft API URL.", NyahConfigData::getApiBase, NyahConfigData::setApiBase),
-                        string("guild_name", "Guild Name", "Guild used by social tools like Ignore.", NyahConfigData::getGuildName, NyahConfigData::setGuildName)
+                        string("guild_name", "Guild Name", "Guild to load players from.", NyahConfigData::getGuildName, NyahConfigData::setGuildName)
                 )
         );
     }
@@ -95,7 +96,7 @@ final class NyahConfigSections {
                 null,
                 null,
                 List.of(
-                        choice("click_gui_theme", "GUI Theme", "Color scheme for the Click GUI.", NyahConfigData::getClickGuiTheme, NyahConfigData::setClickGuiTheme, ClickGuiThemeOption.keys(), ClickGuiThemeOption::labelFor),
+                        choice("click_gui_theme", "GUI Theme", "Color scheme for the Click GUI.", NyahConfigData::getClickGuiTheme, NyahConfigSections::setClickGuiTheme, ClickGuiThemeOption.keys(), ClickGuiThemeOption::labelFor),
                         choice("click_gui_font", "GUI Font", "Font used in the Click GUI.", NyahConfigData::getClickGuiFont, NyahConfigData::setClickGuiFont, ClickGuiFontOption.keys(), ClickGuiFontOption::labelFor),
                         choice("click_gui_animation", "GUI Animation", "Opening and closing effect for the Click GUI.", NyahConfigData::getClickGuiAnimation, NyahConfigData::setClickGuiAnimation, ClickGuiAnimationMode.class),
                         integer("animation_time", "Animation Time", "Time for config animation.", 100, 2000, NyahConfigData::getAnimationTime, NyahConfigData::setAnimationTime),
@@ -410,6 +411,12 @@ final class NyahConfigSections {
         };
     }
 
+    private static void setClickGuiTheme(NyahConfigData data, String value) {
+        ClickGuiThemeOption nextTheme = ClickGuiThemeOption.resolve(value);
+        keepCustomTheme(data);
+        data.setClickGuiTheme(nextTheme.getKey());
+    }
+
     private static void setCustomGuiBackground(NyahConfigData data, Integer value) {
         updateCustomThemeColor(data, NyahConfigSections::getVisibleCustomGuiBackground, NyahConfigData::setCustomGuiBackground, value);
     }
@@ -431,7 +438,7 @@ final class NyahConfigSections {
         int normalizedValue = value & 0xFFFFFF;
         int previousVisibleValue = visibleGetter.apply(data) & 0xFFFFFF;
         if (NyahConfig.getClickGuiThemeOption() != ClickGuiThemeOption.CUSTOM && normalizedValue != previousVisibleValue) {
-            copyActiveThemeToCustom(data);
+            copyThemeToCustom(data, NyahConfig.getClickGuiThemeOption().getTheme());
             data.setClickGuiTheme(ClickGuiThemeOption.CUSTOM.getKey());
         }
         setter.accept(data, normalizedValue);
@@ -459,10 +466,16 @@ final class NyahConfigSections {
         return NyahConfig.getClickGuiThemeOption().getTheme().getAccentColor() & 0xFFFFFF;
     }
 
-    private static void copyActiveThemeToCustom(NyahConfigData data) {
-        data.setCustomGuiBackground(getVisibleCustomGuiBackground(data));
-        data.setCustomGuiSecondary(getVisibleCustomGuiSecondary(data));
-        data.setCustomGuiAccent(getVisibleCustomGuiAccent(data));
+    private static void keepCustomTheme(NyahConfigData data) {
+        data.setCustomGuiBackground(data.getCustomGuiBackground() & 0xFFFFFF);
+        data.setCustomGuiSecondary(data.getCustomGuiSecondary() & 0xFFFFFF);
+        data.setCustomGuiAccent(data.getCustomGuiAccent() & 0xFFFFFF);
+    }
+
+    private static void copyThemeToCustom(NyahConfigData data, ClickGuiTheme theme) {
+        data.setCustomGuiBackground(theme.getBackground() & 0xFFFFFF);
+        data.setCustomGuiSecondary(theme.getSecondary() & 0xFFFFFF);
+        data.setCustomGuiAccent(theme.getAccentColor() & 0xFFFFFF);
     }
 
     @FunctionalInterface

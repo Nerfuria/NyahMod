@@ -50,14 +50,17 @@ public class ColorPickerComponent {
         hexInput.setHeight(inputHeight);
         hexInput.setTextColor(0xFFFFFFFF);
         NiaClickGuiScreen.applyClickGuiFont(hexInput, "Hex");
-        hexInput.setValue(getHex());
+        setHexInputValue(hex(setting.get() & 0xFFFFFF));
         hexInput.setResponder(this::onHexChanged);
         return hexInput;
     }
 
     private String getHex() {
-        int currentColor = Render2D.hsvToRgb(hue, saturation, value);
-        return String.format("#%06X", currentColor);
+        return hex(currentRgb());
+    }
+
+    private String hex(int rgb) {
+        return String.format("#%06X", rgb & 0xFFFFFF);
     }
 
     private void onHexChanged(String text) {
@@ -67,11 +70,8 @@ public class ColorPickerComponent {
         if (text.length() == 6) {
             try {
                 int rgb = Integer.parseInt(text, 16);
-                setting.set(rgb);
-                float[] hsv = Render2D.rgbToHsv(rgb);
-                this.hue = hsv[0];
-                this.saturation = hsv[1];
-                this.value = hsv[2];
+                syncHsvFromRgb(rgb);
+                commitColor(rgb);
             } catch (NumberFormatException ignored) {
             }
         }
@@ -94,6 +94,7 @@ public class ColorPickerComponent {
     }
 
     public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, int opacity) {
+        syncFromSettingIfIdle();
         updateLabelLayout(font, width);
         int textAlpha = Math.min(220, opacity);
         int textColor = (textAlpha << 24) | 0xFFFFFF;
@@ -235,6 +236,7 @@ public class ColorPickerComponent {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
+        syncFromSettingIfIdle();
 
         if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + closedHeight) {
             if (mouseX >= hexX() && mouseX <= hexX() + HEX_WIDTH) {
@@ -344,11 +346,40 @@ public class ColorPickerComponent {
     private void updateSV(double mouseX, double mouseY, int gradX, int gradY, int gradW, int gradH) {
         saturation = Math.max(0, Math.min(1, (float) (mouseX - gradX) / gradW));
         value = Math.max(0, Math.min(1, 1.0f - (float) (mouseY - gradY) / gradH));
-        setting.set(Render2D.hsvToRgb(hue, saturation, value));
+        commitColor(currentRgb());
     }
 
     private void updateHue(double mouseX, int hueBarX, int hueBarW) {
         hue = Math.max(0, Math.min(359.9f, (float) (mouseX - hueBarX) / hueBarW * 360.0f));
-        setting.set(Render2D.hsvToRgb(hue, saturation, value));
+        commitColor(currentRgb());
+    }
+
+    private void syncFromSettingIfIdle() {
+        if (draggingHue || draggingSV || (hexInput != null && hexInput.isFocused())) {
+            return;
+        }
+
+        int settingRgb = setting.get() & 0xFFFFFF;
+        if (settingRgb != currentRgb()) {
+            syncHsvFromRgb(settingRgb);
+        }
+    }
+
+    private void syncHsvFromRgb(int rgb) {
+        float[] hsv = Render2D.rgbToHsv(rgb & 0xFFFFFF);
+        this.hue = hsv[0];
+        this.saturation = hsv[1];
+        this.value = hsv[2];
+    }
+
+    private int currentRgb() {
+        return Render2D.hsvToRgb(hue, saturation, value) & 0xFFFFFF;
+    }
+
+    private void commitColor(int rgb) {
+        int normalizedRgb = rgb & 0xFFFFFF;
+        if ((setting.get() & 0xFFFFFF) != normalizedRgb) {
+            setting.set(normalizedRgb);
+        }
     }
 }
