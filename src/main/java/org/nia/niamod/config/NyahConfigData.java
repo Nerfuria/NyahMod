@@ -74,6 +74,7 @@ public class NyahConfigData {
 
     private List<String> favouritePlayers = new ArrayList<>();
     private List<String> avoidedPlayers = new ArrayList<>();
+    private List<String> ignoredPlayers = new ArrayList<>();
 
     private boolean radianceSyncRequireWar = true;
     private int radianceSyncSelfTier = 0;
@@ -109,6 +110,9 @@ public class NyahConfigData {
         }
         if (avoidedPlayers == null) {
             avoidedPlayers = new ArrayList<>();
+        }
+        if (ignoredPlayers == null) {
+            ignoredPlayers = new ArrayList<>();
         }
 
         clickGuiTheme = ClickGuiThemeOption.resolve(clickGuiTheme).getKey();

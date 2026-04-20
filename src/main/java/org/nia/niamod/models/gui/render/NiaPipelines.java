@@ -1,4 +1,4 @@
-package org.nia.niamod.render;
+package org.nia.niamod.models.gui.render;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;

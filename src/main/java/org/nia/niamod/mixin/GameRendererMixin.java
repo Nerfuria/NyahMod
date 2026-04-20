@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import org.joml.Matrix4f;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.models.events.HeldItemBobbingEvent;
-import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.render.NiaClickGuiScreen;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

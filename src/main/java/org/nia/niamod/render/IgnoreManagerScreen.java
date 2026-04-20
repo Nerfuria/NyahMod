@@ -1,4 +1,4 @@
-package org.nia.niamod.models.gui;
+package org.nia.niamod.render;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -14,7 +14,6 @@ import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.models.ignore.IgnorePlayerEntry;
 import org.nia.niamod.models.ignore.IgnorePlayerMode;
-import org.nia.niamod.render.Render2D;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -9,6 +9,11 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.state.GuiRenderState;
 import org.nia.niamod.mixin.GuiGraphicsAccessor;
+import org.nia.niamod.models.gui.render.GuiGraphicsScissorState;
+import org.nia.niamod.models.gui.render.GuiPortalRectRenderState;
+import org.nia.niamod.models.gui.render.GuiShaderRectRenderState;
+import org.nia.niamod.models.gui.render.NiaPipelines;
+import org.nia.niamod.models.gui.render.NiaRenderTarget;
 import org.nia.niamod.models.gui.render.UiRect;
 
 @UtilityClass

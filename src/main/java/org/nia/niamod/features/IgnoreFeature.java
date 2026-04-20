@@ -10,7 +10,7 @@ import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.ChatMessageReceivedEvent;
-import org.nia.niamod.models.gui.IgnoreManagerScreen;
+import org.nia.niamod.render.IgnoreManagerScreen;
 import org.nia.niamod.models.ignore.IgnoreAction;
 import org.nia.niamod.models.ignore.IgnorePlayerEntry;
 import org.nia.niamod.models.ignore.IgnorePlayerMode;
@@ -18,7 +18,16 @@ import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.util.WynncraftAPI;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,6 +63,7 @@ public class IgnoreFeature extends Feature {
         );
         NiaEventBus.subscribe(this);
         players = List.of();
+        loadPersistedIgnoredPlayers();
         loadGuildPlayersAsync();
         scheduleQueuedCommands();
     }
@@ -137,6 +147,7 @@ public class IgnoreFeature extends Feature {
             boolean detectedChanged = addChatDetected(trimmed);
             boolean ignoredChanged = setIgnored(trimmed, true);
             if (detectedChanged || ignoredChanged) {
+                persistIgnoredPlayers();
                 markChanged();
             }
         }
@@ -166,7 +177,10 @@ public class IgnoreFeature extends Feature {
     }
 
     public void setIgnoredState(String playerName, boolean ignored) {
-        if (setIgnored(playerName, ignored)) {
+        boolean ignoredChanged = setIgnored(playerName, ignored);
+        boolean detectedChanged = !ignored && removeChatDetected(playerName);
+        if (ignoredChanged || detectedChanged) {
+            persistIgnoredPlayers();
             markChanged();
         }
     }
@@ -212,7 +226,7 @@ public class IgnoreFeature extends Feature {
         }
 
         applyPlayerPattern(message, CHAT_PLAYER_PATTERN, this::markIgnoredFromChat);
-        applyPlayerPattern(message, CHAT_ALREADY_IGNORED_PATTERN, this::markIgnored);
+        applyPlayerPattern(message, CHAT_ALREADY_IGNORED_PATTERN, this::markIgnoredFromChat);
         applyPlayerPattern(message, CHAT_UNIGNORED_PATTERN, this::markUnignored);
     }
 
@@ -228,6 +242,7 @@ public class IgnoreFeature extends Feature {
             detectedChanged = addChatDetected(trimmed);
         }
         if (ignoredChanged || detectedChanged) {
+            persistIgnoredPlayers();
             markChanged();
         }
     }
@@ -263,6 +278,7 @@ public class IgnoreFeature extends Feature {
         addKnownPlayers(entries, getPlayers());
         addKnownPlayers(entries, NyahConfig.getData().getFavouritePlayers());
         addKnownPlayers(entries, NyahConfig.getData().getAvoidedPlayers());
+        addPersistedIgnoredPlayers(entries);
         addChatPlayers(entries, chatDetectedPlayers);
         return new ArrayList<>(entries.values());
     }
@@ -290,6 +306,20 @@ public class IgnoreFeature extends Feature {
         }
     }
 
+    private void addPersistedIgnoredPlayers(Map<String, IgnorePlayerEntry> entries) {
+        for (String name : NyahConfig.getData().getIgnoredPlayers()) {
+            if (name == null || name.isBlank()) {
+                continue;
+            }
+
+            String trimmed = name.trim();
+            String normalized = normalize(trimmed);
+            if (ignoredPlayers.contains(normalized)) {
+                entries.putIfAbsent(normalized, player(trimmed, false));
+            }
+        }
+    }
+
     private IgnorePlayerEntry player(String playerName, boolean modeEditable) {
         return new IgnorePlayerEntry(playerName, modeFor(playerName), isIgnored(playerName), modeEditable);
     }
@@ -299,6 +329,11 @@ public class IgnoreFeature extends Feature {
         boolean removed = chatDetectedPlayers.removeIf(name -> normalize(name).equals(normalize(trimmed)));
         boolean added = chatDetectedPlayers.add(trimmed);
         return removed || added;
+    }
+
+    private boolean removeChatDetected(String playerName) {
+        String normalized = normalize(playerName);
+        return chatDetectedPlayers.removeIf(name -> normalize(name).equals(normalized));
     }
 
     private int rowRank(IgnorePlayerEntry entry) {
@@ -323,6 +358,7 @@ public class IgnoreFeature extends Feature {
         return containsName(getPlayers(), playerName)
                 || containsName(NyahConfig.getData().getFavouritePlayers(), playerName)
                 || containsName(NyahConfig.getData().getAvoidedPlayers(), playerName)
+                || containsName(NyahConfig.getData().getIgnoredPlayers(), playerName)
                 || isChatDetected(playerName);
     }
 
@@ -361,7 +397,10 @@ public class IgnoreFeature extends Feature {
         if (optimisticStateUpdate || !hasQueuedAction(normalized, action)) {
             queuedCommands.addLast(new QueuedIgnoreCommand(trimmed, action));
         }
-        if (optimisticStateUpdate && setIgnored(trimmed, action.isIgnoredState())) {
+        boolean ignoredChanged = optimisticStateUpdate && setIgnored(trimmed, action.isIgnoredState());
+        boolean detectedChanged = optimisticStateUpdate && !action.isIgnoredState() && removeChatDetected(trimmed);
+        if (ignoredChanged || detectedChanged) {
+            persistIgnoredPlayers();
             markChanged();
         }
     }
@@ -382,6 +421,36 @@ public class IgnoreFeature extends Feature {
 
     private void markChanged() {
         revision++;
+    }
+
+    private void loadPersistedIgnoredPlayers() {
+        List<String> current = NyahConfig.getData().getIgnoredPlayers();
+        List<String> saved = sortedNames(cleanNames(NyahConfig.getData().getIgnoredPlayers()));
+        ignoredPlayers.clear();
+        for (String playerName : saved) {
+            ignoredPlayers.add(normalize(playerName));
+        }
+        if (!current.equals(saved)) {
+            replaceSavedIgnoredPlayers(saved);
+            NyahConfig.save();
+        }
+        if (!saved.isEmpty()) {
+            markChanged();
+        }
+    }
+
+    private void persistIgnoredPlayers() {
+        List<String> saved = sortedNames(ignoredNames());
+        if (!NyahConfig.getData().getIgnoredPlayers().equals(saved)) {
+            replaceSavedIgnoredPlayers(saved);
+            NyahConfig.save();
+        }
+    }
+
+    private void replaceSavedIgnoredPlayers(List<String> playerNames) {
+        List<String> saved = NyahConfig.getData().getIgnoredPlayers();
+        saved.clear();
+        saved.addAll(playerNames);
     }
 
     private void addName(List<String> names, String playerName) {
@@ -408,6 +477,12 @@ public class IgnoreFeature extends Feature {
             }
         }
         return new ArrayList<>(uniqueNames.values());
+    }
+
+    private List<String> sortedNames(List<String> names) {
+        List<String> sorted = new ArrayList<>(names);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER);
+        return sorted;
     }
 
     private List<String> ignoredNames() {

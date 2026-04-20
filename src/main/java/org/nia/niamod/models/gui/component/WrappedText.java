@@ -3,7 +3,7 @@ package org.nia.niamod.models.gui.component;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.FormattedCharSequence;
-import org.nia.niamod.models.gui.NiaClickGuiScreen;
+import org.nia.niamod.render.NiaClickGuiScreen;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package org.nia.niamod.render;
+package org.nia.niamod.models.gui.render;
 
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 
