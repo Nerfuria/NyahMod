@@ -1,4 +1,4 @@
-package org.nia.niamod.render;
+package org.nia.niamod.models.gui.screens;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -34,6 +34,7 @@ import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
+import org.nia.niamod.render.Render2D;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

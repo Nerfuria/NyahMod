@@ -10,7 +10,7 @@ import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.events.ChatMessageReceivedEvent;
-import org.nia.niamod.render.IgnoreManagerScreen;
+import org.nia.niamod.models.gui.screens.IgnoreManagerScreen;
 import org.nia.niamod.models.ignore.IgnoreAction;
 import org.nia.niamod.models.ignore.IgnorePlayerEntry;
 import org.nia.niamod.models.ignore.IgnorePlayerMode;

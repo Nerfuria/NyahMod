@@ -28,6 +28,8 @@ public class FeatureManager {
     private static AutoStreamFeature autoStreamFeature;
     @Getter
     private static IgnoreFeature ignoreFeature;
+    @Getter
+    private static EcoMenuFeature ecoMenuFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
@@ -40,6 +42,7 @@ public class FeatureManager {
         radianceSyncFeature = new RadianceSyncFeature();
         autoStreamFeature = new AutoStreamFeature();
         ignoreFeature = new IgnoreFeature();
+        ecoMenuFeature = new EcoMenuFeature();
 
         resTickFeature.runSafe("init", resTickFeature::init);
         chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
@@ -51,6 +54,7 @@ public class FeatureManager {
         radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
         autoStreamFeature.runSafe("init", autoStreamFeature::init);
         ignoreFeature.runSafe("init", ignoreFeature::init);
+        ecoMenuFeature.runSafe("init", ecoMenuFeature::init);
 
         NyahConfig.onFeaturesInitialized();
     }

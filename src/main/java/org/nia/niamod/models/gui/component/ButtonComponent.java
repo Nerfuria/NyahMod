@@ -6,7 +6,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.ButtonSetting;
-import org.nia.niamod.render.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 

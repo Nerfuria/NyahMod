@@ -51,6 +51,7 @@ final class NyahConfigSections {
                 SettingCategory.WAR,
                 NyahConfigSections::resourceTickSection,
                 NyahConfigSections::territoryBoxesSection,
+                NyahConfigSections::territoryManagerSection,
                 NyahConfigSections::consumableLabelsSection,
                 NyahConfigSections::towerEhpSection,
                 NyahConfigSections::radianceSyncSection
@@ -190,6 +191,34 @@ final class NyahConfigSections {
                         integer("maximum_terr_warn", "Max Territory Warning", "How many upcoming attack timers to warn you about (set 0 to disable)", 0, 10, NyahConfigData::getTerritoryWarningCount, NyahConfigData::setTerritoryWarningCount),
                         integer("max_time_warn", "Max Queue Time", "Maximum time of an attack timer to be included (min)", 1, 10, NyahConfigData::getMaxTimeTerr, NyahConfigData::setMaxTimeTerr),
                         integer("often_warn", "Warn Speed", "How many seconds between warns", 10, 120, NyahConfigData::getWarnTime, NyahConfigData::setWarnTime)
+                )
+        );
+    }
+
+    private static SettingSection territoryManagerSection(SettingCategory category) {
+        return SettingSection.standard(
+                "territory_manager",
+                "Territory Manager",
+                "Colors used by the guild territory management map.",
+                category,
+                null,
+                null,
+                List.of(
+                        color("eco_crops_color", "Crops Color", "Territory map color for crops.", NyahConfigData::getEcoCropsColor, NyahConfigData::setEcoCropsColor),
+                        color("eco_wood_color", "Wood Color", "Territory map color for wood.", NyahConfigData::getEcoWoodColor, NyahConfigData::setEcoWoodColor),
+                        color("eco_ore_color", "Ore Color", "Territory map color for ore.", NyahConfigData::getEcoOreColor, NyahConfigData::setEcoOreColor),
+                        color("eco_fish_color", "Fish Color", "Territory map color for fish.", NyahConfigData::getEcoFishColor, NyahConfigData::setEcoFishColor),
+                        color("eco_city_color", "City Color", "Territory map color for city labels.", NyahConfigData::getEcoCityColor, NyahConfigData::setEcoCityColor),
+                        color("eco_none_color", "No Resource Color", "Territory map color when no resource is available.", NyahConfigData::getEcoNoneColor, NyahConfigData::setEcoNoneColor),
+                        color("eco_connection_color", "Connection Color", "Territory map color for connection lines.", NyahConfigData::getEcoConnectionColor, NyahConfigData::setEcoConnectionColor),
+                        color("eco_rainbow_red_color", "Rainbow Red", "First rainbow territory gradient color.", NyahConfigData::getEcoRainbowRedColor, NyahConfigData::setEcoRainbowRedColor),
+                        color("eco_rainbow_orange_color", "Rainbow Orange", "Second rainbow territory gradient color.", NyahConfigData::getEcoRainbowOrangeColor, NyahConfigData::setEcoRainbowOrangeColor),
+                        color("eco_rainbow_yellow_color", "Rainbow Yellow", "Third rainbow territory gradient color.", NyahConfigData::getEcoRainbowYellowColor, NyahConfigData::setEcoRainbowYellowColor),
+                        color("eco_rainbow_green_color", "Rainbow Green", "Fourth rainbow territory gradient color.", NyahConfigData::getEcoRainbowGreenColor, NyahConfigData::setEcoRainbowGreenColor),
+                        color("eco_rainbow_cyan_color", "Rainbow Cyan", "Fifth rainbow territory gradient color.", NyahConfigData::getEcoRainbowCyanColor, NyahConfigData::setEcoRainbowCyanColor),
+                        color("eco_rainbow_blue_color", "Rainbow Blue", "Sixth rainbow territory gradient color.", NyahConfigData::getEcoRainbowBlueColor, NyahConfigData::setEcoRainbowBlueColor),
+                        color("eco_rainbow_violet_color", "Rainbow Violet", "Final rainbow territory gradient color.", NyahConfigData::getEcoRainbowVioletColor, NyahConfigData::setEcoRainbowVioletColor),
+                        integer("eco_refresh_seconds", "Refresh Seconds", "How often the territory manager refreshes API territory ownership.", 1, 300, NyahConfigData::getEcoTerritoryRefreshSeconds, NyahConfigData::setEcoTerritoryRefreshSeconds)
                 )
         );
     }

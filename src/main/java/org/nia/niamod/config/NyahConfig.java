@@ -11,7 +11,7 @@ import org.nia.niamod.config.setting.SettingSection;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.models.config.SettingCategory;
-import org.nia.niamod.render.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiFontOption;
 import org.nia.niamod.models.gui.theme.ClickGuiThemeOption;
 

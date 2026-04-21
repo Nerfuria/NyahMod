@@ -1,4 +1,4 @@
-package org.nia.niamod.render;
+package org.nia.niamod.models.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.models.gui.render.TextOverlay;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
+import org.nia.niamod.render.Render2D;
 
 import java.util.HashMap;
 import java.util.List;

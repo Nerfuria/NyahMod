@@ -8,7 +8,7 @@ import net.minecraft.util.FormattedCharSequence;
 import org.nia.niamod.config.setting.ConfigSetting;
 import org.nia.niamod.config.setting.FloatSetting;
 import org.nia.niamod.config.setting.IntSetting;
-import org.nia.niamod.render.NiaClickGuiScreen;
+import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 

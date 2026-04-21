@@ -12,6 +12,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class WynncraftAPI {
@@ -36,5 +38,19 @@ public class WynncraftAPI {
         String safeGuildName = guildName == null ? "" : guildName;
         String encodedGuildName = URLEncoder.encode(safeGuildName, StandardCharsets.UTF_8).replace("+", "%20");
         return NyahConfig.getData().getApiBase() + "guild/%s?identifier=username".formatted(encodedGuildName);
+    }
+
+    private static Map<String, TerritoryResponse> territoriesByGuild(String guild) {
+        Type type = new TypeToken<Map<String, TerritoryResponse>>() {
+        }.getType();
+        try {
+            return (Map<String, TerritoryResponse>) WebUtils.queryAPIAsync(NyahConfig.getData().getApiBase() + "guild/list/territory")
+                    .thenApply(json -> {
+                        Map<String, TerritoryResponse> response = gson.fromJson(json, type);
+                        return response == null ? Map.of() : response.entrySet().stream().filter(entry -> entry.getValue().guild().name().equalsIgnoreCase(guild)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            return Map.of();
+        }
     }
 }
