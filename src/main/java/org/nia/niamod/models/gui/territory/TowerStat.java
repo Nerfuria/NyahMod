@@ -1,10 +1,10 @@
 package org.nia.niamod.models.gui.territory;
 
 public enum TowerStat {
-    DAMAGE("Damage", 0, 11),
-    ATTACK_SPEED("Attacks per second", 0, 11),
-    HEALTH("Health", 0, 11),
-    DEFENSE("Defense", 0, 11),
+    DAMAGE("Damage", 1, 11),
+    ATTACK_SPEED("Attacks per second", 1, 11),
+    HEALTH("Health", 1, 11),
+    DEFENSE("Defense", 1, 11),
     AURA("Aura", 0, 3),
     VOLLEY("Volley", 0, 3);
 
