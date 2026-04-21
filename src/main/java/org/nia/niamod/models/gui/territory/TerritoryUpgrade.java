@@ -202,9 +202,47 @@ public enum TerritoryUpgrade {
         this.levels = levels;
     }
 
-    public double bonus(int level) {
+    public String label() {
+        return switch (this) {
+            case DAMAGE -> "Damage";
+            case ATTACK -> "Attack Speed";
+            case HEALTH -> "Health";
+            case DEFENSE -> "Defense";
+            case TOWER_AURA -> "Aura";
+            case TOWER_VOLLEY -> "Volley";
+            case STRONGER_MINIONS -> "Stronger Minions";
+            case TOWER_MULTI_ATTACKS -> "Multi Attacks";
+            case GATHERING_EXPERIENCE -> "Gathering XP";
+            case MOB_EXPERIENCE -> "Mob XP";
+            case MOB_DAMAGE -> "Mob Damage";
+            case PVP_DAMAGE -> "PvP Damage";
+            case XP_SEEKING -> "XP Seeking";
+            case TOME_SEEKING -> "Tome Seeking";
+            case EMERALD_SEEKING -> "Emerald Seeking";
+            case RESOURCE_STORAGE -> "Resource Storage";
+            case EMERALD_STORAGE -> "Emerald Storage";
+            case EFFICIENT_RESOURCES -> "Eff. Resources";
+            case RESOURCE_RATE -> "Resource Rate";
+            case EFFICIENT_EMERALDS -> "Eff. Emeralds";
+            case EMERALD_RATE -> "Emerald Rate";
+        };
+    }
+
+    public int maxLevel() {
+        return levels.length - 1;
+    }
+
+    public Level level(int level) {
         int clamped = Math.max(0, Math.min(level, levels.length - 1));
-        return levels[clamped].bonus();
+        return levels[clamped];
+    }
+
+    public double bonus(int level) {
+        return level(level).bonus();
+    }
+
+    public long cost(int level) {
+        return level(level).cost();
     }
 
     public Level[] levels() {

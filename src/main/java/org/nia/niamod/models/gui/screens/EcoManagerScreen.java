@@ -17,15 +17,17 @@ import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.models.api.TerritoryResponse;
 import org.nia.niamod.models.gui.component.ConnectionEdge;
 import org.nia.niamod.models.gui.component.EcoMenu;
-import org.nia.niamod.models.gui.component.TerritoryWidget;
 import org.nia.niamod.models.gui.component.Connection;
+import org.nia.niamod.models.gui.component.TerritoryResourceSummaryWidget;
+import org.nia.niamod.models.gui.component.TerritoryWidget;
 import org.nia.niamod.models.gui.render.UiRect;
+import org.nia.niamod.models.gui.territory.DamageRange;
+import org.nia.niamod.models.gui.territory.ResourceFlowState;
 import org.nia.niamod.models.gui.territory.Resources;
 import org.nia.niamod.models.gui.territory.StaticTerritoryData;
-import org.nia.niamod.models.gui.territory.TerritoryDefenseState;
 import org.nia.niamod.models.gui.territory.TerritoryNode;
 import org.nia.niamod.models.gui.territory.TerritoryResourceColors;
-import org.nia.niamod.models.gui.territory.TowerControls;
+import org.nia.niamod.models.gui.territory.TerritoryUpgrade;
 import org.nia.niamod.models.gui.territory.WorldBounds;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
@@ -36,6 +38,7 @@ import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -69,9 +72,8 @@ public class EcoManagerScreen extends Screen {
     private final List<Connection> visibleConnections = new ArrayList<>();
     private final Map<String, TerritoryWidget> widgetsByName = new HashMap<>();
     private final Map<String, TerritoryWidget> widgetsByNormalizedName = new HashMap<>();
-    private final Map<String, TowerControls> localDefenseControls = new HashMap<>();
-    private final Map<String, TerritoryDefenseState> localDefenseStates = new HashMap<>();
     private final EcoMenu detailPanel = new EcoMenu();
+    private final TerritoryResourceSummaryWidget resourceSummaryWidget = new TerritoryResourceSummaryWidget();
 
     private boolean loadRequested;
     private boolean loading = true;
@@ -99,7 +101,7 @@ public class EcoManagerScreen extends Screen {
     public EcoManagerScreen(Screen parent, EcoMenuFeature ecoFeature) {
         super(Component.literal("Eco Manager"));
         this.parent = parent;
-        this.ecoFeature = ecoFeature;
+        this.ecoFeature = ecoFeature == null ? new EcoMenuFeature() : ecoFeature;
         this.guildName = configuredGuildName();
         this.staticTerritoryData = loadStaticTerritoryData();
     }
@@ -119,6 +121,7 @@ public class EcoManagerScreen extends Screen {
         ClickGuiTheme theme = NiaClickGuiScreen.configuredTheme();
         layoutTerritories();
         drawMap(g, mouseX, mouseY, theme);
+        drawResourceOverlay(g, theme);
         super.render(g, mouseX, mouseY, delta);
         drawDetailPanel(g, mouseX, mouseY, theme);
     }
@@ -134,7 +137,15 @@ public class EcoManagerScreen extends Screen {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.input();
-        if (selectedTerritory != null && detailPanel.mouseClicked(mouseX, mouseY, button, width, height)) {
+        if (selectedTerritory != null && detailPanel.mouseClicked(
+                mouseX,
+                mouseY,
+                button,
+                width,
+                height,
+                selectedTerritory,
+                ecoFeature.calculateProducedResourcesPerHour(selectedTerritory.territory())
+        )) {
             return true;
         }
 
@@ -156,7 +167,14 @@ public class EcoManagerScreen extends Screen {
 
     @Override
     public boolean mouseDragged(@NotNull MouseButtonEvent event, double deltaX, double deltaY) {
-        if (detailPanel.mouseDragged(event.x(), event.y(), width, height)) {
+        if (detailPanel.mouseDragged(
+                event.x(),
+                event.y(),
+                width,
+                height,
+                selectedTerritory,
+                selectedTerritory == null ? Resources.EMPTY : ecoFeature.calculateProducedResourcesPerHour(selectedTerritory.territory())
+        )) {
             return true;
         }
         if (draggingMap) {
@@ -182,6 +200,14 @@ public class EcoManagerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (selectedTerritory != null) {
+            Resources producedResources = ecoFeature.calculateProducedResourcesPerHour(selectedTerritory.territory());
+            if (detailPanel.contains(mouseX, mouseY, width, height, producedResources)) {
+                detailPanel.mouseScrolled(mouseX, mouseY, verticalAmount, width, height, producedResources);
+                return true;
+            }
+        }
+
         if (verticalAmount == 0.0 || territoryWidgets.isEmpty()) {
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
         }
@@ -317,7 +343,9 @@ public class EcoManagerScreen extends Screen {
             widgetsByNormalizedName.put(normalizeName(widget.territory().name()), widget);
         }
         buildConnectionEdges();
-        cacheDefenseStates();
+        if (!widgetsByNormalizedName.containsKey(normalizeName(ecoFeature.headquarterTerritoryName()))) {
+            ecoFeature.setHeadquarters(null);
+        }
         worldBounds = WorldBounds.fromTerritories(territoryWidgets.stream().map(TerritoryWidget::territory).toList());
 
         if (selectedName != null) {
@@ -468,7 +496,7 @@ public class EcoManagerScreen extends Screen {
             drawConnections(g);
             long now = System.currentTimeMillis();
             for (TerritoryWidget widget : visibleTerritoryWidgets) {
-                widget.render(g, font, mouseX, mouseY, theme, now, canvas);
+                widget.render(g, font, mouseX, mouseY, theme, now, canvas, ecoFeature.isHeadquarters(widget.territory().name()));
             }
         }
     }
@@ -488,6 +516,16 @@ public class EcoManagerScreen extends Screen {
         }
 
         TerritoryNode territory = selectedTerritory.territory();
+        int ownedConnections = ownedConnectionCount(territory);
+        int totalConnections = totalConnectionCount(territory);
+        int externalConnections = externalTerritoryCount(territory);
+        DamageRange damage = ecoFeature.calculateDamage(territory, ownedConnections, externalConnections);
+        double attackSpeed = ecoFeature.calculateAttackSpeed(territory);
+        double health = ecoFeature.calculateHealth(territory, ownedConnections, externalConnections);
+        double defense = ecoFeature.calculateDefense(territory);
+        double aura = ecoFeature.calculateAura(territory);
+        double volley = ecoFeature.calculateVolley(territory);
+        Resources producedResources = ecoFeature.calculateProducedResourcesPerHour(territory);
         detailPanel.render(
                 g,
                 font,
@@ -496,15 +534,37 @@ public class EcoManagerScreen extends Screen {
                 theme,
                 selectedTerritory,
                 guildName,
-                controlsFor(territory),
-                defenseStateFor(territory),
-                ownedConnectionCount(territory),
-                totalConnectionCount(territory),
+                ecoFeature.upgradesFor(territory.name()),
+                ecoFeature.resourceStoreFor(territory.name()),
+                producedResources,
+                ecoFeature.isHeadquarters(territory.name()),
+                damage,
+                attackSpeed,
+                health,
+                defense,
+                aura,
+                volley,
+                ecoFeature.calculateAverageDps(territory, ownedConnections, externalConnections),
+                ecoFeature.calculateEffectiveHealth(territory, ownedConnections, externalConnections),
+                ecoFeature.calculateResourceGainPerHour(territory),
+                ecoFeature.calculateEmeraldGainPerHour(territory),
+                ownedConnections,
+                totalConnections,
+                externalConnections,
                 width,
                 height,
-                this::onTerritoryDefenseControlsChanged,
+                (upgrade, delta) -> onTerritoryUpgradeAdjusted(territory, upgrade, delta),
+                () -> ecoFeature.toggleHeadquarters(territory.name()),
                 () -> selectedTerritory = null
         );
+    }
+
+    private void drawResourceOverlay(GuiGraphics g, ClickGuiTheme theme) {
+        if (territoryWidgets.isEmpty()) {
+            return;
+        }
+        ResourceFlowState flowState = ecoFeature.summarizeResourceFlow(territoryWidgets.stream().map(TerritoryWidget::territory).toList());
+        resourceSummaryWidget.render(g, font, theme, flowState);
     }
 
     private void drawConnections(GuiGraphics g) {
@@ -529,54 +589,18 @@ public class EcoManagerScreen extends Screen {
 
     private void selectTerritory(TerritoryWidget widget) {
         selectedTerritory = widget;
-        controlsFor(widget.territory());
-        detailPanel.ensurePosition(width, height);
+        detailPanel.resetScroll();
+        detailPanel.ensurePosition(width, height, ecoFeature.calculateProducedResourcesPerHour(widget.territory()));
     }
 
-    private TowerControls controlsFor(TerritoryNode territory) {
-        if (ecoFeature != null) {
-            return ecoFeature.defenseControlsFor(territory.name());
-        }
-        return localDefenseControls.computeIfAbsent(normalizeName(territory.name()), ignored -> new TowerControls());
-    }
-
-    private TerritoryDefenseState defenseStateFor(TerritoryNode territory) {
-        if (ecoFeature != null) {
-            return ecoFeature.cachedDefenseStateFor(territory, ownedConnectionCount(territory), totalConnectionCount(territory));
-        }
-        return localDefenseStates.computeIfAbsent(normalizeName(territory.name()), ignored -> TerritoryDefenseState.EMPTY);
-    }
-
-    private void onTerritoryDefenseControlsChanged(TerritoryNode territory, TowerControls controls) {
-        if (ecoFeature != null) {
-            ecoFeature.setTerritoryDefenses(territory, controls, ownedConnectionCount(territory), totalConnectionCount(territory));
-            return;
-        }
-        localDefenseControls.put(normalizeName(territory.name()), controls);
-        localDefenseStates.put(normalizeName(territory.name()), TerritoryDefenseState.EMPTY);
-    }
-
-    private void cacheDefenseStates() {
-        for (TerritoryWidget widget : territoryWidgets) {
-            cacheDefenseState(widget.territory());
-        }
-    }
-
-    private void cacheDefenseState(TerritoryNode territory) {
-        if (ecoFeature != null) {
-            ecoFeature.cacheDefenseState(territory, ownedConnectionCount(territory), totalConnectionCount(territory));
-            return;
-        }
-        localDefenseStates.putIfAbsent(normalizeName(territory.name()), TerritoryDefenseState.EMPTY);
+    private void onTerritoryUpgradeAdjusted(TerritoryNode territory, TerritoryUpgrade upgrade, int delta) {
+        ecoFeature.adjustUpgradeLevel(territory.name(), upgrade, delta);
     }
 
     private int ownedConnectionCount(TerritoryNode territory) {
         int count = 0;
         for (String connection : territory.connections()) {
-            TerritoryWidget target = widgetsByName.get(connection);
-            if (target == null) {
-                target = widgetsByNormalizedName.get(normalizeName(connection));
-            }
+            TerritoryWidget target = connectedOwnedTerritory(connection);
             if (target != null) {
                 count++;
             }
@@ -584,10 +608,52 @@ public class EcoManagerScreen extends Screen {
         return count;
     }
 
+    private int externalTerritoryCount(TerritoryNode territory) {
+        if (territory == null) {
+            return 0;
+        }
+
+        Set<String> visited = new HashSet<>();
+        ArrayDeque<TerritoryNodeDepth> queue = new ArrayDeque<>();
+        visited.add(normalizeName(territory.name()));
+        queue.addLast(new TerritoryNodeDepth(territory, 0));
+
+        int count = 0;
+        while (!queue.isEmpty()) {
+            TerritoryNodeDepth current = queue.removeFirst();
+            if (current.depth() >= 3) {
+                continue;
+            }
+
+            for (String connection : current.territory().connections()) {
+                TerritoryWidget target = connectedOwnedTerritory(connection);
+                if (target == null) {
+                    continue;
+                }
+
+                String key = normalizeName(target.territory().name());
+                if (visited.add(key)) {
+                    count++;
+                    queue.addLast(new TerritoryNodeDepth(target.territory(), current.depth() + 1));
+                }
+            }
+        }
+
+        return count;
+    }
+
     private int totalConnectionCount(TerritoryNode territory) {
         return (int) territory.connections().stream()
                 .filter(connection -> connection != null && !connection.isBlank())
                 .count();
+    }
+
+    private TerritoryWidget connectedOwnedTerritory(String connection) {
+        TerritoryWidget target = widgetsByName.get(connection);
+        if (target == null) {
+            target = widgetsByNormalizedName.get(normalizeName(connection));
+        }
+        return target;
     }
 
     private Map<String, StaticTerritoryData> loadStaticTerritoryData() {
@@ -646,5 +712,8 @@ public class EcoManagerScreen extends Screen {
 
     private UiRect canvasBounds() {
         return new UiRect(0, 0, Math.max(1, width), Math.max(1, height));
+    }
+
+    private record TerritoryNodeDepth(TerritoryNode territory, int depth) {
     }
 }

@@ -3,6 +3,10 @@ package org.nia.niamod.models.gui.territory;
 public record Resources(int emeralds, int ore, int crops, int fish, int wood) {
     public static final Resources EMPTY = new Resources(0, 0, 0, 0, 0);
 
+    public int materialTotal() {
+        return ore + crops + fish + wood;
+    }
+
     public ResourceKind kind() {
         boolean hasCrops = crops > 0;
         boolean hasWood = wood > 0;

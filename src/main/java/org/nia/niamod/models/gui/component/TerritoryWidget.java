@@ -53,16 +53,18 @@ public class TerritoryWidget {
         return bounds;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas) {
+    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters) {
         if (!intersects(bounds, canvas, CLIP_PADDING)) {
             return;
         }
 
         boolean hovered = contains(mouseX, mouseY);
-        int fillAlpha = territory.isRainbow() ? hovered ? 245 : 220 : hovered ? 62 : 42;
-        int borderAlpha = territory.isRainbow() ? 255 : hovered ? 245 : 215;
+        int fillAlpha = headquarters || territory.isRainbow() ? hovered ? 245 : 220 : hovered ? 62 : 42;
+        int borderAlpha = headquarters || territory.isRainbow() ? 255 : hovered ? 245 : 215;
 
-        if (territory.isRainbow()) {
+        if (headquarters) {
+            Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), fillAlpha));
+        } else if (territory.isRainbow()) {
             drawRainbowFill(g, bounds, canvas, fillAlpha);
         } else {
             Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(territory.resourceColor(), fillAlpha));
@@ -71,12 +73,17 @@ public class TerritoryWidget {
         if (territory.heldUnderTenMinutes(now)) {
             int flashAlpha = (int) Math.round(138 + Math.sin(System.currentTimeMillis() / 135.0) * 72);
             double phase = System.currentTimeMillis() / 62.0;
-            if (territory.isRainbow()) {
+            if (headquarters) {
+                int color = Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), flashAlpha);
+                drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> color);
+            } else if (territory.isRainbow()) {
                 drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), flashAlpha));
             } else {
                 int color = Render2D.withAlpha(territory.resourceColor(), flashAlpha);
                 drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> color);
             }
+        } else if (headquarters) {
+            drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), borderAlpha), 2);
         } else if (territory.isRainbow()) {
             drawRainbowBorder(g, bounds, canvas, borderAlpha, 2);
         } else {
@@ -87,7 +94,7 @@ public class TerritoryWidget {
             hoverStartedAt = now;
         }
         hoveredLastFrame = hovered;
-        drawLabels(g, font, theme, canvas, hovered, now);
+        drawLabels(g, font, theme, canvas, hovered, now, headquarters);
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -113,7 +120,7 @@ public class TerritoryWidget {
                 && rect.y() <= canvas.bottom() + padding;
     }
 
-    private void drawLabels(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, boolean hovered, long now) {
+    private void drawLabels(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, boolean hovered, long now, boolean headquarters) {
         UiRect clip = labelClip(canvas);
         if (clip == null) {
             return;
@@ -137,7 +144,9 @@ public class TerritoryWidget {
         Component tagText = territory.isCity() ? Component.literal(fittedTag) : NiaClickGuiScreen.styled(fittedTag);
         int tagWidth = font.width(tagText);
         int tagX = labelX + (labelW - tagWidth) / 2;
-        int tagColor = territory.isCity()
+        int tagColor = headquarters
+                ? TerritoryResourceColors.headquarterColor()
+                : territory.isCity()
                 ? TerritoryResourceColors.cityColor()
                 : territory.isRainbow() ? TerritoryResourceColors.rainbowColor(0.72, 255) : Render2D.withAlpha(territory.resourceColor(), 255);
         drawClippedText(g, font, tagText, tagX, nameY + font.lineHeight + 2, tagColor, clip);

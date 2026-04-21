@@ -5,8 +5,13 @@ import org.nia.niamod.render.Render2D;
 
 public final class TerritoryResourceColors {
     public static final String CITY_EMOJI = "\uD83D\uDCB5";
+    private static final int HEADQUARTER_COLOR = 0xFFD4AF37;
 
     private TerritoryResourceColors() {
+    }
+
+    public static int headquarterColor() {
+        return HEADQUARTER_COLOR;
     }
 
     public static int cityColor() {
