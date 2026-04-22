@@ -2,9 +2,10 @@ package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import org.nia.niamod.models.gui.territory.ResourceFlowState;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
+import org.nia.niamod.models.territory.ResourceAmounts;
+import org.nia.niamod.models.territory.ResourceKind;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -12,7 +13,7 @@ import java.util.Locale;
 
 public class TerritoryResourceSummaryWidget {
     private static final int MARGIN = 8;
-    private static final int WIDTH = 244;
+    private static final int WIDTH = 348;
     private static final int HEADER_HEIGHT = 18;
     private static final int ROW_HEIGHT = 14;
     private static final int PAD = 8;
@@ -22,7 +23,7 @@ public class TerritoryResourceSummaryWidget {
         return PAD + HEADER_HEIGHT + rows * ROW_HEIGHT + PAD - 2;
     }
 
-    public void render(GuiGraphics g, Font font, ClickGuiTheme theme, ResourceFlowState state) {
+    public void render(GuiGraphics g, Font font, ClickGuiTheme theme, ResourceFlow state) {
         int height = height();
         UiRect panel = new UiRect(MARGIN, MARGIN, WIDTH, height);
         Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 4, theme.background(), Render2D.withAlpha(theme.accentColor(), 86));
@@ -34,18 +35,57 @@ public class TerritoryResourceSummaryWidget {
         g.drawString(font, NiaClickGuiScreen.styled("Guild Economy"), x, y, theme.textColor(), false);
         y += HEADER_HEIGHT;
 
-        String hqLabel = state == null || !state.hasHeadquarters() ? "HQ: Not set" : "HQ: " + state.headquarterName();
-        g.drawString(font, NiaClickGuiScreen.styled(hqLabel), x, y + 1, theme.secondaryText(), false);
-        y += ROW_HEIGHT;
+        ResourceAmounts stored = state == null ? ResourceAmounts.EMPTY : state.stored();
+        ResourceAmounts capacity = state == null ? ResourceAmounts.EMPTY : state.capacity();
+        ResourceAmounts gained = state == null ? ResourceAmounts.EMPTY : state.gainedPerHour();
+        ResourceAmounts used = state == null ? ResourceAmounts.EMPTY : state.usedPerHour();
+        ResourceAmounts net = state == null ? ResourceAmounts.EMPTY : state.netPerHour();
 
-        long current = state == null ? 0L : state.headquarterResources();
-        long max = state == null ? 0L : state.headquarterCapacity();
-        y = drawRow(g, font, x, right, y, "HQ Resources", format(current) + (max > 0 ? " / " + format(max) : ""), theme);
-        y = drawRow(g, font, x, right, y, "Resources / hr", format(state == null ? 0.0 : state.resourceGainPerHour()), theme);
-        y = drawRow(g, font, x, right, y, "Used / hr", format(state == null ? 0L : state.resourceLossPerHour()), theme);
-        y = drawRow(g, font, x, right, y, "Usage", formatPercent(state == null ? 0.0 : state.resourceUsagePercent()), theme);
-        y = drawRow(g, font, x, right, y, "Emeralds / hr", format(state == null ? 0.0 : state.emeraldGainPerHour()), theme);
-        drawRow(g, font, x, right, y, "Net / hr", format(state == null ? 0.0 : state.netResourcePerHour()), theme);
+        y = drawHeaderRow(g, font, x, right, y, theme);
+        y = drawResourceRow(g, font, x, right, y, ResourceKind.EMERALDS, stored, capacity, gained, used, net, theme);
+        y = drawResourceRow(g, font, x, right, y, ResourceKind.ORE, stored, capacity, gained, used, net, theme);
+        y = drawResourceRow(g, font, x, right, y, ResourceKind.CROPS, stored, capacity, gained, used, net, theme);
+        y = drawResourceRow(g, font, x, right, y, ResourceKind.FISH, stored, capacity, gained, used, net, theme);
+        y = drawResourceRow(g, font, x, right, y, ResourceKind.WOOD, stored, capacity, gained, used, net, theme);
+        drawRow(g, font, x, right, y, "Material Usage", formatPercent(state == null ? 0.0 : state.materialUsagePercent()), theme);
+    }
+
+    private int drawHeaderRow(GuiGraphics g, Font font, int x, int right, int y, ClickGuiTheme theme) {
+        int storeX = x + 72;
+        int gainX = x + 172;
+        int usedX = x + 226;
+        int netX = right - 44;
+        g.drawString(font, NiaClickGuiScreen.styled("HQ Store"), storeX, y + 1, theme.trinaryText(), false);
+        g.drawString(font, NiaClickGuiScreen.styled("+/hr"), gainX, y + 1, theme.trinaryText(), false);
+        g.drawString(font, NiaClickGuiScreen.styled("-/hr"), usedX, y + 1, theme.trinaryText(), false);
+        g.drawString(font, NiaClickGuiScreen.styled("Net"), netX, y + 1, theme.trinaryText(), false);
+        return y + ROW_HEIGHT;
+    }
+
+    private int drawResourceRow(
+            GuiGraphics g,
+            Font font,
+            int x,
+            int right,
+            int y,
+            ResourceKind resource,
+            ResourceAmounts stored,
+            ResourceAmounts capacity,
+            ResourceAmounts gained,
+            ResourceAmounts used,
+            ResourceAmounts net,
+            ClickGuiTheme theme
+    ) {
+        int storeX = x + 72;
+        int gainX = x + 172;
+        int usedX = x + 226;
+        int netX = right - 44;
+        g.drawString(font, NiaClickGuiScreen.styled(resource.label()), x, y + 1, theme.secondaryText(), false);
+        g.drawString(font, NiaClickGuiScreen.styled(format(stored.amount(resource)) + "/" + formatShort(capacity.amount(resource))), storeX, y + 1, theme.textColor(), false);
+        g.drawString(font, NiaClickGuiScreen.styled(formatShort(gained.amount(resource))), gainX, y + 1, theme.textColor(), false);
+        g.drawString(font, NiaClickGuiScreen.styled(formatShort(used.amount(resource))), usedX, y + 1, theme.textColor(), false);
+        g.drawString(font, NiaClickGuiScreen.styled(formatShort(net.amount(resource))), netX, y + 1, theme.textColor(), false);
+        return y + ROW_HEIGHT;
     }
 
     private int drawRow(GuiGraphics g, Font font, int x, int right, int y, String label, String value, ClickGuiTheme theme) {
@@ -59,6 +99,17 @@ public class TerritoryResourceSummaryWidget {
         return String.format(Locale.ROOT, "%,d", value).replace(',', ' ');
     }
 
+    private String formatShort(long value) {
+        long abs = Math.abs(value);
+        if (abs >= 1_000_000L) {
+            return String.format(Locale.ROOT, "%.1fm", value / 1_000_000.0);
+        }
+        if (abs >= 1_000L) {
+            return String.format(Locale.ROOT, "%.1fk", value / 1_000.0);
+        }
+        return Long.toString(value);
+    }
+
     private String format(double value) {
         if (Math.abs(value - Math.rint(value)) < 0.0001) {
             return format(Math.round(value));
@@ -68,5 +119,24 @@ public class TerritoryResourceSummaryWidget {
 
     private String formatPercent(double value) {
         return String.format(Locale.ROOT, "%.1f%%", value);
+    }
+
+    public record ResourceFlow(
+            ResourceAmounts stored,
+            ResourceAmounts capacity,
+            ResourceAmounts gainedPerHour,
+            ResourceAmounts usedPerHour,
+            double materialUsagePercent
+    ) {
+        public ResourceFlow {
+            stored = stored == null ? ResourceAmounts.EMPTY : stored;
+            capacity = capacity == null ? ResourceAmounts.EMPTY : capacity;
+            gainedPerHour = gainedPerHour == null ? ResourceAmounts.EMPTY : gainedPerHour;
+            usedPerHour = usedPerHour == null ? ResourceAmounts.EMPTY : usedPerHour;
+        }
+
+        public ResourceAmounts netPerHour() {
+            return gainedPerHour.minus(usedPerHour);
+        }
     }
 }

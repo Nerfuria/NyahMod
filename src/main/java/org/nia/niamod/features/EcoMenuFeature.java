@@ -2,29 +2,44 @@ package org.nia.niamod.features;
 
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.features.eco.EcoLoadouts;
+import org.nia.niamod.features.eco.EcoGameActions;
+import org.nia.niamod.features.eco.EcoUncommittedChanges;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.models.gui.screens.EcoManagerScreen;
-import org.nia.niamod.models.gui.territory.DamageRange;
-import org.nia.niamod.models.gui.territory.ResourceFlowState;
-import org.nia.niamod.models.gui.territory.Resources;
-import org.nia.niamod.models.gui.territory.TerritoryNode;
-import org.nia.niamod.models.gui.territory.TerritoryResourceStore;
-import org.nia.niamod.models.gui.territory.TerritoryUpgrade;
+import org.nia.niamod.models.territory.TerritoryLoadout;
+import org.nia.niamod.models.territory.TerritoryRoute;
+import org.nia.niamod.models.territory.TerritoryUpgrade;
 import org.nia.niamod.models.misc.Feature;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class EcoMenuFeature extends Feature {
-    public static final long HEADQUARTER_RESOURCE_CAPACITY = 120_000L;
+    private static final List<TerritoryLoadout> LOADOUTS = EcoLoadouts.defaults();
 
-    private final Map<String, EnumMap<TerritoryUpgrade, Integer>> territoryUpgrades = new HashMap<>();
-    private final Map<String, TerritoryResourceStore> territoryResourceStores = new HashMap<>();
-    private String headquarterTerritoryName;
+    private final EcoGameActions gameActions;
+    private final EcoUncommittedChanges uncommittedChanges = new EcoUncommittedChanges();
+    private final Map<String, EnumMap<TerritoryUpgrade, Integer>> territoryStats = new HashMap<>();
+    private final Map<String, String> territoryLoadouts = new HashMap<>();
+    private final Map<String, Integer> territoryTaxes = new HashMap<>();
+    private final Map<String, Boolean> territoryBorders = new HashMap<>();
+    private final Map<String, TerritoryRoute> territoryRoutes = new HashMap<>();
+    private String headquartersTerritoryName;
+
+    public EcoMenuFeature() {
+        this(new EcoGameActions());
+    }
+
+    public EcoMenuFeature(EcoGameActions gameActions) {
+        this.gameActions = gameActions == null ? new EcoGameActions() : gameActions;
+    }
 
     @Override
     public void init() {
@@ -36,245 +51,310 @@ public class EcoMenuFeature extends Feature {
         minecraft.setScreen(new EcoManagerScreen(minecraft.screen, this));
     }
 
-    public Map<TerritoryUpgrade, Integer> upgradesFor(String territoryName) {
-        return Collections.unmodifiableMap(new EnumMap<>(mutableUpgradesFor(territoryName)));
+    public void requestStats(Collection<String> territoryNames) {
+        forEachTerritory(territoryNames, key -> territoryStats.putIfAbsent(key, blankStats()));
     }
 
-    public int upgradeLevel(String territoryName, TerritoryUpgrade upgrade) {
-        if (upgrade == null) {
-            return 0;
-        }
-        return mutableUpgradesFor(territoryName).getOrDefault(upgrade, 0);
+    public Map<TerritoryUpgrade, Integer> statsFor(String territoryName) {
+        String key = normalize(territoryName);
+        return Collections.unmodifiableMap(new EnumMap<>(key.isEmpty() ? blankStats() : mutableStatsFor(key)));
     }
 
-    public void setUpgradeLevel(String territoryName, TerritoryUpgrade upgrade, int level) {
-        if (upgrade == null) {
+    public int statLevel(String territoryName, TerritoryUpgrade stat) {
+        String key = normalize(territoryName);
+        return stat == null || key.isEmpty() ? 0 : mutableStatsFor(key).getOrDefault(stat, 0);
+    }
+
+    public void setStat(String territoryName, TerritoryUpgrade stat, int level) {
+        if (stat == null) {
             return;
         }
-        mutableUpgradesFor(territoryName).put(upgrade, clampLevel(upgrade, level));
+
+        String key = normalize(territoryName);
+        if (!key.isEmpty()) {
+            int nextLevel = clamp(level, 0, stat.maxLevel());
+            EnumMap<TerritoryUpgrade, Integer> stats = mutableStatsFor(key);
+            if (stats.getOrDefault(stat, 0) == nextLevel) {
+                return;
+            }
+            stats.put(stat, nextLevel);
+            territoryLoadouts.remove(key);
+            uncommittedChanges.markStat(key, stat);
+            gameActions.pushStat(cleanTerritoryName(territoryName), stat, nextLevel);
+        }
     }
 
-    public void adjustUpgradeLevel(String territoryName, TerritoryUpgrade upgrade, int delta) {
-        setUpgradeLevel(territoryName, upgrade, upgradeLevel(territoryName, upgrade) + delta);
+    public void adjustStat(String territoryName, TerritoryUpgrade stat, int delta) {
+        setStat(territoryName, stat, statLevel(territoryName, stat) + delta);
     }
 
-    public boolean isHeadquarters(String territoryName) {
-        String territoryKey = normalizeTerritoryName(territoryName);
-        String headquarterKey = normalizeTerritoryName(headquarterTerritoryName);
-        return !territoryKey.isEmpty() && !headquarterKey.isEmpty() && territoryKey.equals(headquarterKey);
+    public List<TerritoryLoadout> loadouts() {
+        return LOADOUTS;
     }
 
-    public String headquarterTerritoryName() {
-        return headquarterTerritoryName;
+    public String loadoutFor(String territoryName) {
+        return territoryLoadouts.getOrDefault(normalize(territoryName), "");
+    }
+
+    public boolean applyLoadout(String loadoutName, Collection<String> territoryNames) {
+        TerritoryLoadout loadout = findLoadout(loadoutName);
+        if (loadout == null || territoryNames == null || territoryNames.isEmpty()) {
+            return false;
+        }
+
+        List<String> targets = territoryNames.stream()
+                .map(this::cleanTerritoryName)
+                .filter(territoryName -> !territoryName.isEmpty())
+                .toList();
+        if (targets.isEmpty()) {
+            return false;
+        }
+
+        forEachTerritory(targets, key -> {
+            EnumMap<TerritoryUpgrade, Integer> stats = blankStats();
+            for (Map.Entry<TerritoryUpgrade, Integer> entry : loadout.levels().entrySet()) {
+                TerritoryUpgrade upgrade = entry.getKey();
+                if (upgrade != null) {
+                    stats.put(upgrade, clamp(entry.getValue() == null ? 0 : entry.getValue(), 0, upgrade.maxLevel()));
+                }
+            }
+            territoryStats.put(key, stats);
+            territoryLoadouts.put(key, loadout.name());
+            uncommittedChanges.markAllStats(key);
+        });
+        gameActions.applyLoadout(loadout, targets);
+        return true;
     }
 
     public void setHeadquarters(String territoryName) {
-        String normalized = normalizeTerritoryName(territoryName);
-        headquarterTerritoryName = normalized.isEmpty() ? null : territoryName.trim();
-    }
-
-    public void toggleHeadquarters(String territoryName) {
-        if (isHeadquarters(territoryName)) {
-            headquarterTerritoryName = null;
+        String cleaned = cleanTerritoryName(territoryName);
+        if (cleaned.isEmpty() || normalize(cleaned).equals(normalize(headquartersTerritoryName))) {
             return;
         }
-        setHeadquarters(territoryName);
+
+        headquartersTerritoryName = cleaned;
+        uncommittedChanges.markHeadquarters(normalize(cleaned));
+        gameActions.pushHeadquarters(cleaned);
     }
 
-    public void setTerritoryResourceStore(String territoryName, long current, long max) {
-        String key = normalizeTerritoryName(territoryName);
+    public boolean isHeadquarters(String territoryName) {
+        String key = normalize(territoryName);
+        return !key.isEmpty() && key.equals(normalize(headquartersTerritoryName));
+    }
+
+    public int tax(String territoryName) {
+        return territoryTaxes.getOrDefault(normalize(territoryName), 0);
+    }
+
+    public void setTax(String territoryName, int percent) {
+        String key = normalize(territoryName);
+        if (!key.isEmpty()) {
+            int nextTax = clamp(percent, 0, 70);
+            if (territoryTaxes.getOrDefault(key, 0) == nextTax) {
+                return;
+            }
+            territoryTaxes.put(key, nextTax);
+            uncommittedChanges.markTax(key);
+            gameActions.pushTax(cleanTerritoryName(territoryName), nextTax);
+        }
+    }
+
+    public boolean bordersOpen(String territoryName) {
+        return territoryBorders.getOrDefault(normalize(territoryName), false);
+    }
+
+    public void setBordersOpen(String territoryName, boolean open) {
+        String key = normalize(territoryName);
+        if (!key.isEmpty()) {
+            if (territoryBorders.getOrDefault(key, false) == open) {
+                return;
+            }
+            territoryBorders.put(key, open);
+            uncommittedChanges.markBorders(key);
+            gameActions.pushBorders(cleanTerritoryName(territoryName), open);
+        }
+    }
+
+    public TerritoryRoute territoryRoute(String territoryName) {
+        return territoryRoutes.getOrDefault(normalize(territoryName), TerritoryRoute.FASTEST);
+    }
+
+    public void setTerritoryRoute(String territoryName, TerritoryRoute route) {
+        String key = normalize(territoryName);
+        if (!key.isEmpty() && route != null) {
+            if (territoryRoute(territoryName) == route) {
+                return;
+            }
+            territoryRoutes.put(key, route);
+            uncommittedChanges.markRoute(key);
+            gameActions.pushRoute(cleanTerritoryName(territoryName), route);
+        }
+    }
+
+    public void toggleTerritoryRoute(String territoryName) {
+        setTerritoryRoute(territoryName, territoryRoute(territoryName).toggled());
+    }
+
+    public void applyTerritoryRoute(String territoryName) {
+        applyTerritoryRoute(territoryName, territoryRoute(territoryName));
+    }
+
+    public void applyTerritoryRoute(String territoryName, TerritoryRoute route) {
+        String key = normalize(territoryName);
+        if (key.isEmpty() || route == null) {
+            return;
+        }
+
+        gameActions.pushRoute(cleanTerritoryName(territoryName), route);
+    }
+
+    public void receiveStatsFromGame(String territoryName, Map<TerritoryUpgrade, Integer> stats) {
+        String key = normalize(territoryName);
+        if (key.isEmpty() || stats == null) {
+            return;
+        }
+
+        EnumMap<TerritoryUpgrade, Integer> current = mutableStatsFor(key);
+        for (Map.Entry<TerritoryUpgrade, Integer> entry : stats.entrySet()) {
+            TerritoryUpgrade stat = entry.getKey();
+            if (stat == null) {
+                continue;
+            }
+
+            int level = clamp(entry.getValue() == null ? 0 : entry.getValue(), 0, stat.maxLevel());
+            if (uncommittedChanges.hasStat(key, stat)) {
+                if (current.getOrDefault(stat, 0) == level) {
+                    uncommittedChanges.clearStat(key, stat);
+                }
+                continue;
+            }
+            current.put(stat, level);
+        }
+    }
+
+    public void receiveTaxFromGame(String territoryName, int percent) {
+        String key = normalize(territoryName);
         if (key.isEmpty()) {
             return;
         }
-        territoryResourceStores.put(key, new TerritoryResourceStore(current, max));
-    }
 
-    public void setHeadquarterResources(long current) {
-        if (headquarterTerritoryName == null || headquarterTerritoryName.isBlank()) {
+        int tax = clamp(percent, 0, 70);
+        if (uncommittedChanges.hasTax(key)) {
+            if (territoryTaxes.getOrDefault(key, 0) == tax) {
+                uncommittedChanges.clearTax(key);
+            }
             return;
         }
-        territoryResourceStores.put(
-                normalizeTerritoryName(headquarterTerritoryName),
-                new TerritoryResourceStore(current, HEADQUARTER_RESOURCE_CAPACITY)
-        );
+        territoryTaxes.put(key, tax);
     }
 
-    public TerritoryResourceStore resourceStoreFor(String territoryName) {
-        String key = normalizeTerritoryName(territoryName);
-        TerritoryResourceStore stored = territoryResourceStores.getOrDefault(key, TerritoryResourceStore.EMPTY);
-        if (isHeadquarters(territoryName)) {
-            long max = stored.max() > 0L ? stored.max() : HEADQUARTER_RESOURCE_CAPACITY;
-            return new TerritoryResourceStore(stored.current(), max);
-        }
-        return stored;
-    }
-
-    public DamageRange calculateDamage(TerritoryNode territory, int directConnections, int externalConnections) {
-        if (territory == null) {
-            return DamageRange.EMPTY;
+    public void receiveBordersFromGame(String territoryName, boolean open) {
+        String key = normalize(territoryName);
+        if (key.isEmpty()) {
+            return;
         }
 
-        double territoryMultiplier = territoryMultiplier(territory, directConnections, externalConnections);
-        double bonusMultiplier = percentMultiplier(territory, TerritoryUpgrade.DAMAGE);
-        return new DamageRange(
-                1_000.0 * bonusMultiplier * territoryMultiplier,
-                1_500.0 * bonusMultiplier * territoryMultiplier
-        );
-    }
-
-    public double calculateAttackSpeed(TerritoryNode territory) {
-        if (territory == null) {
-            return 0.0;
+        if (uncommittedChanges.hasBorders(key)) {
+            if (territoryBorders.getOrDefault(key, false) == open) {
+                uncommittedChanges.clearBorders(key);
+            }
+            return;
         }
-        return 0.5 * percentMultiplier(territory, TerritoryUpgrade.ATTACK);
+        territoryBorders.put(key, open);
     }
 
-    public double calculateHealth(TerritoryNode territory, int directConnections, int externalConnections) {
-        if (territory == null) {
-            return 0.0;
-        }
-        return 300_000.0 * percentMultiplier(territory, TerritoryUpgrade.HEALTH) * territoryMultiplier(territory, directConnections, externalConnections);
-    }
-
-    public double calculateDefense(TerritoryNode territory) {
-        if (territory == null) {
-            return 0.0;
-        }
-        return 0.1 * percentMultiplier(territory, TerritoryUpgrade.DEFENSE);
-    }
-
-    public double calculateAura(TerritoryNode territory) {
-        return territory == null ? 0.0 : upgradeBonus(territory, TerritoryUpgrade.TOWER_AURA);
-    }
-
-    public double calculateVolley(TerritoryNode territory) {
-        return territory == null ? 0.0 : upgradeBonus(territory, TerritoryUpgrade.TOWER_VOLLEY);
-    }
-
-    public double calculateAverageDps(TerritoryNode territory, int directConnections, int externalConnections) {
-        if (territory == null) {
-            return 0.0;
-        }
-        return calculateDamage(territory, directConnections, externalConnections).average() * calculateAttackSpeed(territory);
-    }
-
-    public double calculateEffectiveHealth(TerritoryNode territory, int directConnections, int externalConnections) {
-        if (territory == null) {
-            return 0.0;
+    public void receiveRouteFromGame(String territoryName, TerritoryRoute route) {
+        String key = normalize(territoryName);
+        if (key.isEmpty() || route == null) {
+            return;
         }
 
-        double defense = calculateDefense(territory);
-        if (defense >= 1.0) {
-            return Double.POSITIVE_INFINITY;
+        if (uncommittedChanges.hasRoute(key)) {
+            if (territoryRoute(territoryName) == route) {
+                uncommittedChanges.clearRoute(key);
+            }
+            return;
         }
-        return calculateHealth(territory, directConnections, externalConnections) / (1.0 - defense);
+        territoryRoutes.put(key, route);
     }
 
-    public double calculateResourceGainPerHour(TerritoryNode territory) {
-        if (territory == null) {
-            return 0.0;
+    public void receiveHeadquartersFromGame(String territoryName) {
+        String cleaned = cleanTerritoryName(territoryName);
+        String key = normalize(cleaned);
+        if (uncommittedChanges.hasHeadquarters()) {
+            if (uncommittedChanges.headquarters().equals(key)) {
+                uncommittedChanges.clearHeadquarters();
+            }
+            return;
         }
-        return calculateProducedResourcesPerHour(territory).materialTotal();
+        headquartersTerritoryName = cleaned.isEmpty() ? null : cleaned;
     }
 
-    public double calculateEmeraldGainPerHour(TerritoryNode territory) {
-        if (territory == null) {
-            return 0.0;
+    public void pushUncommittedChanges() {
+        uncommittedChanges.stats().forEach((territoryKey, stats) -> {
+            EnumMap<TerritoryUpgrade, Integer> current = mutableStatsFor(territoryKey);
+            for (TerritoryUpgrade stat : stats) {
+                gameActions.pushStat(territoryKey, stat, current.getOrDefault(stat, 0));
+            }
+        });
+        for (String territoryKey : uncommittedChanges.taxes()) {
+            gameActions.pushTax(territoryKey, territoryTaxes.getOrDefault(territoryKey, 0));
         }
-        return calculateProducedResourcesPerHour(territory).emeralds();
+        for (String territoryKey : uncommittedChanges.borders()) {
+            gameActions.pushBorders(territoryKey, territoryBorders.getOrDefault(territoryKey, false));
+        }
+        for (String territoryKey : uncommittedChanges.routes()) {
+            gameActions.pushRoute(territoryKey, territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST));
+        }
+        if (uncommittedChanges.hasHeadquarters()) {
+            gameActions.pushHeadquarters(uncommittedChanges.headquarters());
+        }
     }
 
-    public Resources calculateProducedResourcesPerHour(TerritoryNode territory) {
-        if (territory == null) {
-            return Resources.EMPTY;
+    private TerritoryLoadout findLoadout(String loadoutName) {
+        String key = normalize(loadoutName);
+        for (TerritoryLoadout loadout : LOADOUTS) {
+            if (normalize(loadout.name()).equals(key)) {
+                return loadout;
+            }
         }
-
-        Resources base = territory.resources();
-        return new Resources(
-                roundProductionPerHour(base.emeralds(), territory, TerritoryUpgrade.EMERALD_RATE, TerritoryUpgrade.EFFICIENT_EMERALDS),
-                roundProductionPerHour(base.ore(), territory, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.crops(), territory, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.fish(), territory, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.wood(), territory, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES)
-        );
+        return null;
     }
 
-    public long calculateResourceCostPerHour(TerritoryNode territory) {
-        if (territory == null) {
-            return 0L;
+    private void forEachTerritory(Collection<String> territoryNames, Consumer<String> action) {
+        if (territoryNames == null) {
+            return;
         }
 
-        long total = 0L;
+        for (String territoryName : territoryNames) {
+            String key = normalize(territoryName);
+            if (!key.isEmpty()) {
+                action.accept(key);
+            }
+        }
+    }
+
+    private EnumMap<TerritoryUpgrade, Integer> mutableStatsFor(String territoryName) {
+        return territoryStats.computeIfAbsent(normalize(territoryName), ignored -> blankStats());
+    }
+
+    private EnumMap<TerritoryUpgrade, Integer> blankStats() {
+        EnumMap<TerritoryUpgrade, Integer> stats = new EnumMap<>(TerritoryUpgrade.class);
         for (TerritoryUpgrade upgrade : TerritoryUpgrade.values()) {
-            total += upgrade.cost(upgradeLevel(territory.name(), upgrade));
+            stats.put(upgrade, 0);
         }
-        return total;
+        return stats;
     }
 
-    public ResourceFlowState summarizeResourceFlow(Collection<TerritoryNode> territories) {
-        double resourceGain = 0.0;
-        double emeraldGain = 0.0;
-        long resourceLoss = 0L;
-
-        for (TerritoryNode territory : territories) {
-            resourceGain += calculateResourceGainPerHour(territory);
-            emeraldGain += calculateEmeraldGainPerHour(territory);
-            resourceLoss += calculateResourceCostPerHour(territory);
-        }
-
-        TerritoryResourceStore headquarterStore = resourceStoreFor(headquarterTerritoryName);
-        double usagePercent = resourceGain <= 0.0 ? 0.0 : resourceLoss / resourceGain * 100.0;
-        return new ResourceFlowState(
-                headquarterTerritoryName,
-                headquarterStore.current(),
-                headquarterStore.max(),
-                resourceGain,
-                resourceLoss,
-                emeraldGain,
-                usagePercent
-        );
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
-    private EnumMap<TerritoryUpgrade, Integer> mutableUpgradesFor(String territoryName) {
-        return territoryUpgrades.computeIfAbsent(normalizeTerritoryName(territoryName), ignored -> new EnumMap<>(TerritoryUpgrade.class));
-    }
-
-    private int clampLevel(TerritoryUpgrade upgrade, int level) {
-        return Math.max(0, Math.min(level, upgrade.maxLevel()));
-    }
-
-    private double territoryMultiplier(TerritoryNode territory, int directConnections, int externalConnections) {
-        double connectionMultiplier = 1.0 + (0.3 * directConnections);
-        if (isHeadquarters(territory.name())) {
-            return connectionMultiplier * (1.5 + (0.25 * externalConnections));
-        }
-        return connectionMultiplier;
-    }
-
-    private double upgradeBonus(TerritoryNode territory, TerritoryUpgrade upgrade) {
-        return upgrade.bonus(upgradeLevel(territory.name(), upgrade));
-    }
-
-    private double percentMultiplier(TerritoryNode territory, TerritoryUpgrade upgrade) {
-        return 1.0 + (upgradeBonus(territory, upgrade) / 100.0);
-    }
-
-    private double calculateProductionPerHour(int basePerHour, TerritoryNode territory, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
-        if (basePerHour <= 0 || territory == null) {
-            return 0.0;
-        }
-
-        double basePerProduction = basePerHour / 900.0;
-        double secondsPerProduction = Math.max(1.0, upgradeBonus(territory, rateUpgrade));
-        double efficientMultiplier = 1.0 + (upgradeBonus(territory, efficientUpgrade) / 100.0);
-        return basePerProduction * (3600.0 / secondsPerProduction) * efficientMultiplier;
-    }
-
-    private int roundProductionPerHour(int basePerHour, TerritoryNode territory, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
-        return (int) Math.round(calculateProductionPerHour(basePerHour, territory, rateUpgrade, efficientUpgrade));
-    }
-
-    private String normalizeTerritoryName(String territoryName) {
+    private String normalize(String territoryName) {
         return territoryName == null ? "" : territoryName.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String cleanTerritoryName(String territoryName) {
+        return territoryName == null ? "" : territoryName.trim();
     }
 }

@@ -1,6 +1,7 @@
-package org.nia.niamod.models.gui.territory;
+package org.nia.niamod.models.territory;
 
 public enum ResourceKind {
+    EMERALDS("Emeralds"),
     CROPS("Crops"),
     WOOD("Wood"),
     ORE("Ore"),

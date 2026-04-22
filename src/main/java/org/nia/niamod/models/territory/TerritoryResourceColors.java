@@ -1,10 +1,9 @@
-package org.nia.niamod.models.gui.territory;
+package org.nia.niamod.models.territory;
 
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.render.Render2D;
 
 public final class TerritoryResourceColors {
-    public static final String CITY_EMOJI = "\uD83D\uDCB5";
     private static final int HEADQUARTER_COLOR = 0xFFD4AF37;
 
     private TerritoryResourceColors() {
@@ -20,6 +19,7 @@ public final class TerritoryResourceColors {
 
     public static int configuredColor(ResourceKind kind) {
         return switch (kind) {
+            case EMERALDS -> cityColor();
             case CROPS -> 0xFF000000 | NyahConfig.getData().getEcoCropsColor();
             case WOOD -> 0xFF000000 | NyahConfig.getData().getEcoWoodColor();
             case ORE, ALL -> 0xFF000000 | NyahConfig.getData().getEcoOreColor();

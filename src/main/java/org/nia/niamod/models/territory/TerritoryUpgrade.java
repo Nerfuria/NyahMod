@@ -1,7 +1,10 @@
-package org.nia.niamod.models.gui.territory;
+package org.nia.niamod.models.territory;
+
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 public enum TerritoryUpgrade {
-    DAMAGE(new Level[]{
+    DAMAGE(Items.IRON_SWORD, ResourceKind.ORE, new Level[]{
             new Level(0L, 0.0),
             new Level(100L, 40.0),
             new Level(300L, 80.0),
@@ -15,7 +18,7 @@ public enum TerritoryUpgrade {
             new Level(19200L, 400.0),
             new Level(22800L, 440.0)
     }),
-    ATTACK(new Level[]{
+    ATTACK(Items.RABBIT_HIDE, ResourceKind.CROPS, new Level[]{
             new Level(0L, 0.0),
             new Level(100L, 50.0),
             new Level(300L, 100.0),
@@ -29,7 +32,7 @@ public enum TerritoryUpgrade {
             new Level(19200L, 740.0),
             new Level(22800L, 840.0)
     }),
-    HEALTH(new Level[]{
+    HEALTH(Items.FERMENTED_SPIDER_EYE, ResourceKind.WOOD, new Level[]{
             new Level(0L, 0.0),
             new Level(100L, 50.0),
             new Level(300L, 100.0),
@@ -43,7 +46,7 @@ public enum TerritoryUpgrade {
             new Level(19200L, 880.0),
             new Level(22800L, 1000.0)
     }),
-    DEFENSE(new Level[]{
+    DEFENSE(Items.SHIELD, ResourceKind.FISH, new Level[]{
             new Level(0L, 0.0),
             new Level(100L, 300.0),
             new Level(300L, 450.0),
@@ -57,30 +60,30 @@ public enum TerritoryUpgrade {
             new Level(19200L, 780.0),
             new Level(22800L, 800.0)
     }),
-    TOWER_AURA(new Level[]{
+    TOWER_AURA(Items.ENDER_PEARL, ResourceKind.CROPS, new Level[]{
             new Level(0L, 0.0),
             new Level(800L, 24.0),
             new Level(1600L, 18.0),
             new Level(3200L, 12.0)
     }),
-    TOWER_VOLLEY(new Level[]{
+    TOWER_VOLLEY(Items.FIRE_CHARGE, ResourceKind.ORE, new Level[]{
             new Level(0L, 0.0),
             new Level(200L, 20.0),
             new Level(400L, 15.0),
             new Level(800L, 10.0)
     }),
-    STRONGER_MINIONS(new Level[]{
+    STRONGER_MINIONS(Items.SKELETON_SKULL, ResourceKind.WOOD, new Level[]{
             new Level(0L, 0.0),
             new Level(200L, 150.0),
             new Level(400L, 200.0),
             new Level(800L, 250.0),
             new Level(1600L, 300.0)
     }),
-    TOWER_MULTI_ATTACKS(new Level[]{
+    TOWER_MULTI_ATTACKS(Items.ARROW, ResourceKind.FISH, new Level[]{
             new Level(0L, 1.0),
             new Level(4800L, 2.0)
     }),
-    GATHERING_EXPERIENCE(new Level[]{
+    GATHERING_EXPERIENCE(Items.CARROT, ResourceKind.WOOD, new Level[]{
             new Level(0L, 0.0),
             new Level(600L, 10.0),
             new Level(1300L, 20.0),
@@ -91,7 +94,7 @@ public enum TerritoryUpgrade {
             new Level(10000L, 80.0),
             new Level(20000L, 100.0)
     }),
-    MOB_EXPERIENCE(new Level[]{
+    MOB_EXPERIENCE(Items.SUNFLOWER, ResourceKind.FISH, new Level[]{
             new Level(0L, 0.0),
             new Level(600L, 10.0),
             new Level(1200L, 20.0),
@@ -102,7 +105,7 @@ public enum TerritoryUpgrade {
             new Level(10000L, 80.0),
             new Level(20000L, 100.0)
     }),
-    MOB_DAMAGE(new Level[]{
+    MOB_DAMAGE(Items.STONE_SWORD, ResourceKind.CROPS, new Level[]{
             new Level(0L, 0.0),
             new Level(600L, 10.0),
             new Level(1200L, 20.0),
@@ -113,7 +116,7 @@ public enum TerritoryUpgrade {
             new Level(10000L, 160.0),
             new Level(20000L, 200.0)
     }),
-    PVP_DAMAGE(new Level[]{
+    PVP_DAMAGE(Items.GOLDEN_SWORD, ResourceKind.ORE, new Level[]{
             new Level(0L, 0.0),
             new Level(600L, 5.0),
             new Level(1200L, 10.0),
@@ -124,7 +127,7 @@ public enum TerritoryUpgrade {
             new Level(10000L, 65.0),
             new Level(20000L, 80.0)
     }),
-    XP_SEEKING(new Level[]{
+    XP_SEEKING(Items.GLOWSTONE_DUST, ResourceKind.EMERALDS, new Level[]{
             new Level(0L, 0.0),
             new Level(100L, 36000.0),
             new Level(200L, 66000.0),
@@ -136,13 +139,13 @@ public enum TerritoryUpgrade {
             new Level(9600L, 2580000.0),
             new Level(12800L, 3360000.0)
     }),
-    TOME_SEEKING(new Level[]{
+    TOME_SEEKING(Items.ENCHANTED_BOOK, ResourceKind.FISH, new Level[]{
             new Level(0L, 0.0),
             new Level(400L, 0.15),
             new Level(3200L, 1.2),
             new Level(6400L, 2.4)
     }),
-    EMERALD_SEEKING(new Level[]{
+    EMERALD_SEEKING(Items.EMERALD_ORE, ResourceKind.WOOD, new Level[]{
             new Level(0L, 0.0),
             new Level(200L, 0.3),
             new Level(800L, 3.0),
@@ -150,7 +153,7 @@ public enum TerritoryUpgrade {
             new Level(3200L, 12.0),
             new Level(6400L, 24.0)
     }),
-    RESOURCE_STORAGE(new Level[]{
+    RESOURCE_STORAGE(Items.BREAD, ResourceKind.EMERALDS, new Level[]{
             new Level(0L, 0.0),
             new Level(400L, 100.0),
             new Level(800L, 300.0),
@@ -159,7 +162,7 @@ public enum TerritoryUpgrade {
             new Level(16000L, 3300.0),
             new Level(48000L, 7900.0)
     }),
-    EMERALD_STORAGE(new Level[]{
+    EMERALD_STORAGE(Items.EMERALD_BLOCK, ResourceKind.WOOD, new Level[]{
             new Level(0L, 0.0),
             new Level(200L, 100.0),
             new Level(400L, 300.0),
@@ -168,7 +171,7 @@ public enum TerritoryUpgrade {
             new Level(8000L, 3300.0),
             new Level(24000L, 7900.0)
     }),
-    EFFICIENT_RESOURCES(new Level[]{
+    EFFICIENT_RESOURCES(Items.GOLDEN_PICKAXE, ResourceKind.EMERALDS, new Level[]{
             new Level(0L, 0.0),
             new Level(6000L, 50.0),
             new Level(12000L, 100.0),
@@ -177,28 +180,32 @@ public enum TerritoryUpgrade {
             new Level(96000L, 250.0),
             new Level(192000L, 300.0)
     }),
-    RESOURCE_RATE(new Level[]{
+    RESOURCE_RATE(Items.MUSHROOM_STEM, ResourceKind.EMERALDS, new Level[]{
             new Level(0L, 4.0),
             new Level(6000L, 3.0),
             new Level(18000L, 2.0),
             new Level(32000L, 1.0)
     }),
-    EFFICIENT_EMERALDS(new Level[]{
+    EFFICIENT_EMERALDS(Items.EMERALD, ResourceKind.ORE, new Level[]{
             new Level(0L, 0.0),
             new Level(2000L, 35.0),
             new Level(8000L, 100.0),
             new Level(32000L, 300.0)
     }),
-    EMERALD_RATE(new Level[]{
+    EMERALD_RATE(Items.EXPERIENCE_BOTTLE, ResourceKind.CROPS, new Level[]{
             new Level(0L, 4.0),
             new Level(2000L, 3.0),
             new Level(8000L, 2.0),
             new Level(32000L, 1.0)
     });
 
+    private final Item iconItem;
+    private final ResourceKind costResource;
     private final Level[] levels;
 
-    TerritoryUpgrade(Level[] levels) {
+    TerritoryUpgrade(Item iconItem, ResourceKind costResource, Level[] levels) {
+        this.iconItem = iconItem;
+        this.costResource = costResource;
         this.levels = levels;
     }
 
@@ -243,6 +250,14 @@ public enum TerritoryUpgrade {
 
     public long cost(int level) {
         return level(level).cost();
+    }
+
+    public ResourceKind costResource() {
+        return costResource;
+    }
+
+    public Item iconItem() {
+        return iconItem;
     }
 
     public Level[] levels() {

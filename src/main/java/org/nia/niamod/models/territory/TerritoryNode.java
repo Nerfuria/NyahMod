@@ -1,4 +1,4 @@
-package org.nia.niamod.models.gui.territory;
+package org.nia.niamod.models.territory;
 
 import java.util.List;
 
@@ -52,6 +52,6 @@ public record TerritoryNode(
     }
 
     public String tag() {
-        return isCity() ? TerritoryResourceColors.CITY_EMOJI : resourceKind().label();
+        return resourceKind().label();
     }
 }

@@ -3,11 +3,13 @@ package org.nia.niamod.models.gui.component;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
-import org.nia.niamod.models.gui.territory.TerritoryNode;
-import org.nia.niamod.models.gui.territory.TerritoryResourceColors;
+import org.nia.niamod.models.territory.TerritoryNode;
+import org.nia.niamod.models.territory.TerritoryResourceColors;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -16,16 +18,16 @@ import java.util.function.Consumer;
 public class TerritoryWidget {
     public static final int CLIP_PADDING = 8;
 
-    private static final int CONNECTION_DASH = 11;
-    private static final int CONNECTION_GAP = 7;
     private static final int BORDER_DASH = 7;
     private static final int BORDER_GAP = 5;
     private static final int MAX_BORDER_DASHES_PER_SIDE = 6;
     private static final int LABEL_PADDING = 4;
     private static final double MARQUEE_PIXELS_PER_SECOND = 34.0;
     private static final long MARQUEE_PAUSE_MILLIS = 450L;
+    private static final ItemStack CITY_ICON = new ItemStack(Items.EMERALD);
 
     private final TerritoryNode territory;
+    private final boolean owned;
     private final Consumer<TerritoryWidget> selectionHandler;
     private UiRect bounds = new UiRect(0, 0, 1, 1);
     private int cachedNameMaxWidth = -1;
@@ -36,9 +38,17 @@ public class TerritoryWidget {
     private boolean hoveredLastFrame;
     private long hoverStartedAt;
 
-    public TerritoryWidget(TerritoryNode territory, Consumer<TerritoryWidget> selectionHandler) {
+    public TerritoryWidget(TerritoryNode territory, boolean owned, Consumer<TerritoryWidget> selectionHandler) {
         this.territory = territory;
+        this.owned = owned;
         this.selectionHandler = selectionHandler;
+    }
+
+    public static boolean intersects(UiRect rect, UiRect canvas, int padding) {
+        return rect.right() >= canvas.x() - padding
+                && rect.x() <= canvas.right() + padding
+                && rect.bottom() >= canvas.y() - padding
+                && rect.y() <= canvas.bottom() + padding;
     }
 
     public TerritoryNode territory() {
@@ -53,13 +63,22 @@ public class TerritoryWidget {
         return bounds;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters) {
+    public boolean owned() {
+        return owned;
+    }
+
+    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected) {
         if (!intersects(bounds, canvas, CLIP_PADDING)) {
             return;
         }
 
+        if (!owned) {
+            drawForeignTerritory(g, canvas);
+            return;
+        }
+
         boolean hovered = contains(mouseX, mouseY);
-        int fillAlpha = headquarters || territory.isRainbow() ? hovered ? 245 : 220 : hovered ? 62 : 42;
+        int fillAlpha = hovered ? 62 : 42;
         int borderAlpha = headquarters || territory.isRainbow() ? 255 : hovered ? 245 : 215;
 
         if (headquarters) {
@@ -70,17 +89,29 @@ public class TerritoryWidget {
             Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(territory.resourceColor(), fillAlpha));
         }
 
-        if (territory.heldUnderTenMinutes(now)) {
+        if (selected) {
+            int selectedAlpha = (int) Math.round(170 + Math.sin(System.currentTimeMillis() / 115.0) * 55);
+            double phase = System.currentTimeMillis() / 42.0;
+            if (headquarters) {
+                int color = Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), selectedAlpha);
+                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
+            } else if (territory.isRainbow()) {
+                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), selectedAlpha));
+            } else {
+                int color = Render2D.withAlpha(territory.resourceColor(), selectedAlpha);
+                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
+            }
+        } else if (territory.heldUnderTenMinutes(now)) {
             int flashAlpha = (int) Math.round(138 + Math.sin(System.currentTimeMillis() / 135.0) * 72);
             double phase = System.currentTimeMillis() / 62.0;
             if (headquarters) {
                 int color = Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), flashAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> color);
+                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> color);
             } else if (territory.isRainbow()) {
-                drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), flashAlpha));
+                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), flashAlpha));
             } else {
                 int color = Render2D.withAlpha(territory.resourceColor(), flashAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, (distance, length) -> color);
+                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> color);
             }
         } else if (headquarters) {
             drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), borderAlpha), 2);
@@ -95,10 +126,13 @@ public class TerritoryWidget {
         }
         hoveredLastFrame = hovered;
         drawLabels(g, font, theme, canvas, hovered, now, headquarters);
+        if (territory.isCity()) {
+            drawCityMarker(g, canvas);
+        }
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && contains(mouseX, mouseY)) {
+        if (owned && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && contains(mouseX, mouseY)) {
             selectionHandler.accept(this);
             return true;
         }
@@ -113,11 +147,9 @@ public class TerritoryWidget {
         return bounds.y() + bounds.height() / 2.0;
     }
 
-    public static boolean intersects(UiRect rect, UiRect canvas, int padding) {
-        return rect.right() >= canvas.x() - padding
-                && rect.x() <= canvas.right() + padding
-                && rect.bottom() >= canvas.y() - padding
-                && rect.y() <= canvas.bottom() + padding;
+    private void drawForeignTerritory(GuiGraphics g, UiRect canvas) {
+        Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(0x000000, 120));
+        drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(0x000000, 235), 2);
     }
 
     private void drawLabels(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, boolean hovered, long now, boolean headquarters) {
@@ -141,15 +173,29 @@ public class TerritoryWidget {
         }
 
         String fittedTag = fit(font, territory.tag(), labelW);
-        Component tagText = territory.isCity() ? Component.literal(fittedTag) : NiaClickGuiScreen.styled(fittedTag);
+        Component tagText = NiaClickGuiScreen.styled(fittedTag);
         int tagWidth = font.width(tagText);
         int tagX = labelX + (labelW - tagWidth) / 2;
         int tagColor = headquarters
                 ? TerritoryResourceColors.headquarterColor()
-                : territory.isCity()
-                ? TerritoryResourceColors.cityColor()
                 : territory.isRainbow() ? TerritoryResourceColors.rainbowColor(0.72, 255) : Render2D.withAlpha(territory.resourceColor(), 255);
         drawClippedText(g, font, tagText, tagX, nameY + font.lineHeight + 2, tagColor, clip);
+    }
+
+    private void drawCityMarker(GuiGraphics g, UiRect canvas) {
+        UiRect clip = intersection(bounds, canvas);
+        if (clip == null) {
+            return;
+        }
+
+        int iconX = bounds.width() >= 18 ? bounds.right() - 17 : bounds.centerX() - 8;
+        int iconY = bounds.height() >= 18 ? bounds.y() + 1 : bounds.centerY() - 8;
+        g.enableScissor(clip.x(), clip.y(), clip.right(), clip.bottom());
+        try {
+            g.renderItem(CITY_ICON, iconX, iconY);
+        } finally {
+            g.disableScissor();
+        }
     }
 
     private void drawMarqueeName(GuiGraphics g, Font font, int labelX, int nameY, int labelW, int nameWidth, int textColor, long now, UiRect clip) {
@@ -230,7 +276,7 @@ public class TerritoryWidget {
         return fullNameWidth;
     }
 
-    private boolean contains(double mouseX, double mouseY) {
+    public boolean contains(double mouseX, double mouseY) {
         return mouseX >= bounds.x() && mouseX <= bounds.right() && mouseY >= bounds.y() && mouseY <= bounds.bottom();
     }
 
@@ -267,11 +313,11 @@ public class TerritoryWidget {
         Render2D.clippedRect(g, bounds.right() - thickness, bounds.y() + thickness, bounds.right(), bounds.bottom() - thickness, canvas, TerritoryResourceColors.rainbowColor(1.0, alpha));
     }
 
-    private void drawDashedBorder(GuiGraphics g, UiRect bounds, UiRect canvas, double phase, Render2D.DashColorProvider colorProvider) {
-        Render2D.dashedLineClipped(g, bounds.x(), bounds.y(), bounds.right(), bounds.y(), canvas, 1, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
-        Render2D.dashedLineClipped(g, bounds.right(), bounds.y(), bounds.right(), bounds.bottom(), canvas, 1, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
-        Render2D.dashedLineClipped(g, bounds.right(), bounds.bottom(), bounds.x(), bounds.bottom(), canvas, 1, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
-        Render2D.dashedLineClipped(g, bounds.x(), bounds.bottom(), bounds.x(), bounds.y(), canvas, 1, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
+    private void drawDashedBorder(GuiGraphics g, UiRect bounds, UiRect canvas, double phase, int thickness, Render2D.DashColorProvider colorProvider) {
+        Render2D.dashedLineClipped(g, bounds.x(), bounds.y(), bounds.right(), bounds.y(), canvas, thickness, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
+        Render2D.dashedLineClipped(g, bounds.right(), bounds.y(), bounds.right(), bounds.bottom(), canvas, thickness, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
+        Render2D.dashedLineClipped(g, bounds.right(), bounds.bottom(), bounds.x(), bounds.bottom(), canvas, thickness, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
+        Render2D.dashedLineClipped(g, bounds.x(), bounds.bottom(), bounds.x(), bounds.y(), canvas, thickness, phase, BORDER_DASH, BORDER_GAP, MAX_BORDER_DASHES_PER_SIDE, colorProvider);
     }
 
     private void drawRainbowFill(GuiGraphics g, UiRect bounds, UiRect canvas, int alpha) {
@@ -315,11 +361,4 @@ public class TerritoryWidget {
         return result < 0 ? result + modulo : result;
     }
 
-    public static int connectionDashLength() {
-        return CONNECTION_DASH;
-    }
-
-    public static int connectionGapLength() {
-        return CONNECTION_GAP;
-    }
 }

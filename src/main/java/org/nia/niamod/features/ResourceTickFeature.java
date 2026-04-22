@@ -120,7 +120,8 @@ public class ResourceTickFeature extends Feature {
 
         int secondsSinceResTick = (int) java.time.Duration.between(lastResTick, Instant.now()).getSeconds();
 
-        return 60 - (secondsSinceResTick % 60);
+        int secondsUntilNextTick = 60 - (secondsSinceResTick % 60);
+        return secondsUntilNextTick == 60 ? 0 : secondsUntilNextTick;
     }
 
     @Safe

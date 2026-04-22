@@ -411,11 +411,6 @@ public class Render2D {
         return new double[]{t0, t1};
     }
 
-    @FunctionalInterface
-    public interface DashColorProvider {
-        int color(double distance, double length);
-    }
-
     public static void shaderRoundedRect(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
         if (!submitGuiShaderRect(g, NiaPipelines.GUI_ROUNDED_RECT, x, y, w, h, color, radius, 0)) {
             roundedRect(g, x, y, w, h, radius, color);
@@ -654,5 +649,10 @@ public class Render2D {
             return scissorState.niamod$getCurrentScissorArea();
         }
         return null;
+    }
+
+    @FunctionalInterface
+    public interface DashColorProvider {
+        int color(double distance, double length);
     }
 }
