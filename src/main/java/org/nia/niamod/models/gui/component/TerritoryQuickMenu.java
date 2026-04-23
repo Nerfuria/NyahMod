@@ -34,10 +34,10 @@ public class TerritoryQuickMenu {
     private static final List<TerritoryUpgrade> STORAGE_UPGRADES = UpgradeGroups.storage();
     private static final List<TerritoryUpgrade> MAIN_UPGRADES = UpgradeGroups.quickMenu();
     private static final int UPGRADE_ROWS = Math.max(1, (MAIN_UPGRADES.size() + UPGRADE_COLUMNS - 1) / UPGRADE_COLUMNS);
+    private static final int GAP = 2;
     private static final int GRID_H = TILE_H * UPGRADE_ROWS + GAP * (UPGRADE_ROWS - 1);
     private static final int HEIGHT = GRID_H;
     private static final int SIDE_W = 48;
-    private static final int GAP = 2;
     private static final int PANEL_GAP = 3;
     private static final int GRID_W = TILE_W * UPGRADE_COLUMNS + GAP * (UPGRADE_COLUMNS - 1);
     private static final int WIDTH = STORAGE_TILE_W + GRID_W + PANEL_GAP + SIDE_W;
