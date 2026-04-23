@@ -1,4 +1,4 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 import java.util.List;
 

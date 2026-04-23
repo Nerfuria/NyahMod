@@ -2,53 +2,79 @@ package org.nia.niamod.features;
 
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
-import org.nia.niamod.features.eco.EcoLoadouts;
-import org.nia.niamod.features.eco.EcoGameActions;
-import org.nia.niamod.features.eco.EcoUncommittedChanges;
+import org.nia.niamod.features.eco.ActionQueue;
+import org.nia.niamod.features.eco.GameActions;
+import org.nia.niamod.features.eco.GuiActions;
+import org.nia.niamod.features.eco.Loadouts;
+import org.nia.niamod.features.eco.UncommittedChanges;
 import org.nia.niamod.managers.KeybindManager;
-import org.nia.niamod.models.gui.screens.EcoManagerScreen;
-import org.nia.niamod.models.territory.TerritoryLoadout;
-import org.nia.niamod.models.territory.TerritoryRoute;
-import org.nia.niamod.models.territory.TerritoryUpgrade;
+import org.nia.niamod.managers.Scheduler;
+import org.nia.niamod.models.eco.*;
+import org.nia.niamod.models.gui.screens.TerritoryManagerScreen;
 import org.nia.niamod.models.misc.Feature;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class EcoMenuFeature extends Feature {
-    private static final List<TerritoryLoadout> LOADOUTS = EcoLoadouts.defaults();
+public class TerritoryManagerFeature extends Feature {
+    private static final int GAME_ACTION_INTERVAL_TICKS = 10;
 
-    private final EcoGameActions gameActions;
-    private final EcoUncommittedChanges uncommittedChanges = new EcoUncommittedChanges();
+    private final GameActions gameActions;
+    private final ActionQueue gameActionQueue = new ActionQueue();
+    private final List<TerritoryLoadout> loadouts;
+    private final UncommittedChanges uncommittedChanges = new UncommittedChanges();
     private final Map<String, EnumMap<TerritoryUpgrade, Integer>> territoryStats = new HashMap<>();
     private final Map<String, String> territoryLoadouts = new HashMap<>();
     private final Map<String, Integer> territoryTaxes = new HashMap<>();
     private final Map<String, Boolean> territoryBorders = new HashMap<>();
     private final Map<String, TerritoryRoute> territoryRoutes = new HashMap<>();
+    private final Map<String, String> territoryNamesByKey = new HashMap<>();
     private String headquartersTerritoryName;
 
-    public EcoMenuFeature() {
-        this(new EcoGameActions());
+    public TerritoryManagerFeature() {
+        this(new GameActions());
     }
 
-    public EcoMenuFeature(EcoGameActions gameActions) {
-        this.gameActions = gameActions == null ? new EcoGameActions() : gameActions;
+    public TerritoryManagerFeature(GameActions gameActions) {
+        this.gameActions = gameActions == null ? new GameActions() : gameActions;
+        this.loadouts = loadLoadouts(this.gameActions);
     }
 
     @Override
     public void init() {
-        KeybindManager.registerKeybinding("Open Eco Menu", GLFW.GLFW_KEY_DOWN, safeRunnable("open_screen", this::openScreen));
+        KeybindManager.registerKeybinding("Open Territory Manager", GLFW.GLFW_KEY_DOWN, safeRunnable("open_screen", this::openScreen));
+        Scheduler.scheduleRepeating(
+                safeRunnable("drain_game_action_queue", this::drainGameActionQueue),
+                GAME_ACTION_INTERVAL_TICKS,
+                GAME_ACTION_INTERVAL_TICKS,
+                this::isDisabled
+        );
     }
 
     private void openScreen() {
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.setScreen(new EcoManagerScreen(minecraft.screen, this));
+        minecraft.setScreen(new TerritoryManagerScreen(minecraft.screen, this));
+    }
+
+    private void drainGameActionQueue() {
+        gameActionQueue.drainNext(gameActions);
+    }
+
+    private void queueGameChange(GameChange change) {
+        gameActionQueue.enqueue(change);
+    }
+
+    private List<TerritoryLoadout> loadLoadouts(GameActions actions) {
+        List<TerritoryLoadout> loaded = actions.loadLoadouts();
+        return loaded == null || loaded.isEmpty() ? Loadouts.defaults() : List.copyOf(loaded);
     }
 
     public void requestStats(Collection<String> territoryNames) {
@@ -56,12 +82,12 @@ public class EcoMenuFeature extends Feature {
     }
 
     public Map<TerritoryUpgrade, Integer> statsFor(String territoryName) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         return Collections.unmodifiableMap(new EnumMap<>(key.isEmpty() ? blankStats() : mutableStatsFor(key)));
     }
 
     public int statLevel(String territoryName, TerritoryUpgrade stat) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         return stat == null || key.isEmpty() ? 0 : mutableStatsFor(key).getOrDefault(stat, 0);
     }
 
@@ -70,7 +96,7 @@ public class EcoMenuFeature extends Feature {
             return;
         }
 
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (!key.isEmpty()) {
             int nextLevel = clamp(level, 0, stat.maxLevel());
             EnumMap<TerritoryUpgrade, Integer> stats = mutableStatsFor(key);
@@ -80,7 +106,7 @@ public class EcoMenuFeature extends Feature {
             stats.put(stat, nextLevel);
             territoryLoadouts.remove(key);
             uncommittedChanges.markStat(key, stat);
-            gameActions.pushStat(cleanTerritoryName(territoryName), stat, nextLevel);
+            queueGameChange(new StatChange(territoryNameForKey(key), stat, nextLevel));
         }
     }
 
@@ -88,12 +114,16 @@ public class EcoMenuFeature extends Feature {
         setStat(territoryName, stat, statLevel(territoryName, stat) + delta);
     }
 
+    public GuiActions actionsFor(String territoryName) {
+        return new GuiActions(this, territoryName);
+    }
+
     public List<TerritoryLoadout> loadouts() {
-        return LOADOUTS;
+        return loadouts;
     }
 
     public String loadoutFor(String territoryName) {
-        return territoryLoadouts.getOrDefault(normalize(territoryName), "");
+        return territoryLoadouts.getOrDefault(keyFor(territoryName), "");
     }
 
     public boolean applyLoadout(String loadoutName, Collection<String> territoryNames) {
@@ -122,7 +152,7 @@ public class EcoMenuFeature extends Feature {
             territoryLoadouts.put(key, loadout.name());
             uncommittedChanges.markAllStats(key);
         });
-        gameActions.applyLoadout(loadout, targets);
+        queueGameChange(new LoadoutChange(loadout, targets));
         return true;
     }
 
@@ -132,9 +162,10 @@ public class EcoMenuFeature extends Feature {
             return;
         }
 
+        keyFor(cleaned);
         headquartersTerritoryName = cleaned;
         uncommittedChanges.markHeadquarters(normalize(cleaned));
-        gameActions.pushHeadquarters(cleaned);
+        queueGameChange(new HeadquartersChange(cleaned));
     }
 
     public boolean isHeadquarters(String territoryName) {
@@ -143,11 +174,11 @@ public class EcoMenuFeature extends Feature {
     }
 
     public int tax(String territoryName) {
-        return territoryTaxes.getOrDefault(normalize(territoryName), 0);
+        return territoryTaxes.getOrDefault(keyFor(territoryName), 0);
     }
 
     public void setTax(String territoryName, int percent) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (!key.isEmpty()) {
             int nextTax = clamp(percent, 0, 70);
             if (territoryTaxes.getOrDefault(key, 0) == nextTax) {
@@ -155,39 +186,66 @@ public class EcoMenuFeature extends Feature {
             }
             territoryTaxes.put(key, nextTax);
             uncommittedChanges.markTax(key);
-            gameActions.pushTax(cleanTerritoryName(territoryName), nextTax);
+            queueGameChange(new TaxChange(territoryNameForKey(key), nextTax));
         }
     }
 
+    public void adjustTax(String territoryName, int delta) {
+        setTax(territoryName, tax(territoryName) + delta);
+    }
+
+    public void setGlobalTax(Collection<String> territoryNames, int percent) {
+        List<String> targets = cleanTargets(territoryNames);
+        int nextTax = clamp(percent, 0, 70);
+        forEachTerritory(targets, key -> {
+            territoryTaxes.put(key, nextTax);
+            uncommittedChanges.markTax(key);
+        });
+        queueGameChange(new GlobalTaxChange(nextTax));
+    }
+
     public boolean bordersOpen(String territoryName) {
-        return territoryBorders.getOrDefault(normalize(territoryName), false);
+        return territoryBorders.getOrDefault(keyFor(territoryName), false);
     }
 
     public void setBordersOpen(String territoryName, boolean open) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (!key.isEmpty()) {
             if (territoryBorders.getOrDefault(key, false) == open) {
                 return;
             }
             territoryBorders.put(key, open);
             uncommittedChanges.markBorders(key);
-            gameActions.pushBorders(cleanTerritoryName(territoryName), open);
+            queueGameChange(new BordersChange(territoryNameForKey(key), open));
         }
     }
 
+    public void toggleBordersOpen(String territoryName) {
+        setBordersOpen(territoryName, !bordersOpen(territoryName));
+    }
+
+    public void setGlobalBordersOpen(Collection<String> territoryNames, boolean open) {
+        List<String> targets = cleanTargets(territoryNames);
+        forEachTerritory(targets, key -> {
+            territoryBorders.put(key, open);
+            uncommittedChanges.markBorders(key);
+        });
+        queueGameChange(new GlobalBordersChange(open));
+    }
+
     public TerritoryRoute territoryRoute(String territoryName) {
-        return territoryRoutes.getOrDefault(normalize(territoryName), TerritoryRoute.FASTEST);
+        return territoryRoutes.getOrDefault(keyFor(territoryName), TerritoryRoute.FASTEST);
     }
 
     public void setTerritoryRoute(String territoryName, TerritoryRoute route) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (!key.isEmpty() && route != null) {
             if (territoryRoute(territoryName) == route) {
                 return;
             }
             territoryRoutes.put(key, route);
             uncommittedChanges.markRoute(key);
-            gameActions.pushRoute(cleanTerritoryName(territoryName), route);
+            queueGameChange(new RouteChange(territoryNameForKey(key), route));
         }
     }
 
@@ -195,21 +253,34 @@ public class EcoMenuFeature extends Feature {
         setTerritoryRoute(territoryName, territoryRoute(territoryName).toggled());
     }
 
+    public void setGlobalTerritoryRoute(Collection<String> territoryNames, TerritoryRoute route) {
+        List<String> targets = cleanTargets(territoryNames);
+        if (route == null) {
+            return;
+        }
+
+        forEachTerritory(targets, key -> {
+            territoryRoutes.put(key, route);
+            uncommittedChanges.markRoute(key);
+        });
+        queueGameChange(new GlobalRouteChange(route));
+    }
+
     public void applyTerritoryRoute(String territoryName) {
         applyTerritoryRoute(territoryName, territoryRoute(territoryName));
     }
 
     public void applyTerritoryRoute(String territoryName, TerritoryRoute route) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (key.isEmpty() || route == null) {
             return;
         }
 
-        gameActions.pushRoute(cleanTerritoryName(territoryName), route);
+        queueGameChange(new RouteChange(territoryNameForKey(key), route));
     }
 
     public void receiveStatsFromGame(String territoryName, Map<TerritoryUpgrade, Integer> stats) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (key.isEmpty() || stats == null) {
             return;
         }
@@ -222,7 +293,7 @@ public class EcoMenuFeature extends Feature {
             }
 
             int level = clamp(entry.getValue() == null ? 0 : entry.getValue(), 0, stat.maxLevel());
-            if (uncommittedChanges.hasStat(key, stat)) {
+            if (uncommittedChanges.hasStat(key, stat) || gameActionQueue.hasQueuedStat(key, stat)) {
                 if (current.getOrDefault(stat, 0) == level) {
                     uncommittedChanges.clearStat(key, stat);
                 }
@@ -233,13 +304,13 @@ public class EcoMenuFeature extends Feature {
     }
 
     public void receiveTaxFromGame(String territoryName, int percent) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (key.isEmpty()) {
             return;
         }
 
         int tax = clamp(percent, 0, 70);
-        if (uncommittedChanges.hasTax(key)) {
+        if (uncommittedChanges.hasTax(key) || gameActionQueue.hasQueuedTax(key)) {
             if (territoryTaxes.getOrDefault(key, 0) == tax) {
                 uncommittedChanges.clearTax(key);
             }
@@ -249,12 +320,12 @@ public class EcoMenuFeature extends Feature {
     }
 
     public void receiveBordersFromGame(String territoryName, boolean open) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (key.isEmpty()) {
             return;
         }
 
-        if (uncommittedChanges.hasBorders(key)) {
+        if (uncommittedChanges.hasBorders(key) || gameActionQueue.hasQueuedBorders(key)) {
             if (territoryBorders.getOrDefault(key, false) == open) {
                 uncommittedChanges.clearBorders(key);
             }
@@ -264,12 +335,12 @@ public class EcoMenuFeature extends Feature {
     }
 
     public void receiveRouteFromGame(String territoryName, TerritoryRoute route) {
-        String key = normalize(territoryName);
+        String key = keyFor(territoryName);
         if (key.isEmpty() || route == null) {
             return;
         }
 
-        if (uncommittedChanges.hasRoute(key)) {
+        if (uncommittedChanges.hasRoute(key) || gameActionQueue.hasQueuedRoute(key, route)) {
             if (territoryRoute(territoryName) == route) {
                 uncommittedChanges.clearRoute(key);
             }
@@ -281,7 +352,8 @@ public class EcoMenuFeature extends Feature {
     public void receiveHeadquartersFromGame(String territoryName) {
         String cleaned = cleanTerritoryName(territoryName);
         String key = normalize(cleaned);
-        if (uncommittedChanges.hasHeadquarters()) {
+        keyFor(cleaned);
+        if (uncommittedChanges.hasHeadquarters() || gameActionQueue.hasQueuedHeadquarters()) {
             if (uncommittedChanges.headquarters().equals(key)) {
                 uncommittedChanges.clearHeadquarters();
             }
@@ -294,26 +366,26 @@ public class EcoMenuFeature extends Feature {
         uncommittedChanges.stats().forEach((territoryKey, stats) -> {
             EnumMap<TerritoryUpgrade, Integer> current = mutableStatsFor(territoryKey);
             for (TerritoryUpgrade stat : stats) {
-                gameActions.pushStat(territoryKey, stat, current.getOrDefault(stat, 0));
+                queueGameChange(new StatChange(territoryNameForKey(territoryKey), stat, current.getOrDefault(stat, 0)));
             }
         });
         for (String territoryKey : uncommittedChanges.taxes()) {
-            gameActions.pushTax(territoryKey, territoryTaxes.getOrDefault(territoryKey, 0));
+            queueGameChange(new TaxChange(territoryNameForKey(territoryKey), territoryTaxes.getOrDefault(territoryKey, 0)));
         }
         for (String territoryKey : uncommittedChanges.borders()) {
-            gameActions.pushBorders(territoryKey, territoryBorders.getOrDefault(territoryKey, false));
+            queueGameChange(new BordersChange(territoryNameForKey(territoryKey), territoryBorders.getOrDefault(territoryKey, false)));
         }
         for (String territoryKey : uncommittedChanges.routes()) {
-            gameActions.pushRoute(territoryKey, territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST));
+            queueGameChange(new RouteChange(territoryNameForKey(territoryKey), territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST)));
         }
         if (uncommittedChanges.hasHeadquarters()) {
-            gameActions.pushHeadquarters(uncommittedChanges.headquarters());
+            queueGameChange(new HeadquartersChange(territoryNameForKey(uncommittedChanges.headquarters())));
         }
     }
 
     private TerritoryLoadout findLoadout(String loadoutName) {
         String key = normalize(loadoutName);
-        for (TerritoryLoadout loadout : LOADOUTS) {
+        for (TerritoryLoadout loadout : loadouts) {
             if (normalize(loadout.name()).equals(key)) {
                 return loadout;
             }
@@ -327,11 +399,27 @@ public class EcoMenuFeature extends Feature {
         }
 
         for (String territoryName : territoryNames) {
-            String key = normalize(territoryName);
+            String key = keyFor(territoryName);
             if (!key.isEmpty()) {
                 action.accept(key);
             }
         }
+    }
+
+    private List<String> cleanTargets(Collection<String> territoryNames) {
+        if (territoryNames == null) {
+            return List.of();
+        }
+
+        List<String> targets = new ArrayList<>();
+        HashSet<String> seen = new HashSet<>();
+        for (String territoryName : territoryNames) {
+            String key = keyFor(territoryName);
+            if (!key.isEmpty() && seen.add(key)) {
+                targets.add(territoryNameForKey(key));
+            }
+        }
+        return targets;
     }
 
     private EnumMap<TerritoryUpgrade, Integer> mutableStatsFor(String territoryName) {
@@ -356,5 +444,19 @@ public class EcoMenuFeature extends Feature {
 
     private String cleanTerritoryName(String territoryName) {
         return territoryName == null ? "" : territoryName.trim();
+    }
+
+    private String keyFor(String territoryName) {
+        String cleaned = cleanTerritoryName(territoryName);
+        String key = normalize(cleaned);
+        if (!key.isEmpty()) {
+            territoryNamesByKey.putIfAbsent(key, cleaned);
+        }
+        return key;
+    }
+
+    private String territoryNameForKey(String territoryKey) {
+        String key = normalize(territoryKey);
+        return territoryNamesByKey.getOrDefault(key, territoryKey);
     }
 }

@@ -1,14 +1,13 @@
 package org.nia.niamod.features.eco;
 
-import org.nia.niamod.models.territory.TerritoryLoadout;
-import org.nia.niamod.models.territory.TerritoryUpgrade;
+import org.nia.niamod.models.eco.TerritoryLoadout;
+import org.nia.niamod.models.eco.TerritoryUpgrade;
 
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-// testing bla bla
-public final class EcoLoadouts {
+public final class Loadouts {
     private static final List<TerritoryLoadout> DEFAULTS = List.of(
             loadout("MAX", Map.of(
                     TerritoryUpgrade.DAMAGE, 11,
@@ -22,7 +21,7 @@ public final class EcoLoadouts {
             ))
     );
 
-    private EcoLoadouts() {
+    private Loadouts() {
     }
 
     public static List<TerritoryLoadout> defaults() {

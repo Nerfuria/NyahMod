@@ -211,13 +211,6 @@ final class NyahConfigSections {
                         color("eco_city_color", "City Color", "Territory map color for city labels.", NyahConfigData::getEcoCityColor, NyahConfigData::setEcoCityColor),
                         color("eco_none_color", "No Resource Color", "Territory map color when no resource is available.", NyahConfigData::getEcoNoneColor, NyahConfigData::setEcoNoneColor),
                         color("eco_connection_color", "Connection Color", "Territory map color for connection lines.", NyahConfigData::getEcoConnectionColor, NyahConfigData::setEcoConnectionColor),
-                        color("eco_rainbow_red_color", "Rainbow Red", "First rainbow territory gradient color.", NyahConfigData::getEcoRainbowRedColor, NyahConfigData::setEcoRainbowRedColor),
-                        color("eco_rainbow_orange_color", "Rainbow Orange", "Second rainbow territory gradient color.", NyahConfigData::getEcoRainbowOrangeColor, NyahConfigData::setEcoRainbowOrangeColor),
-                        color("eco_rainbow_yellow_color", "Rainbow Yellow", "Third rainbow territory gradient color.", NyahConfigData::getEcoRainbowYellowColor, NyahConfigData::setEcoRainbowYellowColor),
-                        color("eco_rainbow_green_color", "Rainbow Green", "Fourth rainbow territory gradient color.", NyahConfigData::getEcoRainbowGreenColor, NyahConfigData::setEcoRainbowGreenColor),
-                        color("eco_rainbow_cyan_color", "Rainbow Cyan", "Fifth rainbow territory gradient color.", NyahConfigData::getEcoRainbowCyanColor, NyahConfigData::setEcoRainbowCyanColor),
-                        color("eco_rainbow_blue_color", "Rainbow Blue", "Sixth rainbow territory gradient color.", NyahConfigData::getEcoRainbowBlueColor, NyahConfigData::setEcoRainbowBlueColor),
-                        color("eco_rainbow_violet_color", "Rainbow Violet", "Final rainbow territory gradient color.", NyahConfigData::getEcoRainbowVioletColor, NyahConfigData::setEcoRainbowVioletColor),
                         integer("eco_refresh_seconds", "Refresh Seconds", "How often the territory manager refreshes API territory ownership.", 1, 300, NyahConfigData::getEcoTerritoryRefreshSeconds, NyahConfigData::setEcoTerritoryRefreshSeconds)
                 )
         );

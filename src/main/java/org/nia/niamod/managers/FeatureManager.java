@@ -29,7 +29,7 @@ public class FeatureManager {
     @Getter
     private static IgnoreFeature ignoreFeature;
     @Getter
-    private static EcoMenuFeature ecoMenuFeature;
+    private static TerritoryManagerFeature territoryManagerFeature;
 
     public static void init() {
         resTickFeature = new ResourceTickFeature();
@@ -42,7 +42,7 @@ public class FeatureManager {
         radianceSyncFeature = new RadianceSyncFeature();
         autoStreamFeature = new AutoStreamFeature();
         ignoreFeature = new IgnoreFeature();
-        ecoMenuFeature = new EcoMenuFeature();
+        territoryManagerFeature = new TerritoryManagerFeature();
 
         resTickFeature.runSafe("init", resTickFeature::init);
         chatEncryptionFeature.runSafe("init", chatEncryptionFeature::init);
@@ -54,7 +54,7 @@ public class FeatureManager {
         radianceSyncFeature.runSafe("init", radianceSyncFeature::init);
         autoStreamFeature.runSafe("init", autoStreamFeature::init);
         ignoreFeature.runSafe("init", ignoreFeature::init);
-        ecoMenuFeature.runSafe("init", ecoMenuFeature::init);
+        territoryManagerFeature.runSafe("init", territoryManagerFeature::init);
 
         NyahConfig.onFeaturesInitialized();
     }

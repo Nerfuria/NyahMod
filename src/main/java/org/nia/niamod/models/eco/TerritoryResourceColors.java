@@ -1,10 +1,19 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.render.Render2D;
 
 public final class TerritoryResourceColors {
     private static final int HEADQUARTER_COLOR = 0xFFD4AF37;
+    private static final int[] RAINBOW_STOPS = {
+            0xFFFF2D2D,
+            0xFFFF8C1A,
+            0xFFFFE45C,
+            0xFF33D17A,
+            0xFF2DD4BF,
+            0xFF4D8DFF,
+            0xFFC061CB
+    };
 
     private TerritoryResourceColors() {
     }
@@ -52,14 +61,6 @@ public final class TerritoryResourceColors {
     }
 
     private static int[] configuredRainbowStops() {
-        return new int[]{
-                0xFF000000 | NyahConfig.getData().getEcoRainbowRedColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowOrangeColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowYellowColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowGreenColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowCyanColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowBlueColor(),
-                0xFF000000 | NyahConfig.getData().getEcoRainbowVioletColor()
-        };
+        return RAINBOW_STOPS;
     }
 }

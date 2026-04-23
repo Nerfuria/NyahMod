@@ -1,5 +1,6 @@
 package org.nia.niamod.models.gui.component;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.CharacterEvent;
@@ -8,10 +9,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.models.eco.TerritoryResourceColors;
+import org.nia.niamod.models.eco.TerritoryUpgrade;
+import org.nia.niamod.models.eco.UpgradeGroups;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
-import org.nia.niamod.models.territory.TerritoryResourceColors;
-import org.nia.niamod.models.territory.TerritoryUpgrade;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -25,28 +27,23 @@ import java.util.function.IntConsumer;
 public class TerritoryQuickMenu {
     private static final int TILE_W = 26;
     private static final int TILE_H = 26;
-    private static final int SIDE_W = 58;
-    private static final int SIDE_H = 18;
-    private static final int TAX_H = 40;
+    private static final int STORAGE_TILE_W = 18;
+    private static final int STORAGE_TILE_H = 34;
+    private static final int UPGRADE_COLUMNS = 4;
+    private static final int SIDE_ROWS = 4;
+    private static final List<TerritoryUpgrade> STORAGE_UPGRADES = UpgradeGroups.storage();
+    private static final List<TerritoryUpgrade> MAIN_UPGRADES = UpgradeGroups.quickMenu();
+    private static final int UPGRADE_ROWS = Math.max(1, (MAIN_UPGRADES.size() + UPGRADE_COLUMNS - 1) / UPGRADE_COLUMNS);
+    private static final int GRID_H = TILE_H * UPGRADE_ROWS + GAP * (UPGRADE_ROWS - 1);
+    private static final int HEIGHT = GRID_H;
+    private static final int SIDE_W = 48;
     private static final int GAP = 2;
-    private static final int WIDTH = TILE_W * 4 + GAP * 3 + SIDE_W + GAP;
-    private static final int HEIGHT = Math.max(TILE_H * 4 + GAP * 3, TAX_H + GAP + SIDE_H + GAP + SIDE_H);
-    private static final TerritoryUpgrade[] UPGRADES = new TerritoryUpgrade[]{
-            TerritoryUpgrade.DAMAGE,
-            TerritoryUpgrade.ATTACK,
-            TerritoryUpgrade.HEALTH,
-            TerritoryUpgrade.DEFENSE,
-            TerritoryUpgrade.TOWER_AURA,
-            TerritoryUpgrade.TOWER_VOLLEY,
-            TerritoryUpgrade.STRONGER_MINIONS,
-            TerritoryUpgrade.TOWER_MULTI_ATTACKS,
-            TerritoryUpgrade.RESOURCE_STORAGE,
-            TerritoryUpgrade.EMERALD_STORAGE,
-            TerritoryUpgrade.EFFICIENT_RESOURCES,
-            TerritoryUpgrade.RESOURCE_RATE,
-            TerritoryUpgrade.EFFICIENT_EMERALDS,
-            TerritoryUpgrade.EMERALD_RATE
-    };
+    private static final int PANEL_GAP = 3;
+    private static final int GRID_W = TILE_W * UPGRADE_COLUMNS + GAP * (UPGRADE_COLUMNS - 1);
+    private static final int WIDTH = STORAGE_TILE_W + GRID_W + PANEL_GAP + SIDE_W;
+    private static final int STORAGE_H = STORAGE_TILE_H * STORAGE_UPGRADES.size() + GAP * Math.max(0, STORAGE_UPGRADES.size() - 1);
+    private static final int SIDE_CELL_H = 15;
+    private static final int SIDE_H = SIDE_CELL_H * SIDE_ROWS + GAP * (SIDE_ROWS - 1);
     private static final Map<TerritoryUpgrade, ItemStack> ICONS = createIcons();
     private static final ItemStack TAX_ICON = new ItemStack(Items.EMERALD);
     private static final String CROWN = "\uD83D\uDC51";
@@ -56,6 +53,7 @@ public class TerritoryQuickMenu {
     private int y;
     private boolean visible;
     private boolean editingTax;
+    private boolean editingGlobalTax;
     private String taxInput = "";
     private int originalTax;
 
@@ -98,38 +96,60 @@ public class TerritoryQuickMenu {
             int taxPercent,
             boolean headquarters,
             boolean bordersOpen,
+            String routeLabel,
             BiConsumer<TerritoryUpgrade, Integer> statAdjusted,
-            IntConsumer taxSet,
             Runnable headquartersSet,
-            Runnable bordersToggled
+            Runnable bordersToggled,
+            Runnable globalBordersToggled,
+            Runnable routeToggled,
+            Runnable globalRouteToggled
     ) {
         buttons.clear();
         if (!visible) {
             return;
         }
 
-        UiRect panel = bounds();
-        Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 4, theme.background(), Render2D.withAlpha(theme.accentColor(), 92));
+        int storageY = y + Math.max(0, (GRID_H - STORAGE_H) / 2);
+        int gridX = x + STORAGE_TILE_W;
+        int sideX = gridX + GRID_W + PANEL_GAP;
+        int sideY = y + Math.max(0, (GRID_H - SIDE_H) / 2);
+        UiRect panel = new UiRect(gridX, y, GRID_W + PANEL_GAP + SIDE_W, GRID_H);
 
-        for (int i = 0; i < UPGRADES.length; i++) {
-            TerritoryUpgrade upgrade = UPGRADES[i];
-            int col = i % 4;
-            int row = i / 4;
-            UiRect tile = new UiRect(x + col * (TILE_W + GAP), y + row * (TILE_H + GAP), TILE_W, TILE_H);
-            drawUpgradeTile(g, font, tile, mouseX, mouseY, theme, upgrade, stats);
+        Render2D.dropShadow(g, panel, 4, 0x66000000, 7);
+        Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 5, theme.background(), Render2D.withAlpha(theme.accentColor(), 100));
+
+        for (int i = 0; i < STORAGE_UPGRADES.size(); i++) {
+            TerritoryUpgrade upgrade = STORAGE_UPGRADES.get(i);
+            UiRect tile = new UiRect(gridX - STORAGE_TILE_W, storageY + i * (STORAGE_TILE_H + GAP), STORAGE_TILE_W, STORAGE_TILE_H);
+            drawUpgradeTile(g, font, tile, mouseX, mouseY, theme, upgrade, stats, true);
             buttons.add(new Button(tile, button -> statAdjusted.accept(upgrade, button == GLFW.GLFW_MOUSE_BUTTON_RIGHT ? -1 : 1)));
         }
 
-        int sideX = x + TILE_W * 4 + GAP * 4;
-        UiRect tax = new UiRect(sideX, y, SIDE_W, TAX_H);
-        UiRect hq = new UiRect(sideX, y + TAX_H + GAP, SIDE_W, SIDE_H);
-        UiRect borders = new UiRect(sideX, y + TAX_H + GAP + SIDE_H + GAP, SIDE_W, SIDE_H);
+        for (int i = 0; i < MAIN_UPGRADES.size(); i++) {
+            TerritoryUpgrade upgrade = MAIN_UPGRADES.get(i);
+            int col = i % UPGRADE_COLUMNS;
+            int row = i / UPGRADE_COLUMNS;
+            UiRect tile = new UiRect(gridX + col * (TILE_W + GAP), y + row * (TILE_H + GAP), TILE_W, TILE_H);
+            drawUpgradeTile(g, font, tile, mouseX, mouseY, theme, upgrade, stats, false);
+            buttons.add(new Button(tile, button -> statAdjusted.accept(upgrade, button == GLFW.GLFW_MOUSE_BUTTON_RIGHT ? -1 : 1)));
+        }
+
+        UiRect tax = sideButtonBounds(sideX, sideY, 0);
+        UiRect hq = sideButtonBounds(sideX, sideY, 1);
+        UiRect borders = sideButtonBounds(sideX, sideY, 2);
+        UiRect route = sideButtonBounds(sideX, sideY, 3);
         drawTaxControl(g, font, tax, mouseX, mouseY, theme, taxPercent);
         drawCrownTile(g, font, hq, mouseX, mouseY, theme, headquarters);
         drawBordersTile(g, font, borders, mouseX, mouseY, theme, bordersOpen);
-        buttons.add(new Button(tax, ignored -> startTaxEdit(taxPercent)));
+        drawRouteTile(g, font, route, mouseX, mouseY, theme, routeLabel);
+        buttons.add(new Button(tax, ignored -> startTaxEdit(taxPercent, shiftDown())));
         buttons.add(new Button(hq, ignored -> headquartersSet.run()));
-        buttons.add(new Button(borders, ignored -> bordersToggled.run()));
+        buttons.add(new Button(borders, ignored -> shiftAware(bordersToggled, globalBordersToggled)));
+        buttons.add(new Button(route, ignored -> shiftAware(routeToggled, globalRouteToggled)));
+    }
+
+    private UiRect sideButtonBounds(int sideX, int sideY, int row) {
+        return new UiRect(sideX, sideY + row * (SIDE_CELL_H + GAP), SIDE_W, SIDE_CELL_H);
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -145,13 +165,13 @@ public class TerritoryQuickMenu {
         return true;
     }
 
-    public boolean keyPressed(KeyEvent event, IntConsumer taxSet) {
+    public boolean keyPressed(KeyEvent event, IntConsumer taxSet, IntConsumer globalTaxSet) {
         if (!visible || !editingTax) {
             return false;
         }
 
         if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
-            commitTax(taxSet);
+            commitTax(taxSet, globalTaxSet);
             return true;
         }
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
@@ -184,13 +204,21 @@ public class TerritoryQuickMenu {
         return false;
     }
 
-    private void drawUpgradeTile(GuiGraphics g, Font font, UiRect tile, int mouseX, int mouseY, ClickGuiTheme theme, TerritoryUpgrade upgrade, Map<TerritoryUpgrade, Integer> stats) {
+    private void drawUpgradeTile(GuiGraphics g, Font font, UiRect tile, int mouseX, int mouseY, ClickGuiTheme theme, TerritoryUpgrade upgrade, Map<TerritoryUpgrade, Integer> stats, boolean addon) {
         boolean hovered = tile.contains(mouseX, mouseY);
         int color = TerritoryResourceColors.configuredColor(upgrade.costResource());
-        g.fill(tile.x(), tile.y(), tile.right(), tile.bottom(), hovered ? Render2D.withAlpha(theme.accentColor(), 34) : Render2D.withAlpha(theme.secondary(), 72));
-        Render2D.outline(g, tile, Render2D.withAlpha(color, hovered ? 180 : 72));
+        Render2D.shaderRoundedSurface(
+                g,
+                tile.x(),
+                tile.y(),
+                tile.width(),
+                tile.height(),
+                4,
+                hovered ? Render2D.withAlpha(theme.accentColor(), 230) : Render2D.withAlpha(theme.secondary(), 232),
+                Render2D.withAlpha(color, hovered ? 255 : 220)
+        );
 
-        int itemX = tile.x() + (tile.width() - 16) / 2;
+        int itemX = addon ? tile.x() + 1 : tile.x() + (tile.width() - 16) / 2;
         int itemY = tile.y() + (tile.height() - 16) / 2;
         ItemStack stack = ICONS.getOrDefault(upgrade, ItemStack.EMPTY);
         g.renderItem(stack, itemX, itemY);
@@ -202,29 +230,68 @@ public class TerritoryQuickMenu {
         int border = editingTax
                 ? Render2D.withAlpha(theme.accentColor(), 210)
                 : Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90);
-        g.fill(tile.x(), tile.y(), tile.right(), tile.bottom(), hovered || editingTax ? Render2D.withAlpha(theme.accentColor(), 34) : Render2D.withAlpha(theme.secondary(), 72));
-        Render2D.outline(g, tile, border);
+        Render2D.shaderRoundedSurface(
+                g,
+                tile.x(),
+                tile.y(),
+                tile.width(),
+                tile.height(),
+                4,
+                hovered || editingTax ? Render2D.withAlpha(theme.accentColor(), 230) : Render2D.withAlpha(theme.secondary(), 232),
+                border
+        );
 
-        int iconX = tile.x() + (tile.width() - 16) / 2;
-        int iconY = tile.y() + 4;
+        int iconX = tile.x() + 2;
+        int iconY = tile.y() + Math.max(0, (tile.height() - 16) / 2);
         g.renderItem(TAX_ICON, iconX, iconY);
 
         String value = editingTax ? taxInput + cursorText() : taxPercent + "%";
-        drawCentered(g, font, value, tile.x() + 1, tile.y() + 25, tile.width() - 2, theme.textColor());
+        drawCentered(g, font, value, tile.x() + 19, tile.y() + (tile.height() - font.lineHeight) / 2 + 1, tile.width() - 21, theme.textColor());
     }
 
     private void drawCrownTile(GuiGraphics g, Font font, UiRect tile, int mouseX, int mouseY, ClickGuiTheme theme, boolean headquarters) {
         boolean hovered = tile.contains(mouseX, mouseY);
-        g.fill(tile.x(), tile.y(), tile.right(), tile.bottom(), hovered ? Render2D.withAlpha(theme.accentColor(), 34) : Render2D.withAlpha(theme.secondary(), 72));
-        Render2D.outline(g, tile, Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90));
-        drawCentered(g, font, CROWN, tile.x(), tile.y() + 5, tile.width(), headquarters ? 0xFFFFD75A : Render2D.withAlpha(0xFFFFFF, 92));
+        Render2D.shaderRoundedSurface(
+                g,
+                tile.x(),
+                tile.y(),
+                tile.width(),
+                tile.height(),
+                4,
+                hovered ? Render2D.withAlpha(theme.accentColor(), 230) : Render2D.withAlpha(theme.secondary(), 232),
+                Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90)
+        );
+        drawCentered(g, font, CROWN, tile.x(), tile.y() + 4, tile.width(), headquarters ? 0xFFFFD75A : Render2D.withAlpha(0xFFFFFF, 92));
     }
 
     private void drawBordersTile(GuiGraphics g, Font font, UiRect tile, int mouseX, int mouseY, ClickGuiTheme theme, boolean bordersOpen) {
         boolean hovered = tile.contains(mouseX, mouseY);
-        g.fill(tile.x(), tile.y(), tile.right(), tile.bottom(), hovered ? Render2D.withAlpha(theme.accentColor(), 34) : Render2D.withAlpha(theme.secondary(), 72));
-        Render2D.outline(g, tile, Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90));
-        drawCentered(g, font, bordersOpen ? "Open" : "Closed", tile.x() + 1, tile.y() + 5, tile.width() - 2, bordersOpen ? theme.textColor() : theme.secondaryText());
+        Render2D.shaderRoundedSurface(
+                g,
+                tile.x(),
+                tile.y(),
+                tile.width(),
+                tile.height(),
+                4,
+                hovered ? Render2D.withAlpha(theme.accentColor(), 230) : Render2D.withAlpha(theme.secondary(), 232),
+                Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90)
+        );
+        drawCentered(g, font, bordersOpen ? "Open" : "Closed", tile.x() + 1, tile.y() + 4, tile.width() - 2, bordersOpen ? theme.textColor() : theme.secondaryText());
+    }
+
+    private void drawRouteTile(GuiGraphics g, Font font, UiRect tile, int mouseX, int mouseY, ClickGuiTheme theme, String routeLabel) {
+        boolean hovered = tile.contains(mouseX, mouseY);
+        Render2D.shaderRoundedSurface(
+                g,
+                tile.x(),
+                tile.y(),
+                tile.width(),
+                tile.height(),
+                4,
+                hovered ? Render2D.withAlpha(theme.accentColor(), 230) : Render2D.withAlpha(theme.secondary(), 232),
+                Render2D.withAlpha(theme.accentColor(), hovered ? 180 : 90)
+        );
+        drawCentered(g, font, routeLabel == null || routeLabel.isBlank() ? "Route" : routeLabel, tile.x() + 1, tile.y() + 4, tile.width() - 2, hovered ? theme.textColor() : theme.secondaryText());
     }
 
     private void drawCentered(GuiGraphics g, Font font, String value, int x, int y, int width, int color) {
@@ -237,28 +304,47 @@ public class TerritoryQuickMenu {
         return stats == null ? 0 : stats.getOrDefault(upgrade, 0);
     }
 
-    private void startTaxEdit(int taxPercent) {
+    private void startTaxEdit(int taxPercent, boolean global) {
         originalTax = taxPercent;
         taxInput = "";
         editingTax = true;
+        editingGlobalTax = global;
     }
 
-    private void commitTax(IntConsumer taxSet) {
+    private void commitTax(IntConsumer taxSet, IntConsumer globalTaxSet) {
         int value = originalTax;
         if (!taxInput.isBlank()) {
             try {
                 value = Integer.parseInt(taxInput);
             } catch (NumberFormatException ignored) {
-                value = originalTax;
             }
         }
-        taxSet.accept(Math.max(0, Math.min(70, value)));
+        IntConsumer target = editingGlobalTax ? globalTaxSet : taxSet;
+        target.accept(Math.max(0, Math.min(70, value)));
         editingTax = false;
+        editingGlobalTax = false;
     }
 
     private void cancelTaxEdit() {
         editingTax = false;
+        editingGlobalTax = false;
         taxInput = "";
+    }
+
+    private void shiftAware(Runnable normalClick, Runnable shiftClick) {
+        if (shiftDown()) {
+            shiftClick.run();
+        } else {
+            normalClick.run();
+        }
+    }
+
+    private boolean shiftDown() {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        long window = minecraft.getWindow().handle();
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
     }
 
     private String cursorText() {

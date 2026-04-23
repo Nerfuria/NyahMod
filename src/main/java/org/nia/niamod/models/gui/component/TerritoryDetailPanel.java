@@ -1,18 +1,22 @@
 package org.nia.niamod.models.gui.component;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.models.eco.ResourceAmounts;
+import org.nia.niamod.models.eco.ResourceKind;
+import org.nia.niamod.models.eco.Resources;
+import org.nia.niamod.models.eco.TerritoryDetails;
+import org.nia.niamod.models.eco.TerritoryDetails.DamageRange;
+import org.nia.niamod.models.eco.TerritoryNode;
+import org.nia.niamod.models.eco.TerritoryResourceColors;
+import org.nia.niamod.models.eco.TerritoryResourceStore;
+import org.nia.niamod.models.eco.TerritoryUpgrade;
+import org.nia.niamod.models.eco.UpgradeGroups;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
-import org.nia.niamod.models.territory.ResourceAmounts;
-import org.nia.niamod.models.territory.ResourceKind;
-import org.nia.niamod.models.territory.Resources;
-import org.nia.niamod.models.territory.TerritoryNode;
-import org.nia.niamod.models.territory.TerritoryResourceColors;
-import org.nia.niamod.models.territory.TerritoryResourceStore;
-import org.nia.niamod.models.territory.TerritoryUpgrade;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -23,32 +27,20 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.IntConsumer;
 
-public class EcoMenu {
-    private static final TerritoryUpgrade[] ECONOMY_UPGRADES = new TerritoryUpgrade[]{
-            TerritoryUpgrade.RESOURCE_STORAGE,
-            TerritoryUpgrade.EMERALD_STORAGE,
-            TerritoryUpgrade.RESOURCE_RATE,
-            TerritoryUpgrade.EFFICIENT_RESOURCES,
-            TerritoryUpgrade.EMERALD_RATE,
-            TerritoryUpgrade.EFFICIENT_EMERALDS
-    };
-    private static final TerritoryUpgrade[] OTHER_UPGRADES = new TerritoryUpgrade[]{
-            TerritoryUpgrade.GATHERING_EXPERIENCE,
-            TerritoryUpgrade.MOB_EXPERIENCE,
-            TerritoryUpgrade.MOB_DAMAGE,
-            TerritoryUpgrade.PVP_DAMAGE,
-            TerritoryUpgrade.XP_SEEKING,
-            TerritoryUpgrade.TOME_SEEKING,
-            TerritoryUpgrade.EMERALD_SEEKING
-    };
-
+public class TerritoryDetailPanel {
     private static final int PANEL_MARGIN = 8;
-    private static final int PANEL_WIDTH = 286;
+    private static final int PANEL_WIDTH = 318;
     private static final int PANEL_MAX_HEIGHT = 560;
     private static final int HEADER_HEIGHT = 24;
     private static final int ROW_HEIGHT = 18;
     private static final int BUTTON_SIZE = 16;
     private static final int SCROLL_STEP = 26;
+    private static final Runnable NO_OP = () -> {
+    };
+    private static final BiConsumer<TerritoryUpgrade, Integer> NO_UPGRADE_ACTION = (upgrade, delta) -> {
+    };
+    private static final IntConsumer NO_INT_ACTION = value -> {
+    };
 
     private final List<DetailButton> buttons = new ArrayList<>();
     private boolean dragging;
@@ -65,24 +57,18 @@ public class EcoMenu {
             int mouseX,
             int mouseY,
             ClickGuiTheme theme,
-            DetailData data,
+            TerritoryDetails data,
             int screenWidth,
             int screenHeight,
-            BiConsumer<TerritoryUpgrade, Integer> upgradeAdjusted,
-            IntConsumer taxAdjusted,
-            Runnable headquartersSet,
-            Runnable bordersToggled,
-            Runnable routeToggled,
-            Runnable loadoutsOpened,
-            Runnable close
+            Actions actions
     ) {
         buttons.clear();
-        if (data == null || data.selectedTerritory() == null) {
+        if (data == null || data.territory() == null) {
             return;
         }
+        actions = actions == null ? Actions.EMPTY : actions;
 
-        TerritoryWidget selectedTerritory = data.selectedTerritory();
-        TerritoryNode territory = selectedTerritory.territory();
+        TerritoryNode territory = data.territory();
         Map<TerritoryUpgrade, Integer> upgradeLevels = data.upgradeLevels();
         TerritoryResourceStore store = data.resourceStore();
         Resources perHourResources = data.producedResources();
@@ -95,8 +81,17 @@ public class EcoMenu {
         int maxScroll = maxScroll(perHourResources, body.height());
         clampScroll(maxScroll);
 
-        Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 4, theme.background(), panelBorderColor(theme));
-        g.fill(panel.x() + 1, panel.y() + 1, panel.right() - 1, panel.y() + HEADER_HEIGHT, headerFillColor(theme));
+        Render2D.dropShadow(g, panel, 5, 0x66000000, 8);
+        Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 5, theme.background(), panelBorderColor(theme));
+        Render2D.horizontalGradient(
+                g,
+                panel.x() + 1,
+                panel.y() + 1,
+                panel.width() - 2,
+                HEADER_HEIGHT - 1,
+                headerFillColor(theme),
+                Render2D.withAlpha(theme.secondary(), 20)
+        );
 
         int contentX = panel.x() + 10;
         int contentW = panel.width() - 20;
@@ -105,7 +100,7 @@ public class EcoMenu {
 
         UiRect closeButton = new UiRect(panel.right() - 27, panel.y() + 5, 18, 18);
         drawPlainButton(g, font, closeButton, "X", closeButton.contains(mouseX, mouseY), theme);
-        buttons.add(new DetailButton(closeButton, close, false));
+        buttons.add(new DetailButton(closeButton, actions.close(), false));
 
         drawFittedString(g, font, territory.name(), contentX, rowY + 2, Math.max(1, closeButton.x() - contentX - 8), theme.textColor());
         rowY = body.y() + 7 - scrollOffset;
@@ -129,7 +124,7 @@ public class EcoMenu {
             rowY = drawInfoLine(g, font, contentX, rowY, contentW, "Loadout: " + data.loadoutName(), theme.secondaryText());
         }
         rowY += 3;
-        rowY = drawTaxRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, data.taxPercent(), taxAdjusted);
+        rowY = drawTaxRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, data.taxPercent(), actions.taxAdjusted(), actions.globalTaxSet());
         rowY = drawSplitButtons(
                 g,
                 font,
@@ -140,33 +135,25 @@ public class EcoMenu {
                 mouseY,
                 theme,
                 data.headquarters() ? "HQ Set" : "Set HQ",
-                headquartersSet,
+                actions.headquartersSet(),
                 data.bordersOpen() ? "Open" : "Closed",
-                bordersToggled
+                actions.bordersToggled(),
+                actions.globalBordersToggled()
         );
-        rowY = drawFullButton(g, font, contentX, right, rowY, mouseX, mouseY, theme, "Route: " + data.routeLabel(), routeToggled);
-        rowY = drawFullButton(g, font, contentX, right, rowY, mouseX, mouseY, theme, "Loadouts", loadoutsOpened);
+        rowY = drawFullButton(g, font, contentX, right, rowY, mouseX, mouseY, theme, "Route: " + data.routeLabel(), actions.routeToggled(), actions.globalRouteToggled());
+        rowY = drawFullButton(g, font, contentX, right, rowY, mouseX, mouseY, theme, "Loadouts", actions.loadoutsOpened());
         rowY += 2;
         drawDivider(g, panel, rowY, theme);
         rowY += 9;
 
-        drawFittedString(g, font, "Combat", contentX, rowY, contentW, theme.textColor());
-        rowY += 18;
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.DAMAGE, "Damage: " + formatDamage(data.damage()), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.ATTACK, "Attack Speed: " + formatStat(data.attackSpeed()), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.HEALTH, "Health: " + formatStat(data.health()), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.DEFENSE, "Defense: " + formatPercent(data.defense()), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.TOWER_AURA, TerritoryUpgrade.TOWER_AURA.label(), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.STRONGER_MINIONS, TerritoryUpgrade.STRONGER_MINIONS.label(), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.TOWER_VOLLEY, TerritoryUpgrade.TOWER_VOLLEY.label(), upgradeLevels, upgradeAdjusted);
-        rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, TerritoryUpgrade.TOWER_MULTI_ATTACKS, TerritoryUpgrade.TOWER_MULTI_ATTACKS.label(), upgradeLevels, upgradeAdjusted);
-        rowY += 5;
-        drawDivider(g, panel, rowY, theme);
-        rowY += 9;
+        rowY = drawSectionTitle(g, font, contentX, right, rowY, "Combat", theme);
+        for (TerritoryUpgrade upgrade : UpgradeGroups.combat()) {
+            rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, upgrade, combatLabel(upgrade, data), upgradeLevels, actions.upgradeAdjusted());
+        }
+        rowY += 8;
 
-        drawFittedString(g, font, "Economy", contentX, rowY, contentW, theme.textColor());
-        rowY += 18;
-        for (TerritoryUpgrade upgrade : ECONOMY_UPGRADES) {
+        rowY = drawSectionTitle(g, font, contentX, right, rowY, "Economy", theme);
+        for (TerritoryUpgrade upgrade : UpgradeGroups.economy()) {
             rowY = drawUpgradeRow(
                     g,
                     font,
@@ -179,16 +166,13 @@ public class EcoMenu {
                     upgrade,
                     upgrade.label(),
                     upgradeLevels,
-                    upgradeAdjusted
+                    actions.upgradeAdjusted()
             );
         }
 
-        rowY += 5;
-        drawDivider(g, panel, rowY, theme);
-        rowY += 9;
-        drawFittedString(g, font, "Other Buffs", contentX, rowY, contentW, theme.textColor());
-        rowY += 18;
-        for (TerritoryUpgrade upgrade : OTHER_UPGRADES) {
+        rowY += 8;
+        rowY = drawSectionTitle(g, font, contentX, right, rowY, "Utility", theme);
+        for (TerritoryUpgrade upgrade : UpgradeGroups.utility()) {
             rowY = drawUpgradeRow(
                     g,
                     font,
@@ -201,7 +185,7 @@ public class EcoMenu {
                     upgrade,
                     upgrade.label(),
                     upgradeLevels,
-                    upgradeAdjusted
+                    actions.upgradeAdjusted()
             );
         }
         g.disableScissor();
@@ -352,15 +336,13 @@ public class EcoMenu {
                 + 2
                 + 9
                 + 18
-                + ROW_HEIGHT * 8
-                + 5
-                + 9
+                + ROW_HEIGHT * UpgradeGroups.combat().size()
+                + 8
                 + 18
-                + ROW_HEIGHT * ECONOMY_UPGRADES.length
-                + 5
-                + 9
+                + ROW_HEIGHT * UpgradeGroups.economy().size()
+                + 8
                 + 18
-                + ROW_HEIGHT * OTHER_UPGRADES.length
+                + ROW_HEIGHT * UpgradeGroups.utility().size()
                 + 10;
     }
 
@@ -396,6 +378,17 @@ public class EcoMenu {
 
     private int drawResourceSummary(GuiGraphics g, Font font, Resources resources, int x, int y, int maxWidth, ClickGuiTheme theme) {
         int startY = y;
+        int cardHeight = resourceSummaryHeight(resources) + 6;
+        Render2D.shaderRoundedSurface(
+                g,
+                x - 4,
+                y - 3,
+                maxWidth + 8,
+                cardHeight,
+                4,
+                Render2D.withAlpha(theme.secondary(), 70),
+                Render2D.withAlpha(theme.accentColor(), 48)
+        );
         y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.cityColor(), resources.emeralds(), "emeralds", theme);
         y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.CROPS), resources.crops(), "crops", theme);
         y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.WOOD), resources.wood(), "wood", theme);
@@ -422,21 +415,49 @@ public class EcoMenu {
         return y + 12;
     }
 
-    private int drawTaxRow(GuiGraphics g, Font font, int x, int right, int y, int mouseX, int mouseY, ClickGuiTheme theme, int taxPercent, IntConsumer taxAdjusted) {
-        drawFittedString(g, font, "Tax", x, y + 4, Math.max(1, right - x - 78), theme.textColor());
+    private int drawSectionTitle(GuiGraphics g, Font font, int x, int right, int y, String title, ClickGuiTheme theme) {
+        int titleW = Math.min(right - x, Math.max(58, font.width(NiaClickGuiScreen.styled(title)) + 14));
+        Render2D.shaderRoundedSurface(
+                g,
+                x - 3,
+                y - 3,
+                titleW,
+                15,
+                4,
+                Render2D.withAlpha(theme.accentColor(), 42),
+                Render2D.withAlpha(theme.accentColor(), 82)
+        );
+        drawFittedString(g, font, title, x + 4, y, titleW - 8, theme.textColor());
+        return y + 18;
+    }
+
+    private int drawTaxRow(GuiGraphics g, Font font, int x, int right, int y, int mouseX, int mouseY, ClickGuiTheme theme, int taxPercent, IntConsumer taxAdjusted, IntConsumer globalTaxSet) {
+        drawFittedString(g, font, "Tax", x, y + 3, Math.max(1, right - x - 78), theme.textColor());
 
         int plusX = right - BUTTON_SIZE;
         int valueX = plusX - 31;
         int minusX = valueX - BUTTON_SIZE - 6;
-        UiRect minus = new UiRect(minusX, y + 2, BUTTON_SIZE, BUTTON_SIZE);
-        UiRect value = new UiRect(valueX, y + 2, 28, BUTTON_SIZE);
-        UiRect plus = new UiRect(plusX, y + 2, BUTTON_SIZE, BUTTON_SIZE);
+        UiRect minus = new UiRect(minusX, y + 1, BUTTON_SIZE, BUTTON_SIZE);
+        UiRect value = new UiRect(valueX, y + 1, 28, BUTTON_SIZE);
+        UiRect plus = new UiRect(plusX, y + 1, BUTTON_SIZE, BUTTON_SIZE);
 
         drawPlainButton(g, font, minus, "-", minus.contains(mouseX, mouseY), theme);
         drawValuePill(g, font, value, Math.max(0, Math.min(70, taxPercent)) + "%", theme);
         drawPlainButton(g, font, plus, "+", plus.contains(mouseX, mouseY), theme);
-        buttons.add(new DetailButton(minus, () -> taxAdjusted.accept(-5), true));
-        buttons.add(new DetailButton(plus, () -> taxAdjusted.accept(5), true));
+        buttons.add(new DetailButton(minus, () -> {
+            if (shiftDown()) {
+                globalTaxSet.accept(clampInt(taxPercent - 5, 0, 70));
+            } else {
+                taxAdjusted.accept(-5);
+            }
+        }, true));
+        buttons.add(new DetailButton(plus, () -> {
+            if (shiftDown()) {
+                globalTaxSet.accept(clampInt(taxPercent + 5, 0, 70));
+            } else {
+                taxAdjusted.accept(5);
+            }
+        }, true));
         return y + ROW_HEIGHT;
     }
 
@@ -452,7 +473,8 @@ public class EcoMenu {
             String leftLabel,
             Runnable leftClick,
             String rightLabel,
-            Runnable rightClick
+            Runnable rightClick,
+            Runnable rightShiftClick
     ) {
         int gap = 6;
         int width = Math.max(1, right - x);
@@ -463,14 +485,18 @@ public class EcoMenu {
         drawPlainButton(g, font, left, leftLabel, left.contains(mouseX, mouseY), theme);
         drawPlainButton(g, font, rightButton, rightLabel, rightButton.contains(mouseX, mouseY), theme);
         buttons.add(new DetailButton(left, leftClick, true));
-        buttons.add(new DetailButton(rightButton, rightClick, true));
+        buttons.add(new DetailButton(rightButton, () -> shiftAware(rightClick, rightShiftClick), true));
         return y + ROW_HEIGHT;
     }
 
     private int drawFullButton(GuiGraphics g, Font font, int x, int right, int y, int mouseX, int mouseY, ClickGuiTheme theme, String label, Runnable onClick) {
+        return drawFullButton(g, font, x, right, y, mouseX, mouseY, theme, label, onClick, NO_OP);
+    }
+
+    private int drawFullButton(GuiGraphics g, Font font, int x, int right, int y, int mouseX, int mouseY, ClickGuiTheme theme, String label, Runnable onClick, Runnable shiftClick) {
         UiRect button = new UiRect(x, y + 2, Math.max(1, right - x), BUTTON_SIZE);
         drawPlainButton(g, font, button, label, button.contains(mouseX, mouseY), theme);
-        buttons.add(new DetailButton(button, onClick, true));
+        buttons.add(new DetailButton(button, () -> shiftAware(onClick, shiftClick), true));
         return y + ROW_HEIGHT;
     }
 
@@ -488,26 +514,41 @@ public class EcoMenu {
             Map<TerritoryUpgrade, Integer> upgradeLevels,
             BiConsumer<TerritoryUpgrade, Integer> upgradeAdjusted
     ) {
-        int controlsW = 70;
+        int controlsW = 84;
         int costW = 48;
-        boolean hovered = new UiRect(x, y, Math.max(1, right - x), ROW_HEIGHT).contains(mouseX, mouseY);
+        UiRect rowBounds = new UiRect(x - 4, y, Math.max(1, right - x + 8), ROW_HEIGHT - 1);
+        boolean hovered = rowBounds.contains(mouseX, mouseY);
         long upgradeCost = upgrade.cost(upgradeLevel(upgradeLevels, upgrade));
         boolean showCost = upgradeCost > 0L;
         int labelW = showCost ? right - x - controlsW - costW - 12 : right - x - controlsW - 8;
-        drawFittedString(g, font, label, x, y + 4, Math.max(1, labelW), theme.textColor());
+        int resourceColor = TerritoryResourceColors.configuredColor(upgrade.costResource());
+        if (hovered) {
+            Render2D.shaderRoundedSurface(
+                    g,
+                    rowBounds.x(),
+                    rowBounds.y(),
+                    rowBounds.width(),
+                    rowBounds.height(),
+                    3,
+                    Render2D.withAlpha(theme.secondary(), 92),
+                    Render2D.withAlpha(resourceColor, 76)
+            );
+        }
+        g.fill(x - 3, y + 2, x - 1, y + ROW_HEIGHT - 7, Render2D.withAlpha(resourceColor, hovered ? 230 : 150));
+        drawFittedString(g, font, label, x, y + 3, Math.max(1, labelW), theme.textColor());
 
         int plusX = right - BUTTON_SIZE;
-        int valueX = plusX - 25;
+        int valueX = plusX - 37;
         int minusX = valueX - BUTTON_SIZE - 6;
-        UiRect cost = new UiRect(minusX - costW - 6, y + 2, costW, BUTTON_SIZE);
-        UiRect minus = new UiRect(minusX, y + 2, BUTTON_SIZE, BUTTON_SIZE);
-        UiRect plus = new UiRect(plusX, y + 2, BUTTON_SIZE, BUTTON_SIZE);
-        UiRect value = new UiRect(valueX, y + 2, 22, BUTTON_SIZE);
+        UiRect cost = new UiRect(minusX - costW - 6, y + 1, costW, BUTTON_SIZE);
+        UiRect minus = new UiRect(minusX, y + 1, BUTTON_SIZE, BUTTON_SIZE);
+        UiRect plus = new UiRect(plusX, y + 1, BUTTON_SIZE, BUTTON_SIZE);
+        UiRect value = new UiRect(valueX, y + 1, 34, BUTTON_SIZE);
         if (showCost) {
             drawCostPill(g, font, cost, upgradeCost, upgrade.costResource(), theme);
         }
         drawPlainButton(g, font, minus, "-", minus.contains(mouseX, mouseY), theme);
-        drawValuePill(g, font, value, Integer.toString(upgradeLevel(upgradeLevels, upgrade)), theme);
+        drawValuePill(g, font, value, upgradeLevel(upgradeLevels, upgrade) + "/" + upgrade.maxLevel(), theme);
         drawPlainButton(g, font, plus, "+", plus.contains(mouseX, mouseY), theme);
         buttons.add(new DetailButton(minus, () -> upgradeAdjusted.accept(upgrade, -1), true));
         buttons.add(new DetailButton(plus, () -> upgradeAdjusted.accept(upgrade, 1), true));
@@ -516,10 +557,11 @@ public class EcoMenu {
 
     private void drawCostPill(GuiGraphics g, Font font, UiRect rect, long cost, ResourceKind resource, ClickGuiTheme theme) {
         int color = TerritoryResourceColors.configuredColor(resource);
-        g.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), Render2D.withAlpha(color, 52));
-        Render2D.outline(g, rect, Render2D.withAlpha(color, 130));
+        int textColor = contrastTextColor(color);
+        int borderColor = contrastBorderColor(color);
+        Render2D.shaderRoundedSurface(g, rect.x(), rect.y(), rect.width(), rect.height(), 3, costFillColor(color), borderColor);
         Component text = NiaClickGuiScreen.styled(fit(font, formatShortNumber(cost) + shortResourceName(resource), Math.max(1, rect.width() - 4)));
-        g.drawString(font, text, rect.x() + (rect.width() - font.width(text)) / 2, rect.y() + (rect.height() - font.lineHeight) / 2 + 1, theme.textColor(), false);
+        g.drawString(font, text, rect.x() + (rect.width() - font.width(text)) / 2, rect.y() + (rect.height() - font.lineHeight) / 2 + 1, textColor, false);
     }
 
     private void drawDivider(GuiGraphics g, UiRect panel, int y, ClickGuiTheme theme) {
@@ -527,14 +569,14 @@ public class EcoMenu {
     }
 
     private void drawPlainButton(GuiGraphics g, Font font, UiRect rect, String label, boolean hovered, ClickGuiTheme theme) {
-        g.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), controlFillColor(theme, hovered));
+        Render2D.shaderRoundedSurface(g, rect.x(), rect.y(), rect.width(), rect.height(), 3, controlFillColor(theme, hovered), Render2D.withAlpha(theme.accentColor(), hovered ? 210 : 145));
         int color = hovered ? theme.textColor() : theme.secondaryText();
         Component text = NiaClickGuiScreen.styled(label);
         g.drawString(font, text, rect.x() + (rect.width() - font.width(text)) / 2, rect.y() + (rect.height() - font.lineHeight) / 2 + 1, color, false);
     }
 
     private void drawValuePill(GuiGraphics g, Font font, UiRect rect, String value, ClickGuiTheme theme) {
-        g.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), valueFillColor(theme));
+        Render2D.shaderRoundedSurface(g, rect.x(), rect.y(), rect.width(), rect.height(), 3, valueFillColor(theme), Render2D.withAlpha(theme.textColor(), 130));
         Component text = NiaClickGuiScreen.styled(value);
         g.drawString(font, text, rect.x() + (rect.width() - font.width(text)) / 2, rect.y() + (rect.height() - font.lineHeight) / 2 + 1, theme.textColor(), false);
     }
@@ -588,6 +630,16 @@ public class EcoMenu {
         return label + ": " + formatNumber(current) + " / " + formatNumber(max);
     }
 
+    private String combatLabel(TerritoryUpgrade upgrade, TerritoryDetails data) {
+        return switch (upgrade) {
+            case DAMAGE -> "Damage: " + formatDamage(data.damage());
+            case ATTACK -> "Attack Speed: " + formatStat(data.attackSpeed());
+            case HEALTH -> "Health: " + formatStat(data.health());
+            case DEFENSE -> "Defense: " + formatPercent(data.defense());
+            default -> upgrade.label();
+        };
+    }
+
     private String formatDamage(DamageRange damage) {
         if (damage == null) {
             return "0 - 0";
@@ -596,7 +648,7 @@ public class EcoMenu {
     }
 
     private String formatNumber(long value) {
-        return String.format(Locale.ROOT, "%,d", value).replace(',', ' ');
+        return String.format(Locale.ROOT, "%,d", value);
     }
 
     private String formatShortNumber(long value) {
@@ -667,11 +719,47 @@ public class EcoMenu {
     }
 
     private int controlFillColor(ClickGuiTheme theme, boolean hovered) {
-        return hovered ? Render2D.lerpColor(theme.secondary(), theme.accentColor(), 0.24f) : theme.secondary();
+        return Render2D.withAlpha(hovered ? Render2D.lerpColor(theme.secondary(), theme.accentColor(), 0.24f) : theme.secondary(), 238);
     }
 
     private int valueFillColor(ClickGuiTheme theme) {
-        return Render2D.lerpColor(theme.background(), theme.secondary(), 0.7f);
+        return Render2D.withAlpha(Render2D.lerpColor(theme.background(), theme.secondary(), 0.78f), 238);
+    }
+
+    private int costFillColor(int color) {
+        int contrastBase = lightness(color) > 170 ? 0xFF000000 : 0xFFFFFFFF;
+        return Render2D.withAlpha(Render2D.lerpColor(color, contrastBase, 0.14f), 245);
+    }
+
+    private int contrastBorderColor(int color) {
+        return lightness(color) > 170 ? 0xFF1A1D23 : 0xFFEDEFF4;
+    }
+
+    private int contrastTextColor(int color) {
+        return lightness(color) > 150 ? 0xFF101318 : 0xFFFFFFFF;
+    }
+
+    private int lightness(int color) {
+        int red = (color >> 16) & 0xFF;
+        int green = (color >> 8) & 0xFF;
+        int blue = color & 0xFF;
+        return (red * 299 + green * 587 + blue * 114) / 1000;
+    }
+
+    private void shiftAware(Runnable normalClick, Runnable shiftClick) {
+        if (shiftDown()) {
+            shiftClick.run();
+        } else {
+            normalClick.run();
+        }
+    }
+
+    private boolean shiftDown() {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        long window = minecraft.getWindow().handle();
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
     }
 
     private void renderScrollbar(GuiGraphics g, UiRect body, ClickGuiTheme theme, int bodyContentHeight, int maxScroll) {
@@ -699,38 +787,32 @@ public class EcoMenu {
         return Math.max(min, Math.min(max, value));
     }
 
-    public record DetailData(
-            TerritoryWidget selectedTerritory,
-            String guildName,
-            Map<TerritoryUpgrade, Integer> upgradeLevels,
-            TerritoryResourceStore resourceStore,
-            Resources producedResources,
-            DamageRange damage,
-            double attackSpeed,
-            double health,
-            double defense,
-            int ownedConnections,
-            int totalConnections,
-            int externalConnections,
-            int taxPercent,
-            boolean headquarters,
-            boolean bordersOpen,
-            String routeLabel,
-            String loadoutName
+    public record Actions(
+            BiConsumer<TerritoryUpgrade, Integer> upgradeAdjusted,
+            IntConsumer taxAdjusted,
+            IntConsumer globalTaxSet,
+            Runnable headquartersSet,
+            Runnable bordersToggled,
+            Runnable globalBordersToggled,
+            Runnable routeToggled,
+            Runnable globalRouteToggled,
+            Runnable loadoutsOpened,
+            Runnable close
     ) {
-        public DetailData {
-            guildName = guildName == null || guildName.isBlank() ? "Guild" : guildName;
-            upgradeLevels = upgradeLevels == null ? Map.of() : upgradeLevels;
-            resourceStore = resourceStore == null ? TerritoryResourceStore.EMPTY : resourceStore;
-            producedResources = producedResources == null ? Resources.EMPTY : producedResources;
-            damage = damage == null ? DamageRange.EMPTY : damage;
-            routeLabel = routeLabel == null || routeLabel.isBlank() ? "Fastest" : routeLabel;
-            loadoutName = loadoutName == null ? "" : loadoutName.trim();
-        }
-    }
+        public static final Actions EMPTY = new Actions(NO_UPGRADE_ACTION, NO_INT_ACTION, NO_INT_ACTION, NO_OP, NO_OP, NO_OP, NO_OP, NO_OP, NO_OP, NO_OP);
 
-    public record DamageRange(double min, double max) {
-        public static final DamageRange EMPTY = new DamageRange(0.0, 0.0);
+        public Actions {
+            upgradeAdjusted = upgradeAdjusted == null ? NO_UPGRADE_ACTION : upgradeAdjusted;
+            taxAdjusted = taxAdjusted == null ? NO_INT_ACTION : taxAdjusted;
+            globalTaxSet = globalTaxSet == null ? NO_INT_ACTION : globalTaxSet;
+            headquartersSet = headquartersSet == null ? NO_OP : headquartersSet;
+            bordersToggled = bordersToggled == null ? NO_OP : bordersToggled;
+            globalBordersToggled = globalBordersToggled == null ? NO_OP : globalBordersToggled;
+            routeToggled = routeToggled == null ? NO_OP : routeToggled;
+            globalRouteToggled = globalRouteToggled == null ? NO_OP : globalRouteToggled;
+            loadoutsOpened = loadoutsOpened == null ? NO_OP : loadoutsOpened;
+            close = close == null ? NO_OP : close;
+        }
     }
 
     private record DetailButton(UiRect bounds, Runnable onClick, boolean clipToBody) {

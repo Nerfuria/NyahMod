@@ -13,24 +13,23 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.NyahConfig;
-import org.nia.niamod.features.EcoMenuFeature;
+import org.nia.niamod.features.TerritoryManagerFeature;
+import org.nia.niamod.features.eco.GuiActions;
 import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.models.api.TerritoryResponse;
-import org.nia.niamod.models.gui.component.EcoMenu;
-import org.nia.niamod.models.gui.component.EcoMenu.DamageRange;
-import org.nia.niamod.models.gui.component.EcoMenu.DetailData;
+import org.nia.niamod.models.eco.ResourceFlow;
+import org.nia.niamod.models.eco.Resources;
+import org.nia.niamod.models.eco.StatsCalculator;
+import org.nia.niamod.models.eco.TerritoryDetails;
+import org.nia.niamod.models.eco.TerritoryLoadout;
+import org.nia.niamod.models.eco.TerritoryNode;
+import org.nia.niamod.models.eco.TerritoryResourceColors;
+import org.nia.niamod.models.eco.TerritoryUpgrade;
+import org.nia.niamod.models.gui.component.TerritoryDetailPanel;
 import org.nia.niamod.models.gui.component.TerritoryQuickMenu;
 import org.nia.niamod.models.gui.component.TerritoryResourceSummaryWidget;
-import org.nia.niamod.models.gui.component.TerritoryResourceSummaryWidget.ResourceFlow;
 import org.nia.niamod.models.gui.component.TerritoryWidget;
 import org.nia.niamod.models.gui.render.UiRect;
-import org.nia.niamod.models.territory.ResourceAmounts;
-import org.nia.niamod.models.territory.Resources;
-import org.nia.niamod.models.territory.TerritoryNode;
-import org.nia.niamod.models.territory.TerritoryResourceColors;
-import org.nia.niamod.models.territory.TerritoryResourceStore;
-import org.nia.niamod.models.territory.TerritoryLoadout;
-import org.nia.niamod.models.territory.TerritoryUpgrade;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 import org.nia.niamod.util.FileUtils;
@@ -50,7 +49,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class EcoManagerScreen extends Screen {
+public class TerritoryManagerScreen extends Screen {
     private static final Gson GSON = new Gson();
     private static final Type STATIC_TERRITORY_DATA_TYPE = new TypeToken<Map<String, StaticTerritoryData>>() {
     }.getType();
@@ -69,19 +68,21 @@ public class EcoManagerScreen extends Screen {
     private static final StaticTerritoryData EMPTY_STATIC_DATA = new StaticTerritoryData(Resources.EMPTY, List.of());
 
     private final Screen parent;
-    private final EcoMenuFeature ecoFeature;
+    private final TerritoryManagerFeature feature;
+    private final StatsCalculator statsCalculator;
     private final Map<String, StaticTerritoryData> staticTerritoryData;
     private final List<TerritoryWidget> territoryWidgets = new ArrayList<>();
     private final List<TerritoryWidget> visibleTerritoryWidgets = new ArrayList<>();
     private final List<TerritoryLink> territoryLinks = new ArrayList<>();
     private final List<Line> visibleConnections = new ArrayList<>();
+    private final Set<String> territoriesConnectedToHeadquarters = new HashSet<>();
     private final Map<String, TerritoryWidget> widgetsByName = new HashMap<>();
     private final Map<String, TerritoryWidget> widgetsByNormalizedName = new HashMap<>();
-    private final EcoMenu detailPanel = new EcoMenu();
+    private final TerritoryDetailPanel detailPanel = new TerritoryDetailPanel();
     private final TerritoryQuickMenu quickMenu = new TerritoryQuickMenu();
     private final TerritoryResourceSummaryWidget resourceSummaryWidget = new TerritoryResourceSummaryWidget();
     private final LoadoutManager loadoutManager = new LoadoutManager();
-
+    private final String guildName;
     private boolean loadRequested;
     private boolean loading = true;
     private boolean draggingMap;
@@ -94,19 +95,19 @@ public class EcoManagerScreen extends Screen {
     private double panX;
     private double panY;
     private double zoom = 1.0;
-    private final String guildName;
     private String status = "Loading territory data...";
     private MapBounds mapBounds = MapBounds.EMPTY;
     private TerritoryWidget selectedTerritory;
 
-    public EcoManagerScreen(Screen parent) {
-        this(parent, FeatureManager.getEcoMenuFeature());
+    public TerritoryManagerScreen(Screen parent) {
+        this(parent, FeatureManager.getTerritoryManagerFeature());
     }
 
-    public EcoManagerScreen(Screen parent, EcoMenuFeature ecoFeature) {
-        super(Component.literal("Eco Manager"));
+    public TerritoryManagerScreen(Screen parent, TerritoryManagerFeature feature) {
+        super(Component.literal("Territory Manager"));
         this.parent = parent;
-        this.ecoFeature = ecoFeature == null ? new EcoMenuFeature() : ecoFeature;
+        this.feature = feature == null ? new TerritoryManagerFeature() : feature;
+        this.statsCalculator = new StatsCalculator(this.feature, this::connectedOwnedTerritoryNode);
         this.guildName = configuredGuildName();
         this.staticTerritoryData = loadStaticTerritoryData();
     }
@@ -175,7 +176,7 @@ public class EcoManagerScreen extends Screen {
         if (quickMenu.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        DetailData details = selectedDetails();
+        TerritoryDetails details = selectedDetails();
         if (details != null && detailPanel.mouseClicked(
                 mouseX,
                 mouseY,
@@ -217,7 +218,7 @@ public class EcoManagerScreen extends Screen {
             return true;
         }
         if (!loadoutManager.visible()) {
-            DetailData details = selectedDetails();
+            TerritoryDetails details = selectedDetails();
             if (detailPanel.mouseDragged(
                     event.x(),
                     event.y(),
@@ -257,7 +258,7 @@ public class EcoManagerScreen extends Screen {
         if (loadoutManager.visible() && loadoutManager.contains(mouseX, mouseY)) {
             return true;
         }
-        DetailData details = selectedDetails();
+        TerritoryDetails details = selectedDetails();
         if (details != null) {
             if (detailPanel.contains(mouseX, mouseY, width, height, details.producedResources())) {
                 detailPanel.mouseScrolled(mouseX, mouseY, verticalAmount, width, height, details.producedResources());
@@ -294,7 +295,8 @@ public class EcoManagerScreen extends Screen {
         }
         if (selectedTerritory != null && quickMenu.keyPressed(
                 event,
-                tax -> ecoFeature.setTax(selectedTerritory.territory().name(), tax)
+                feature.actionsFor(selectedTerritory.territory().name())::setTax,
+                percent -> feature.setGlobalTax(ownedTerritoryNames(), percent)
         )) {
             return true;
         }
@@ -394,6 +396,7 @@ public class EcoManagerScreen extends Screen {
             widgetsByNormalizedName.put(normalizeName(widget.territory().name()), widget);
         }
         buildTerritoryLinks();
+        recomputeHeadquartersConnectivity();
         mapBounds = preferredMapBounds();
         panX = 0.0;
         panY = 0.0;
@@ -484,6 +487,7 @@ public class EcoManagerScreen extends Screen {
         visibleTerritoryWidgets.clear();
         territoryLinks.clear();
         visibleConnections.clear();
+        territoriesConnectedToHeadquarters.clear();
         widgetsByName.clear();
         widgetsByNormalizedName.clear();
         mapBounds = MapBounds.EMPTY;
@@ -514,7 +518,7 @@ public class EcoManagerScreen extends Screen {
 
     private MapBounds preferredMapBounds() {
         for (TerritoryWidget widget : territoryWidgets) {
-            if (widget.owned() && ecoFeature.isHeadquarters(widget.territory().name())) {
+            if (widget.owned() && feature.isHeadquarters(widget.territory().name())) {
                 return MapBounds.from(List.of(widget));
             }
         }
@@ -619,8 +623,9 @@ public class EcoManagerScreen extends Screen {
                         theme,
                         now,
                         canvas,
-                        widget.owned() && ecoFeature.isHeadquarters(widget.territory().name()),
-                        widget == selectedTerritory || loadoutManager.isSelected(widget)
+                        widget.owned() && feature.isHeadquarters(widget.territory().name()),
+                        widget == selectedTerritory || loadoutManager.isSelected(widget),
+                        disconnectedFromHeadquarters(widget)
                 );
             }
         }
@@ -635,49 +640,26 @@ public class EcoManagerScreen extends Screen {
         g.drawString(font, component, x, y, theme.secondaryText(), false);
     }
 
-    private DetailData selectedDetails() {
+    private TerritoryDetails selectedDetails() {
         return detailDataFor(selectedTerritory);
     }
 
-    private DetailData detailDataFor(TerritoryWidget widget) {
+    private TerritoryDetails detailDataFor(TerritoryWidget widget) {
         if (widget == null || !widget.owned()) {
             return null;
         }
 
-        TerritoryNode territory = widget.territory();
-        Map<TerritoryUpgrade, Integer> stats = ecoFeature.statsFor(territory.name());
-        int ownedConnections = ownedConnectionCount(territory);
-        int externalConnections = externalTerritoryCount(territory);
-        boolean headquarters = ecoFeature.isHeadquarters(territory.name());
-
-        return new DetailData(
-                widget,
-                guildName,
-                stats,
-                resourceStoreFor(territory.name(), stats),
-                calculateProducedResourcesPerHour(territory, stats),
-                calculateDamage(territory, ownedConnections, externalConnections, headquarters, stats),
-                calculateAttackSpeed(stats),
-                calculateHealth(territory, ownedConnections, externalConnections, headquarters, stats),
-                calculateDefense(stats),
-                ownedConnections,
-                totalConnectionCount(territory),
-                externalConnections,
-                ecoFeature.tax(territory.name()),
-                headquarters,
-                ecoFeature.bordersOpen(territory.name()),
-                ecoFeature.territoryRoute(territory.name()).label(),
-                ecoFeature.loadoutFor(territory.name())
-        );
+        return statsCalculator.details(widget.territory(), guildName);
     }
 
     private void drawDetailPanel(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
-        DetailData details = selectedDetails();
+        TerritoryDetails details = selectedDetails();
         if (details == null) {
             return;
         }
 
-        TerritoryNode territory = details.selectedTerritory().territory();
+        TerritoryNode territory = details.territory();
+        GuiActions actions = feature.actionsFor(territory.name());
         detailPanel.render(
                 g,
                 font,
@@ -687,16 +669,21 @@ public class EcoManagerScreen extends Screen {
                 details,
                 width,
                 height,
-                (upgrade, delta) -> onTerritoryUpgradeAdjusted(territory, upgrade, delta),
-                delta -> ecoFeature.setTax(territory.name(), ecoFeature.tax(territory.name()) + delta),
-                () -> ecoFeature.setHeadquarters(territory.name()),
-                () -> ecoFeature.setBordersOpen(territory.name(), !ecoFeature.bordersOpen(territory.name())),
-                () -> ecoFeature.toggleTerritoryRoute(territory.name()),
-                () -> {
-                    quickMenu.hide();
-                    loadoutManager.open();
-                },
-                () -> selectedTerritory = null
+                new TerritoryDetailPanel.Actions(
+                        actions::adjustUpgrade,
+                        actions::adjustTax,
+                        percent -> feature.setGlobalTax(ownedTerritoryNames(), percent),
+                        () -> setHeadquarters(territory.name()),
+                        actions::toggleBorders,
+                        () -> feature.setGlobalBordersOpen(ownedTerritoryNames(), !feature.bordersOpen(territory.name())),
+                        actions::toggleRoute,
+                        () -> feature.setGlobalTerritoryRoute(ownedTerritoryNames(), feature.territoryRoute(territory.name()).toggled()),
+                        () -> {
+                            quickMenu.hide();
+                            loadoutManager.open();
+                        },
+                        () -> selectedTerritory = null
+                )
         );
     }
 
@@ -706,7 +693,8 @@ public class EcoManagerScreen extends Screen {
         }
 
         TerritoryNode territory = selectedTerritory.territory();
-        Map<TerritoryUpgrade, Integer> stats = ecoFeature.statsFor(territory.name());
+        Map<TerritoryUpgrade, Integer> stats = feature.statsFor(territory.name());
+        GuiActions actions = feature.actionsFor(territory.name());
         quickMenu.render(
                 g,
                 font,
@@ -714,13 +702,16 @@ public class EcoManagerScreen extends Screen {
                 mouseY,
                 theme,
                 stats,
-                ecoFeature.tax(territory.name()),
-                ecoFeature.isHeadquarters(territory.name()),
-                ecoFeature.bordersOpen(territory.name()),
-                (upgrade, delta) -> onTerritoryUpgradeAdjusted(territory, upgrade, delta),
-                tax -> ecoFeature.setTax(territory.name(), tax),
-                () -> ecoFeature.setHeadquarters(territory.name()),
-                () -> ecoFeature.setBordersOpen(territory.name(), !ecoFeature.bordersOpen(territory.name()))
+                feature.tax(territory.name()),
+                feature.isHeadquarters(territory.name()),
+                feature.bordersOpen(territory.name()),
+                feature.territoryRoute(territory.name()).label(),
+                actions::adjustUpgrade,
+                () -> setHeadquarters(territory.name()),
+                actions::toggleBorders,
+                () -> feature.setGlobalBordersOpen(ownedTerritoryNames(), !feature.bordersOpen(territory.name())),
+                actions::toggleRoute,
+                () -> feature.setGlobalTerritoryRoute(ownedTerritoryNames(), feature.territoryRoute(territory.name()).toggled())
         );
     }
 
@@ -728,7 +719,7 @@ public class EcoManagerScreen extends Screen {
         if (loadoutManager.visible()) {
             return;
         }
-        DetailData selectedData = selectedDetails();
+        TerritoryDetails selectedData = selectedDetails();
         if (selectedData != null
                 && detailPanel.contains(mouseX, mouseY, width, height, selectedData.producedResources())) {
             return;
@@ -745,13 +736,14 @@ public class EcoManagerScreen extends Screen {
         }
 
         TerritoryNode territory = hovered.territory();
-        Map<TerritoryUpgrade, Integer> stats = ecoFeature.statsFor(territory.name());
-        Resources produced = calculateProducedResourcesPerHour(territory, stats);
+        TerritoryDetails details = statsCalculator.details(territory, guildName);
+        Map<TerritoryUpgrade, Integer> stats = details.upgradeLevels();
+        Resources produced = details.producedResources();
         List<String> lines = List.of(
                 territory.name(),
                 "Prod E/O/C/F/W: " + formatCompact(produced.emeralds()) + " / " + formatCompact(produced.ore()) + " / " + formatCompact(produced.crops()) + " / " + formatCompact(produced.fish()) + " / " + formatCompact(produced.wood()),
-                "Tower D/A/H/F: " + statLevel(stats, TerritoryUpgrade.DAMAGE) + " / " + statLevel(stats, TerritoryUpgrade.ATTACK) + " / " + statLevel(stats, TerritoryUpgrade.HEALTH) + " / " + statLevel(stats, TerritoryUpgrade.DEFENSE),
-                "Res ER/RR/EE/EmR: " + statLevel(stats, TerritoryUpgrade.EFFICIENT_RESOURCES) + " / " + statLevel(stats, TerritoryUpgrade.RESOURCE_RATE) + " / " + statLevel(stats, TerritoryUpgrade.EFFICIENT_EMERALDS) + " / " + statLevel(stats, TerritoryUpgrade.EMERALD_RATE)
+                "Tower D/A/H/F: " + StatsCalculator.statLevel(stats, TerritoryUpgrade.DAMAGE) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.ATTACK) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.HEALTH) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.DEFENSE),
+                "Res ER/RR/EE/EmR: " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EFFICIENT_RESOURCES) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.RESOURCE_RATE) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EFFICIENT_EMERALDS) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EMERALD_RATE)
         );
 
         int tooltipW = 0;
@@ -821,7 +813,7 @@ public class EcoManagerScreen extends Screen {
 
     private boolean showLoadoutButton() {
         return !loadoutManager.visible()
-                && !ecoFeature.loadouts().isEmpty()
+                && !feature.loadouts().isEmpty()
                 && territoryWidgets.stream().anyMatch(TerritoryWidget::owned);
     }
 
@@ -861,191 +853,83 @@ public class EcoManagerScreen extends Screen {
         }
         selectedTerritory = widget;
         detailPanel.resetScroll();
-        DetailData details = detailDataFor(widget);
+        TerritoryDetails details = detailDataFor(widget);
         detailPanel.ensurePosition(width, height, details == null ? Resources.EMPTY : details.producedResources());
         quickMenu.showAt(mouseX, mouseY, width, height);
     }
 
-    private void onTerritoryUpgradeAdjusted(TerritoryNode territory, TerritoryUpgrade upgrade, int delta) {
-        ecoFeature.adjustStat(territory.name(), upgrade, delta);
-    }
-
     private void requestCurrentStats() {
-        ecoFeature.requestStats(territoryWidgets.stream()
+        feature.requestStats(territoryWidgets.stream()
                 .filter(TerritoryWidget::owned)
                 .map(widget -> widget.territory().name())
                 .toList());
     }
 
-    private ResourceFlow summarizeResourceFlow() {
-        ResourceAmounts stored = ResourceAmounts.EMPTY;
-        ResourceAmounts capacity = ResourceAmounts.EMPTY;
-        ResourceAmounts gained = ResourceAmounts.EMPTY;
-        ResourceAmounts used = ResourceAmounts.EMPTY;
-        for (TerritoryWidget widget : territoryWidgets) {
-            if (!widget.owned()) {
-                continue;
-            }
-            TerritoryNode territory = widget.territory();
-            Map<TerritoryUpgrade, Integer> stats = ecoFeature.statsFor(territory.name());
-            if (ecoFeature.isHeadquarters(territory.name())) {
-                TerritoryResourceStore store = resourceStoreFor(territory.name(), stats);
-                stored = store.current();
-                capacity = store.max();
-            }
-            gained = gained.plus(ResourceAmounts.fromResources(calculateProducedResourcesPerHour(territory, stats)));
-            used = used.plus(calculateResourceCostPerHour(stats));
-        }
-        double usagePercent = gained.materialTotal() <= 0L ? 0.0 : used.materialTotal() / (double) gained.materialTotal() * 100.0;
-        return new ResourceFlow(stored, capacity, gained, used, usagePercent);
+    private void setHeadquarters(String territoryName) {
+        feature.setHeadquarters(territoryName);
+        recomputeHeadquartersConnectivity();
     }
 
-    private TerritoryResourceStore resourceStoreFor(String territoryName, Map<TerritoryUpgrade, Integer> stats) {
-        double materialStorageBase = ecoFeature.isHeadquarters(territoryName) ? 1500.0 : 300.0;
-        long materialStorage = Math.round(materialStorageBase * storageMultiplier(stats, TerritoryUpgrade.RESOURCE_STORAGE));
-        long emeraldStorage = Math.round(1500.0 * storageMultiplier(stats, TerritoryUpgrade.EMERALD_STORAGE));
-        return new TerritoryResourceStore(
-                ResourceAmounts.EMPTY,
-                new ResourceAmounts(emeraldStorage, materialStorage, materialStorage, materialStorage, materialStorage)
-        );
+    private List<String> ownedTerritoryNames() {
+        return territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .map(widget -> widget.territory().name())
+                .toList();
     }
 
-    private ResourceAmounts calculateResourceCostPerHour(Map<TerritoryUpgrade, Integer> stats) {
-        ResourceAmounts total = ResourceAmounts.EMPTY;
-        for (TerritoryUpgrade upgrade : TerritoryUpgrade.values()) {
-            total = total.plus(ResourceAmounts.of(upgrade.costResource(), upgrade.cost(statLevel(stats, upgrade))));
-        }
-        return total;
-    }
+    private void recomputeHeadquartersConnectivity() {
+        territoriesConnectedToHeadquarters.clear();
 
-    private DamageRange calculateDamage(TerritoryNode territory, int directConnections, int externalConnections, boolean headquarters, Map<TerritoryUpgrade, Integer> stats) {
-        if (territory == null) {
-            return DamageRange.EMPTY;
+        TerritoryWidget headquarters = territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .filter(widget -> feature.isHeadquarters(widget.territory().name()))
+                .findFirst()
+                .orElse(null);
+        if (headquarters == null) {
+            return;
         }
 
-        double multiplier = territoryMultiplier(directConnections, externalConnections, headquarters);
-        double damageMultiplier = percentMultiplier(stats, TerritoryUpgrade.DAMAGE);
-        return new DamageRange(1_000.0 * damageMultiplier * multiplier, 1_500.0 * damageMultiplier * multiplier);
-    }
+        ArrayDeque<TerritoryWidget> queue = new ArrayDeque<>();
+        queue.add(headquarters);
+        territoriesConnectedToHeadquarters.add(normalizeName(headquarters.territory().name()));
 
-    private double calculateAttackSpeed(Map<TerritoryUpgrade, Integer> stats) {
-        return 0.5 * percentMultiplier(stats, TerritoryUpgrade.ATTACK);
-    }
-
-    private double calculateHealth(TerritoryNode territory, int directConnections, int externalConnections, boolean headquarters, Map<TerritoryUpgrade, Integer> stats) {
-        if (territory == null) {
-            return 0.0;
-        }
-        return 300_000.0 * percentMultiplier(stats, TerritoryUpgrade.HEALTH) * territoryMultiplier(directConnections, externalConnections, headquarters);
-    }
-
-    private double calculateDefense(Map<TerritoryUpgrade, Integer> stats) {
-        return 0.1 * percentMultiplier(stats, TerritoryUpgrade.DEFENSE);
-    }
-
-    private Resources calculateProducedResourcesPerHour(TerritoryNode territory, Map<TerritoryUpgrade, Integer> stats) {
-        if (territory == null) {
-            return Resources.EMPTY;
-        }
-
-        Resources base = territory.resources();
-        return new Resources(
-                roundProductionPerHour(base.emeralds(), stats, TerritoryUpgrade.EMERALD_RATE, TerritoryUpgrade.EFFICIENT_EMERALDS),
-                roundProductionPerHour(base.ore(), stats, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.crops(), stats, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.fish(), stats, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES),
-                roundProductionPerHour(base.wood(), stats, TerritoryUpgrade.RESOURCE_RATE, TerritoryUpgrade.EFFICIENT_RESOURCES)
-        );
-    }
-
-    private double territoryMultiplier(int directConnections, int externalConnections, boolean headquarters) {
-        double connectionMultiplier = 1.0 + (0.3 * directConnections);
-        if (!headquarters) {
-            return connectionMultiplier;
-        }
-        return (1.5 + (0.25 * externalConnections)) * connectionMultiplier;
-    }
-
-    private double upgradeBonus(Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade upgrade) {
-        return upgrade.bonus(statLevel(stats, upgrade));
-    }
-
-    private double storageMultiplier(Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade upgrade) {
-        return 1.0 + (upgradeBonus(stats, upgrade) / 100.0);
-    }
-
-    private double percentMultiplier(Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade upgrade) {
-        return 1.0 + (upgradeBonus(stats, upgrade) / 100.0);
-    }
-
-    private int statLevel(Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade upgrade) {
-        return stats == null ? 0 : stats.getOrDefault(upgrade, 0);
-    }
-
-    private double calculateProductionPerHour(int basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
-        if (basePerHour <= 0) {
-            return 0.0;
-        }
-
-        double basePerProduction = basePerHour / 900.0;
-        double secondsPerProduction = Math.max(1.0, upgradeBonus(stats, rateUpgrade));
-        double efficientMultiplier = 1.0 + (upgradeBonus(stats, efficientUpgrade) / 100.0);
-        return basePerProduction * (3600.0 / secondsPerProduction) * efficientMultiplier;
-    }
-
-    private int roundProductionPerHour(int basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
-        return (int) Math.round(calculateProductionPerHour(basePerHour, stats, rateUpgrade, efficientUpgrade));
-    }
-
-    private int ownedConnectionCount(TerritoryNode territory) {
-        int count = 0;
-        for (String connection : territory.connections()) {
-            TerritoryWidget target = connectedOwnedTerritory(connection);
-            if (target != null) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private int externalTerritoryCount(TerritoryNode territory) {
-        if (territory == null) {
-            return 0;
-        }
-
-        Set<String> visited = new HashSet<>();
-        ArrayDeque<TerritoryNodeDepth> queue = new ArrayDeque<>();
-        visited.add(normalizeName(territory.name()));
-        queue.addLast(new TerritoryNodeDepth(territory, 0));
-
-        int count = 0;
         while (!queue.isEmpty()) {
-            TerritoryNodeDepth current = queue.removeFirst();
-            if (current.depth() >= 3) {
-                continue;
-            }
-
-            for (String connection : current.territory().connections()) {
-                TerritoryWidget target = connectedOwnedTerritory(connection);
-                if (target == null) {
+            TerritoryWidget current = queue.removeFirst();
+            for (TerritoryLink link : territoryLinks) {
+                if (!link.source().owned() || !link.target().owned()) {
                     continue;
                 }
 
-                String key = normalizeName(target.territory().name());
-                if (visited.add(key)) {
-                    count++;
-                    queue.addLast(new TerritoryNodeDepth(target.territory(), current.depth() + 1));
+                TerritoryWidget next = null;
+                if (link.source() == current) {
+                    next = link.target();
+                } else if (link.target() == current) {
+                    next = link.source();
+                }
+                if (next == null) {
+                    continue;
+                }
+
+                String key = normalizeName(next.territory().name());
+                if (territoriesConnectedToHeadquarters.add(key)) {
+                    queue.addLast(next);
                 }
             }
         }
-
-        return count;
     }
 
-    private int totalConnectionCount(TerritoryNode territory) {
-        return (int) territory.connections().stream()
-                .filter(connection -> connection != null && !connection.isBlank())
-                .count();
+    private boolean disconnectedFromHeadquarters(TerritoryWidget widget) {
+        return widget != null
+                && widget.owned()
+                && !territoriesConnectedToHeadquarters.isEmpty()
+                && !territoriesConnectedToHeadquarters.contains(normalizeName(widget.territory().name()));
+    }
+
+    private ResourceFlow summarizeResourceFlow() {
+        return statsCalculator.summarizeResourceFlow(territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .map(TerritoryWidget::territory)
+                .toList());
     }
 
     private TerritoryWidget connectedOwnedTerritory(String connection) {
@@ -1054,6 +938,11 @@ public class EcoManagerScreen extends Screen {
             target = widgetsByNormalizedName.get(normalizeName(connection));
         }
         return target != null && target.owned() ? target : null;
+    }
+
+    private TerritoryNode connectedOwnedTerritoryNode(String connection) {
+        TerritoryWidget target = connectedOwnedTerritory(connection);
+        return target == null ? null : target.territory();
     }
 
     private Map<String, StaticTerritoryData> loadStaticTerritoryData() {
@@ -1186,9 +1075,6 @@ public class EcoManagerScreen extends Screen {
     private record Line(double x1, double y1, double x2, double y2, boolean foreignRoute) {
     }
 
-    private record TerritoryNodeDepth(TerritoryNode territory, int depth) {
-    }
-
     private class LoadoutManager {
         private static final int PANEL_W = 230;
         private static final int PAD = 8;
@@ -1307,7 +1193,7 @@ public class EcoManagerScreen extends Screen {
             y += 24;
 
             if (selectedLoadout == null) {
-                for (TerritoryLoadout loadout : ecoFeature.loadouts()) {
+                for (TerritoryLoadout loadout : feature.loadouts()) {
                     UiRect row = new UiRect(x, y, right - x, ROW_H);
                     drawButton(g, font, row, loadout.name(), row.contains(mouseX, mouseY), theme);
                     buttons.add(new LoadoutButton(row, () -> {
@@ -1330,7 +1216,7 @@ public class EcoManagerScreen extends Screen {
             drawButton(g, font, cancel, "Cancel", cancel.contains(mouseX, mouseY), theme);
             buttons.add(new LoadoutButton(apply, () -> {
                 if (!selectedTerritories.isEmpty()) {
-                    ecoFeature.applyLoadout(selectedLoadout.name(), selectedTerritories);
+                    feature.applyLoadout(selectedLoadout.name(), selectedTerritories);
                 }
                 close();
             }));
@@ -1344,7 +1230,7 @@ public class EcoManagerScreen extends Screen {
         }
 
         private int panelHeight() {
-            int rows = selectedLoadout == null ? ecoFeature.loadouts().size() : 2;
+            int rows = selectedLoadout == null ? feature.loadouts().size() : 2;
             int preferred = 40 + rows * (ROW_H + 4) + PAD;
             return Math.min(preferred, Math.max(1, height - 16));
         }

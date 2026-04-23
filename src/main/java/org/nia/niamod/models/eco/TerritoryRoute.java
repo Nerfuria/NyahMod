@@ -1,4 +1,4 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 public enum TerritoryRoute {
     FASTEST("Fastest"),

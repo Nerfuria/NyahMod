@@ -2,10 +2,11 @@ package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import org.nia.niamod.models.eco.ResourceAmounts;
+import org.nia.niamod.models.eco.ResourceFlow;
+import org.nia.niamod.models.eco.ResourceKind;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
-import org.nia.niamod.models.territory.ResourceAmounts;
-import org.nia.niamod.models.territory.ResourceKind;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -26,8 +27,17 @@ public class TerritoryResourceSummaryWidget {
     public void render(GuiGraphics g, Font font, ClickGuiTheme theme, ResourceFlow state) {
         int height = height();
         UiRect panel = new UiRect(MARGIN, MARGIN, WIDTH, height);
+        Render2D.dropShadow(g, panel, 4, 0x55000000, 7);
         Render2D.shaderRoundedSurface(g, panel.x(), panel.y(), panel.width(), panel.height(), 4, theme.background(), Render2D.withAlpha(theme.accentColor(), 86));
-        g.fill(panel.x() + 1, panel.y() + 1, panel.right() - 1, panel.y() + HEADER_HEIGHT + 2, Render2D.withAlpha(theme.accentColor(), 28));
+        Render2D.horizontalGradient(
+                g,
+                panel.x() + 1,
+                panel.y() + 1,
+                panel.width() - 2,
+                HEADER_HEIGHT + 1,
+                Render2D.withAlpha(theme.accentColor(), 48),
+                Render2D.withAlpha(theme.secondary(), 18)
+        );
 
         int x = panel.x() + PAD;
         int y = panel.y() + PAD - 1;
@@ -96,7 +106,7 @@ public class TerritoryResourceSummaryWidget {
     }
 
     private String format(long value) {
-        return String.format(Locale.ROOT, "%,d", value).replace(',', ' ');
+        return String.format(Locale.ROOT, "%,d", value);
     }
 
     private String formatShort(long value) {
@@ -114,29 +124,10 @@ public class TerritoryResourceSummaryWidget {
         if (Math.abs(value - Math.rint(value)) < 0.0001) {
             return format(Math.round(value));
         }
-        return String.format(Locale.ROOT, "%,.2f", value).replace(',', ' ');
+        return String.format(Locale.ROOT, "%,.2f", value);
     }
 
     private String formatPercent(double value) {
         return String.format(Locale.ROOT, "%.1f%%", value);
-    }
-
-    public record ResourceFlow(
-            ResourceAmounts stored,
-            ResourceAmounts capacity,
-            ResourceAmounts gainedPerHour,
-            ResourceAmounts usedPerHour,
-            double materialUsagePercent
-    ) {
-        public ResourceFlow {
-            stored = stored == null ? ResourceAmounts.EMPTY : stored;
-            capacity = capacity == null ? ResourceAmounts.EMPTY : capacity;
-            gainedPerHour = gainedPerHour == null ? ResourceAmounts.EMPTY : gainedPerHour;
-            usedPerHour = usedPerHour == null ? ResourceAmounts.EMPTY : usedPerHour;
-        }
-
-        public ResourceAmounts netPerHour() {
-            return gainedPerHour.minus(usedPerHour);
-        }
     }
 }

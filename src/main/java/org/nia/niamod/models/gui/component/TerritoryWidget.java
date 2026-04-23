@@ -1,15 +1,16 @@
 package org.nia.niamod.models.gui.component;
 
+import lombok.Setter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.models.eco.TerritoryNode;
+import org.nia.niamod.models.eco.TerritoryResourceColors;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
-import org.nia.niamod.models.territory.TerritoryNode;
-import org.nia.niamod.models.territory.TerritoryResourceColors;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
@@ -22,6 +23,7 @@ public class TerritoryWidget {
     private static final int BORDER_GAP = 5;
     private static final int MAX_BORDER_DASHES_PER_SIDE = 6;
     private static final int LABEL_PADDING = 4;
+    private static final int DISCONNECTED_COLOR = 0xFFFF3B30;
     private static final double MARQUEE_PIXELS_PER_SECOND = 34.0;
     private static final long MARQUEE_PAUSE_MILLIS = 450L;
     private static final ItemStack CITY_ICON = new ItemStack(Items.EMERALD);
@@ -29,6 +31,7 @@ public class TerritoryWidget {
     private final TerritoryNode territory;
     private final boolean owned;
     private final Consumer<TerritoryWidget> selectionHandler;
+    @Setter
     private UiRect bounds = new UiRect(0, 0, 1, 1);
     private int cachedNameMaxWidth = -1;
     private Component cachedName = Component.empty();
@@ -55,10 +58,6 @@ public class TerritoryWidget {
         return territory;
     }
 
-    public void setBounds(UiRect bounds) {
-        this.bounds = bounds;
-    }
-
     public UiRect bounds() {
         return bounds;
     }
@@ -67,7 +66,7 @@ public class TerritoryWidget {
         return owned;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected) {
+    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected, boolean disconnectedFromHeadquarters) {
         if (!intersects(bounds, canvas, CLIP_PADDING)) {
             return;
         }
@@ -89,7 +88,15 @@ public class TerritoryWidget {
             Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(territory.resourceColor(), fillAlpha));
         }
 
-        if (selected) {
+        if (disconnectedFromHeadquarters) {
+            int color = Render2D.withAlpha(DISCONNECTED_COLOR, selected ? 255 : 235);
+            if (selected) {
+                double phase = System.currentTimeMillis() / 42.0;
+                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
+            } else {
+                drawSolidBorder(g, bounds, canvas, color, 2);
+            }
+        } else if (selected) {
             int selectedAlpha = (int) Math.round(170 + Math.sin(System.currentTimeMillis() / 115.0) * 55);
             double phase = System.currentTimeMillis() / 42.0;
             if (headquarters) {
@@ -199,18 +206,7 @@ public class TerritoryWidget {
     }
 
     private void drawMarqueeName(GuiGraphics g, Font font, int labelX, int nameY, int labelW, int nameWidth, int textColor, long now, UiRect clip) {
-        double scrollRange = Math.max(1.0, nameWidth - labelW);
-        double scrollMillis = scrollRange / MARQUEE_PIXELS_PER_SECOND * 1000.0;
-        double cycle = MARQUEE_PAUSE_MILLIS * 2.0 + scrollMillis;
-        double elapsed = positiveModulo(now - hoverStartedAt, cycle);
-        double offset;
-        if (elapsed < MARQUEE_PAUSE_MILLIS) {
-            offset = 0.0;
-        } else if (elapsed < MARQUEE_PAUSE_MILLIS + scrollMillis) {
-            offset = -scrollRange * ((elapsed - MARQUEE_PAUSE_MILLIS) / scrollMillis);
-        } else {
-            offset = -scrollRange;
-        }
+        double offset = calcOffset(labelW, nameWidth, now);
 
         int clipTop = Math.max(clip.y(), nameY - 1);
         int clipBottom = Math.min(clip.bottom(), nameY + font.lineHeight + 1);
@@ -223,6 +219,22 @@ public class TerritoryWidget {
         } finally {
             g.disableScissor();
         }
+    }
+
+    private double calcOffset(int labelW, int nameWidth, long now) {
+        double scrollRange = Math.max(1.0, nameWidth - labelW);
+        double scrollMillis = scrollRange / MARQUEE_PIXELS_PER_SECOND * 1000.0;
+        double cycle = MARQUEE_PAUSE_MILLIS * 2.0 + scrollMillis;
+        double elapsed = positiveModulo(now - hoverStartedAt, cycle);
+        double offset;
+        if (elapsed < MARQUEE_PAUSE_MILLIS) {
+            offset = 0.0;
+        } else if (elapsed < MARQUEE_PAUSE_MILLIS + scrollMillis) {
+            offset = -scrollRange * ((elapsed - MARQUEE_PAUSE_MILLIS) / scrollMillis);
+        } else {
+            offset = -scrollRange;
+        }
+        return offset;
     }
 
     private void drawClippedText(GuiGraphics g, Font font, Component text, int x, int y, int color, UiRect clip) {

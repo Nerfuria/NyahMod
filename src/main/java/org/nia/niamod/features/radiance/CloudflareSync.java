@@ -103,10 +103,6 @@ public class CloudflareSync {
         }
 
         URI wsUri = workerWebSocketUri();
-        if (wsUri == null) {
-            connecting.set(false);
-            return;
-        }
 
         try {
             httpClient.newWebSocketBuilder()

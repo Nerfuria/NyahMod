@@ -1,4 +1,4 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 public record TerritoryResourceStore(ResourceAmounts current, ResourceAmounts max) {
     public static final TerritoryResourceStore EMPTY = new TerritoryResourceStore(ResourceAmounts.EMPTY, ResourceAmounts.EMPTY);

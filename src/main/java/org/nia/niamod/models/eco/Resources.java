@@ -1,4 +1,4 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 public record Resources(int emeralds, int ore, int crops, int fish, int wood) {
     public static final Resources EMPTY = new Resources(0, 0, 0, 0, 0);

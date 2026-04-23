@@ -1,6 +1,6 @@
 package org.nia.niamod.features.eco;
 
-import org.nia.niamod.models.territory.TerritoryUpgrade;
+import org.nia.niamod.models.eco.TerritoryUpgrade;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class EcoUncommittedChanges {
+public class UncommittedChanges {
     private final Map<String, EnumSet<TerritoryUpgrade>> stats = new HashMap<>();
     private final Set<String> taxes = new HashSet<>();
     private final Set<String> borders = new HashSet<>();
@@ -103,15 +103,15 @@ public class EcoUncommittedChanges {
     }
 
     public Set<String> taxes() {
-        return Collections.unmodifiableSet(new HashSet<>(taxes));
+        return Set.copyOf(taxes);
     }
 
     public Set<String> borders() {
-        return Collections.unmodifiableSet(new HashSet<>(borders));
+        return Set.copyOf(borders);
     }
 
     public Set<String> routes() {
-        return Collections.unmodifiableSet(new HashSet<>(routes));
+        return Set.copyOf(routes);
     }
 
     private void mark(Set<String> values, String territoryKey) {

@@ -1,4 +1,4 @@
-package org.nia.niamod.models.territory;
+package org.nia.niamod.models.eco;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
