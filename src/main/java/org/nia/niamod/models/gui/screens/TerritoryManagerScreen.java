@@ -85,8 +85,11 @@ public class TerritoryManagerScreen extends Screen {
     private final String guildName;
     private boolean loadRequested;
     private boolean loading = true;
+    private boolean territoriesLoaded;
+    private boolean territoryRefreshInFlight;
     private boolean draggingMap;
     private boolean layoutDirty = true;
+    private long lastTerritoryRefreshMillis;
     private int lastLayoutWidth = -1;
     private int lastLayoutHeight = -1;
     private double lastLayoutPanX = Double.NaN;
@@ -116,8 +119,14 @@ public class TerritoryManagerScreen extends Screen {
     protected void init() {
         if (!loadRequested) {
             loadRequested = true;
-            loadTerritoriesAsync();
+            loadTerritoriesAsync(true);
         }
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        refreshOwnedTerritoriesIfDue();
     }
 
     @Override
@@ -332,64 +341,93 @@ public class TerritoryManagerScreen extends Screen {
         return false;
     }
 
-    private void loadTerritoriesAsync() {
-        loading = territoryWidgets.isEmpty();
+    private void refreshOwnedTerritoriesIfDue() {
+        if (!loadRequested || territoryRefreshInFlight) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - lastTerritoryRefreshMillis >= territoryRefreshIntervalMillis()) {
+            loadTerritoriesAsync(!territoriesLoaded);
+        }
+    }
+
+    private long territoryRefreshIntervalMillis() {
+        return Math.max(1, NyahConfig.getData().getEcoTerritoryRefreshSeconds()) * 1000L;
+    }
+
+    private void loadTerritoriesAsync(boolean initialLoad) {
+        if (territoryRefreshInFlight) {
+            return;
+        }
+
+        territoryRefreshInFlight = true;
+        lastTerritoryRefreshMillis = System.currentTimeMillis();
+        loading = initialLoad && territoryWidgets.isEmpty();
         if (loading) {
             status = "Loading territory data...";
         }
 
         try {
-            WynncraftAPI.territoryResponseAsync().whenComplete((response, throwable) -> {
+            WynncraftAPI.ownedTerritoryResponseAsync(guildName).whenComplete((response, throwable) -> {
                 Minecraft minecraft = Minecraft.getInstance();
                 minecraft.execute(() -> {
+                    territoryRefreshInFlight = false;
                     if (throwable != null) {
-                        failLoad(throwable);
+                        failLoad(throwable, initialLoad);
                         return;
                     }
-                    replaceTerritories(response);
+                    replaceTerritories(response, initialLoad);
                 });
             });
         } catch (Throwable throwable) {
-            failLoad(throwable);
+            territoryRefreshInFlight = false;
+            failLoad(throwable, initialLoad);
         }
     }
 
-    private void failLoad(Throwable throwable) {
+    private void failLoad(Throwable throwable, boolean clearExisting) {
         loading = false;
-        clearTerritories();
-        status = "Failed to load territories";
+        if (clearExisting) {
+            clearTerritories();
+            status = "Failed to load territories";
+        } else {
+            status = "Failed to refresh territories";
+        }
         NiamodClient.LOGGER.warn("Failed to load eco territory data", throwable);
     }
 
-    private void replaceTerritories(Map<String, TerritoryResponse> response) {
+    private void replaceTerritories(Map<String, TerritoryResponse> response, boolean resetViewport) {
         loading = false;
+        territoriesLoaded = true;
 
         String selectedName = selectedTerritory == null ? null : selectedTerritory.territory().name();
-        clearTerritories();
+        clearTerritories(false);
 
-        if (response == null || response.isEmpty()) {
+        if (response == null) {
             status = "No territory data";
+            selectedTerritory = null;
+            quickMenu.hide();
+            return;
+        }
+        if (response.isEmpty()) {
+            status = "No territories for " + guildName;
+            selectedTerritory = null;
+            quickMenu.hide();
             return;
         }
 
         List<TerritoryWidget> loadedWidgets = new ArrayList<>();
         for (Map.Entry<String, TerritoryResponse> entry : response.entrySet()) {
             TerritoryWidget widget = toWidget(entry.getKey(), entry.getValue());
-            if (widget != null) {
+            if (widget != null && widget.owned()) {
                 loadedWidgets.add(widget);
             }
         }
         loadedWidgets.sort(Comparator.comparing(widget -> widget.territory().name().toLowerCase(Locale.ROOT)));
 
-        Map<String, TerritoryWidget> loadedByNormalizedName = new HashMap<>();
         for (TerritoryWidget widget : loadedWidgets) {
-            loadedByNormalizedName.put(normalizeName(widget.territory().name()), widget);
-        }
-
-        for (TerritoryWidget widget : loadedWidgets) {
-            if (widget.owned() || touchesOwnedTerritory(widget, loadedByNormalizedName)) {
-                territoryWidgets.add(widget);
-            }
+            territoryWidgets.add(widget);
         }
         for (TerritoryWidget widget : territoryWidgets) {
             widgetsByName.put(widget.territory().name(), widget);
@@ -398,15 +436,22 @@ public class TerritoryManagerScreen extends Screen {
         buildTerritoryLinks();
         recomputeHeadquartersConnectivity();
         mapBounds = preferredMapBounds();
-        panX = 0.0;
-        panY = 0.0;
-        zoom = 1.0;
+        if (resetViewport) {
+            panX = 0.0;
+            panY = 0.0;
+            zoom = 1.0;
+        }
         layoutDirty = true;
         requestCurrentStats();
 
         if (selectedName != null) {
             TerritoryWidget restored = widgetsByNormalizedName.get(normalizeName(selectedName));
             selectedTerritory = restored != null && restored.owned() ? restored : null;
+            if (selectedTerritory == null) {
+                quickMenu.hide();
+            }
+        } else {
+            quickMenu.hide();
         }
 
         long ownedCount = territoryWidgets.stream().filter(TerritoryWidget::owned).count();
@@ -449,40 +494,11 @@ public class TerritoryManagerScreen extends Screen {
         return new TerritoryWidget(territory, owned, this::selectTerritory);
     }
 
-    private boolean touchesOwnedTerritory(TerritoryWidget widget, Map<String, TerritoryWidget> allWidgetsByNormalizedName) {
-        if (widget == null || widget.owned()) {
-            return widget != null;
-        }
-
-        for (String connection : widget.territory().connections()) {
-            TerritoryWidget target = allWidgetsByNormalizedName.get(normalizeName(connection));
-            if (target != null && target.owned()) {
-                return true;
-            }
-        }
-
-        String territoryKey = normalizeName(widget.territory().name());
-        for (TerritoryWidget candidate : allWidgetsByNormalizedName.values()) {
-            if (candidate.owned() && connectsTo(candidate, territoryKey)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean connectsTo(TerritoryWidget widget, String normalizedTargetName) {
-        if (widget == null || normalizedTargetName == null || normalizedTargetName.isBlank()) {
-            return false;
-        }
-        for (String connection : widget.territory().connections()) {
-            if (normalizeName(connection).equals(normalizedTargetName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void clearTerritories() {
+        clearTerritories(true);
+    }
+
+    private void clearTerritories(boolean clearSelection) {
         territoryWidgets.clear();
         visibleTerritoryWidgets.clear();
         territoryLinks.clear();
@@ -491,8 +507,10 @@ public class TerritoryManagerScreen extends Screen {
         widgetsByName.clear();
         widgetsByNormalizedName.clear();
         mapBounds = MapBounds.EMPTY;
-        selectedTerritory = null;
-        quickMenu.hide();
+        if (clearSelection) {
+            selectedTerritory = null;
+            quickMenu.hide();
+        }
         layoutDirty = true;
     }
 

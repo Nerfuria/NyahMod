@@ -10,9 +10,9 @@ import org.nia.niamod.models.api.TerritoryResponse;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @UtilityClass
@@ -29,6 +29,18 @@ public class WynncraftAPI {
                 });
     }
 
+    public static CompletableFuture<Map<String, TerritoryResponse>> ownedTerritoryResponseAsync(String guildName) {
+        String guildKey = normalize(guildName);
+        if (guildKey.isEmpty()) {
+            return CompletableFuture.completedFuture(Map.of());
+        }
+
+        return territoryResponseAsync()
+                .thenApply(response -> response.entrySet().stream()
+                        .filter(entry -> isOwnedByGuild(entry.getValue(), guildKey))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    }
+
     public static CompletableFuture<GuildResponse> guildResponseAsync(String guildName) {
         return WebUtils.queryAPIAsync(guildUrl(guildName))
                 .thenApply(json -> gson.fromJson(json, GuildResponse.class));
@@ -40,17 +52,13 @@ public class WynncraftAPI {
         return NyahConfig.getData().getApiBase() + "guild/%s?identifier=username".formatted(encodedGuildName);
     }
 
-    private static Map<String, TerritoryResponse> territoriesByGuild(String guild) {
-        Type type = new TypeToken<Map<String, TerritoryResponse>>() {
-        }.getType();
-        try {
-            return (Map<String, TerritoryResponse>) WebUtils.queryAPIAsync(NyahConfig.getData().getApiBase() + "guild/list/territory")
-                    .thenApply(json -> {
-                        Map<String, TerritoryResponse> response = gson.fromJson(json, type);
-                        return response == null ? Map.of() : response.entrySet().stream().filter(entry -> entry.getValue().guild().name().equalsIgnoreCase(guild)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                    }).get();
-        } catch (InterruptedException | ExecutionException e) {
-            return Map.of();
-        }
+    private static boolean isOwnedByGuild(TerritoryResponse response, String guildKey) {
+        return response != null
+                && response.guild() != null
+                && normalize(response.guild().name()).equals(guildKey);
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }
