@@ -65,6 +65,8 @@ public class TerritoryManagerScreen extends Screen {
     private static final double MIN_ZOOM = 0.35;
     private static final double MAX_ZOOM = 6.0;
     private static final double ZOOM_STEP = 1.16;
+    private static final double MAP_CLICK_DRAG_SLOP = 3.0;
+    private static final double MAP_CLICK_DRAG_SLOP_SQUARED = MAP_CLICK_DRAG_SLOP * MAP_CLICK_DRAG_SLOP;
     private static final StaticTerritoryData EMPTY_STATIC_DATA = new StaticTerritoryData(Resources.EMPTY, List.of());
 
     private final Screen parent;
@@ -88,6 +90,8 @@ public class TerritoryManagerScreen extends Screen {
     private boolean territoriesLoaded;
     private boolean territoryRefreshInFlight;
     private boolean draggingMap;
+    private boolean closeSelectionOnMapClick;
+    private boolean mapDragExceededClickSlop;
     private boolean layoutDirty = true;
     private long lastTerritoryRefreshMillis;
     private int lastLayoutWidth = -1;
@@ -98,6 +102,8 @@ public class TerritoryManagerScreen extends Screen {
     private double panX;
     private double panY;
     private double zoom = 1.0;
+    private double mapDragStartX;
+    private double mapDragStartY;
     private String status = "Loading territory data...";
     private MapBounds mapBounds = MapBounds.EMPTY;
     private TerritoryWidget selectedTerritory;
@@ -173,7 +179,7 @@ public class TerritoryManagerScreen extends Screen {
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
                     || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
                     || button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-                draggingMap = true;
+                startMapDrag(mouseX, mouseY, false);
                 return true;
             }
             return false;
@@ -207,15 +213,14 @@ public class TerritoryManagerScreen extends Screen {
         }
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && selectedTerritory != null) {
-            selectedTerritory = null;
-            quickMenu.hide();
+            startMapDrag(mouseX, mouseY, true);
             return true;
         }
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
                 || button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-            draggingMap = true;
+            startMapDrag(mouseX, mouseY, false);
             return true;
         }
 
@@ -240,6 +245,7 @@ public class TerritoryManagerScreen extends Screen {
             }
         }
         if (draggingMap) {
+            updateMapDragDistance(event.x(), event.y());
             panX += deltaX;
             panY += deltaY;
             layoutDirty = true;
@@ -257,7 +263,13 @@ public class TerritoryManagerScreen extends Screen {
             return true;
         }
         if (draggingMap) {
+            updateMapDragDistance(event.x(), event.y());
+            if (closeSelectionOnMapClick && !mapDragExceededClickSlop) {
+                selectedTerritory = null;
+                quickMenu.hide();
+            }
             draggingMap = false;
+            closeSelectionOnMapClick = false;
             return true;
         }
         return super.mouseReleased(event);
@@ -331,6 +343,7 @@ public class TerritoryManagerScreen extends Screen {
     @Override
     public void onClose() {
         draggingMap = false;
+        closeSelectionOnMapClick = false;
         detailPanel.stopDragging();
         quickMenu.hide();
         loadoutManager.close();
@@ -340,6 +353,24 @@ public class TerritoryManagerScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private void startMapDrag(double mouseX, double mouseY, boolean closeSelectionOnClick) {
+        draggingMap = true;
+        closeSelectionOnMapClick = closeSelectionOnClick;
+        mapDragExceededClickSlop = false;
+        mapDragStartX = mouseX;
+        mapDragStartY = mouseY;
+    }
+
+    private void updateMapDragDistance(double mouseX, double mouseY) {
+        if (mapDragExceededClickSlop) {
+            return;
+        }
+
+        double offsetX = mouseX - mapDragStartX;
+        double offsetY = mouseY - mapDragStartY;
+        mapDragExceededClickSlop = offsetX * offsetX + offsetY * offsetY > MAP_CLICK_DRAG_SLOP_SQUARED;
     }
 
     private void refreshOwnedTerritoriesIfDue() {
