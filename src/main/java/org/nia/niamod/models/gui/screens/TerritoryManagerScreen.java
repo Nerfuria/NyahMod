@@ -101,6 +101,7 @@ public class TerritoryManagerScreen extends Screen {
     private String status = "Loading territory data...";
     private MapBounds mapBounds = MapBounds.EMPTY;
     private TerritoryWidget selectedTerritory;
+    private String headquartersConnectivitySignature = "";
 
     public TerritoryManagerScreen(Screen parent) {
         this(parent, FeatureManager.getTerritoryManagerFeature());
@@ -369,7 +370,7 @@ public class TerritoryManagerScreen extends Screen {
         }
 
         try {
-            WynncraftAPI.ownedTerritoryResponseAsync(guildName).whenComplete((response, throwable) -> {
+            WynncraftAPI.territoryResponseAsync().whenComplete((response, throwable) -> {
                 Minecraft minecraft = Minecraft.getInstance();
                 minecraft.execute(() -> {
                     territoryRefreshInFlight = false;
@@ -405,36 +406,45 @@ public class TerritoryManagerScreen extends Screen {
         clearTerritories(false);
 
         if (response == null) {
+            clearHeadquartersConnectivityCache();
             status = "No territory data";
             selectedTerritory = null;
             quickMenu.hide();
             return;
         }
         if (response.isEmpty()) {
+            clearHeadquartersConnectivityCache();
             status = "No territories for " + guildName;
             selectedTerritory = null;
             quickMenu.hide();
             return;
         }
 
-        List<TerritoryWidget> loadedWidgets = new ArrayList<>();
+        List<TerritoryWidget> allWidgets = new ArrayList<>();
+        Map<String, TerritoryWidget> allWidgetsByName = new HashMap<>();
+        Map<String, TerritoryWidget> allWidgetsByNormalizedName = new HashMap<>();
         for (Map.Entry<String, TerritoryResponse> entry : response.entrySet()) {
             TerritoryWidget widget = toWidget(entry.getKey(), entry.getValue());
-            if (widget != null && widget.owned()) {
-                loadedWidgets.add(widget);
+            if (widget != null) {
+                allWidgets.add(widget);
+                indexWidget(widget, allWidgetsByName, allWidgetsByNormalizedName);
             }
         }
-        loadedWidgets.sort(Comparator.comparing(widget -> widget.territory().name().toLowerCase(Locale.ROOT)));
+
+        Set<String> visibleTerritoryKeys = visibleTerritoryKeys(allWidgets, allWidgetsByName, allWidgetsByNormalizedName);
+        List<TerritoryWidget> loadedWidgets = allWidgets.stream()
+                .filter(widget -> visibleTerritoryKeys.contains(normalizeName(widget.territory().name())))
+                .sorted(Comparator.comparing(widget -> widget.territory().name().toLowerCase(Locale.ROOT)))
+                .toList();
 
         for (TerritoryWidget widget : loadedWidgets) {
             territoryWidgets.add(widget);
         }
         for (TerritoryWidget widget : territoryWidgets) {
-            widgetsByName.put(widget.territory().name(), widget);
-            widgetsByNormalizedName.put(normalizeName(widget.territory().name()), widget);
+            indexWidget(widget, widgetsByName, widgetsByNormalizedName);
         }
         buildTerritoryLinks();
-        recomputeHeadquartersConnectivity();
+        recomputeHeadquartersConnectivityIfNeeded();
         mapBounds = preferredMapBounds();
         if (resetViewport) {
             panX = 0.0;
@@ -494,6 +504,33 @@ public class TerritoryManagerScreen extends Screen {
         return new TerritoryWidget(territory, owned, this::selectTerritory);
     }
 
+    private Set<String> visibleTerritoryKeys(
+            List<TerritoryWidget> allWidgets,
+            Map<String, TerritoryWidget> allWidgetsByName,
+            Map<String, TerritoryWidget> allWidgetsByNormalizedName
+    ) {
+        Set<String> visibleKeys = new HashSet<>();
+        for (TerritoryWidget widget : allWidgets) {
+            if (!widget.owned()) {
+                continue;
+            }
+
+            visibleKeys.add(normalizeName(widget.territory().name()));
+            for (String connection : widget.territory().connections()) {
+                TerritoryWidget target = findWidget(allWidgetsByName, allWidgetsByNormalizedName, connection);
+                if (target != null && !target.owned()) {
+                    visibleKeys.add(normalizeName(target.territory().name()));
+                }
+            }
+        }
+        return visibleKeys;
+    }
+
+    private void indexWidget(TerritoryWidget widget, Map<String, TerritoryWidget> byName, Map<String, TerritoryWidget> byNormalizedName) {
+        byName.put(widget.territory().name(), widget);
+        byNormalizedName.put(normalizeName(widget.territory().name()), widget);
+    }
+
     private void clearTerritories() {
         clearTerritories(true);
     }
@@ -503,13 +540,13 @@ public class TerritoryManagerScreen extends Screen {
         visibleTerritoryWidgets.clear();
         territoryLinks.clear();
         visibleConnections.clear();
-        territoriesConnectedToHeadquarters.clear();
         widgetsByName.clear();
         widgetsByNormalizedName.clear();
         mapBounds = MapBounds.EMPTY;
         if (clearSelection) {
             selectedTerritory = null;
             quickMenu.hide();
+            clearHeadquartersConnectivityCache();
         }
         layoutDirty = true;
     }
@@ -518,11 +555,11 @@ public class TerritoryManagerScreen extends Screen {
         Set<String> drawnEdges = new HashSet<>();
         for (TerritoryWidget widget : territoryWidgets) {
             for (String connection : widget.territory().connections()) {
-                TerritoryWidget target = widgetsByName.get(connection);
-                if (target == null) {
-                    target = widgetsByNormalizedName.get(normalizeName(connection));
-                }
+                TerritoryWidget target = findWidget(widgetsByName, widgetsByNormalizedName, connection);
                 if (target == null || target == widget) {
+                    continue;
+                }
+                if (!widget.owned() && !target.owned()) {
                     continue;
                 }
 
@@ -537,14 +574,36 @@ public class TerritoryManagerScreen extends Screen {
     private MapBounds preferredMapBounds() {
         for (TerritoryWidget widget : territoryWidgets) {
             if (widget.owned() && feature.isHeadquarters(widget.territory().name())) {
-                return MapBounds.from(List.of(widget));
+                return MapBounds.from(withDirectForeignNeighbors(List.of(widget)));
             }
         }
 
         List<TerritoryWidget> ownedWidgets = territoryWidgets.stream()
                 .filter(TerritoryWidget::owned)
                 .toList();
-        return MapBounds.from(ownedWidgets.isEmpty() ? territoryWidgets : ownedWidgets);
+        return MapBounds.from(ownedWidgets.isEmpty() ? territoryWidgets : withDirectForeignNeighbors(ownedWidgets));
+    }
+
+    private List<TerritoryWidget> withDirectForeignNeighbors(List<TerritoryWidget> baseWidgets) {
+        if (baseWidgets.isEmpty()) {
+            return baseWidgets;
+        }
+
+        List<TerritoryWidget> result = new ArrayList<>(baseWidgets);
+        Set<String> resultKeys = new HashSet<>();
+        for (TerritoryWidget widget : baseWidgets) {
+            resultKeys.add(normalizeName(widget.territory().name()));
+        }
+
+        for (TerritoryWidget widget : baseWidgets) {
+            for (String connection : widget.territory().connections()) {
+                TerritoryWidget target = findWidget(widgetsByName, widgetsByNormalizedName, connection);
+                if (target != null && !target.owned() && resultKeys.add(normalizeName(target.territory().name()))) {
+                    result.add(target);
+                }
+            }
+        }
+        return result;
     }
 
     private boolean isOwnedBySelectedGuild(TerritoryResponse response) {
@@ -885,7 +944,7 @@ public class TerritoryManagerScreen extends Screen {
 
     private void setHeadquarters(String territoryName) {
         feature.setHeadquarters(territoryName);
-        recomputeHeadquartersConnectivity();
+        recomputeHeadquartersConnectivityIfNeeded();
     }
 
     private List<String> ownedTerritoryNames() {
@@ -893,6 +952,36 @@ public class TerritoryManagerScreen extends Screen {
                 .filter(TerritoryWidget::owned)
                 .map(widget -> widget.territory().name())
                 .toList();
+    }
+
+    private void recomputeHeadquartersConnectivityIfNeeded() {
+        String signature = headquartersConnectivitySignature();
+        if (signature.equals(headquartersConnectivitySignature)) {
+            return;
+        }
+
+        headquartersConnectivitySignature = signature;
+        recomputeHeadquartersConnectivity();
+    }
+
+    private String headquartersConnectivitySignature() {
+        String headquarters = territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .filter(widget -> feature.isHeadquarters(widget.territory().name()))
+                .map(widget -> normalizeName(widget.territory().name()))
+                .findFirst()
+                .orElse("");
+        String ownedTerritories = String.join("\0", territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .map(widget -> normalizeName(widget.territory().name()))
+                .sorted()
+                .toList());
+        return headquarters + '\u0001' + ownedTerritories;
+    }
+
+    private void clearHeadquartersConnectivityCache() {
+        territoriesConnectedToHeadquarters.clear();
+        headquartersConnectivitySignature = "";
     }
 
     private void recomputeHeadquartersConnectivity() {
@@ -951,10 +1040,7 @@ public class TerritoryManagerScreen extends Screen {
     }
 
     private TerritoryWidget connectedOwnedTerritory(String connection) {
-        TerritoryWidget target = widgetsByName.get(connection);
-        if (target == null) {
-            target = widgetsByNormalizedName.get(normalizeName(connection));
-        }
+        TerritoryWidget target = findWidget(widgetsByName, widgetsByNormalizedName, connection);
         return target != null && target.owned() ? target : null;
     }
 
@@ -1003,6 +1089,14 @@ public class TerritoryManagerScreen extends Screen {
 
     private String normalizeName(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private TerritoryWidget findWidget(Map<String, TerritoryWidget> byName, Map<String, TerritoryWidget> byNormalizedName, String territoryName) {
+        TerritoryWidget target = byName.get(territoryName);
+        if (target == null) {
+            target = byNormalizedName.get(normalizeName(territoryName));
+        }
+        return target;
     }
 
     private double clamp(double value, double min, double max) {

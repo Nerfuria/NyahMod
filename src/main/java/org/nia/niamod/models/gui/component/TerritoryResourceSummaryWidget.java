@@ -2,9 +2,9 @@ package org.nia.niamod.models.gui.component;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import org.nia.niamod.models.eco.ResourceAmounts;
 import org.nia.niamod.models.eco.ResourceFlow;
 import org.nia.niamod.models.eco.ResourceKind;
+import org.nia.niamod.models.eco.Resources;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
@@ -45,11 +45,11 @@ public class TerritoryResourceSummaryWidget {
         g.drawString(font, NiaClickGuiScreen.styled("Guild Economy"), x, y, theme.textColor(), false);
         y += HEADER_HEIGHT;
 
-        ResourceAmounts stored = state == null ? ResourceAmounts.EMPTY : state.stored();
-        ResourceAmounts capacity = state == null ? ResourceAmounts.EMPTY : state.capacity();
-        ResourceAmounts gained = state == null ? ResourceAmounts.EMPTY : state.gainedPerHour();
-        ResourceAmounts used = state == null ? ResourceAmounts.EMPTY : state.usedPerHour();
-        ResourceAmounts net = state == null ? ResourceAmounts.EMPTY : state.netPerHour();
+        Resources stored = state == null ? Resources.EMPTY : state.stored();
+        Resources capacity = state == null ? Resources.EMPTY : state.capacity();
+        Resources gained = state == null ? Resources.EMPTY : state.gainedPerHour();
+        Resources used = state == null ? Resources.EMPTY : state.usedPerHour();
+        Resources net = state == null ? Resources.EMPTY : state.netPerHour();
 
         y = drawHeaderRow(g, font, x, right, y, theme);
         y = drawResourceRow(g, font, x, right, y, ResourceKind.EMERALDS, stored, capacity, gained, used, net, theme);
@@ -79,11 +79,11 @@ public class TerritoryResourceSummaryWidget {
             int right,
             int y,
             ResourceKind resource,
-            ResourceAmounts stored,
-            ResourceAmounts capacity,
-            ResourceAmounts gained,
-            ResourceAmounts used,
-            ResourceAmounts net,
+            Resources stored,
+            Resources capacity,
+            Resources gained,
+            Resources used,
+            Resources net,
             ClickGuiTheme theme
     ) {
         int storeX = x + 72;

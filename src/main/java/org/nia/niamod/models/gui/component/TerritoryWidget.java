@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
+import org.nia.niamod.models.eco.ResourceKind;
 import org.nia.niamod.models.eco.TerritoryNode;
 import org.nia.niamod.models.eco.TerritoryResourceColors;
 import org.nia.niamod.models.gui.render.UiRect;
@@ -72,7 +73,7 @@ public class TerritoryWidget {
         }
 
         if (!owned) {
-            drawForeignTerritory(g, canvas);
+            drawForeignTerritory(g, font, theme, canvas);
             return;
         }
 
@@ -89,7 +90,7 @@ public class TerritoryWidget {
         }
 
         if (disconnectedFromHeadquarters) {
-            int color = Render2D.withAlpha(DISCONNECTED_COLOR, selected ? 255 : 235);
+            int color = Render2D.withAlpha(DISCONNECTED_COLOR, disconnectedBorderAlpha(now, selected));
             if (selected) {
                 double phase = System.currentTimeMillis() / 42.0;
                 drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
@@ -154,9 +155,33 @@ public class TerritoryWidget {
         return bounds.y() + bounds.height() / 2.0;
     }
 
-    private void drawForeignTerritory(GuiGraphics g, UiRect canvas) {
+    private void drawForeignTerritory(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas) {
         Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(0x000000, 120));
         drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(0x000000, 235), 2);
+        drawForeignResourceTag(g, font, theme, canvas);
+    }
+
+    private int disconnectedBorderAlpha(long now, boolean selected) {
+        double pulse = (Math.sin(now / 135.0) + 1.0) / 2.0;
+        int min = selected ? 205 : 120;
+        int max = selected ? 255 : 245;
+        return (int) Math.round(min + (max - min) * pulse);
+    }
+
+    private void drawForeignResourceTag(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas) {
+        UiRect clip = labelClip(canvas);
+        if (clip == null) {
+            return;
+        }
+
+        Component tagText = NiaClickGuiScreen.styled(fit(font, territory.tag(), clip.width()));
+        int tagWidth = font.width(tagText);
+        int tagX = clip.x() + (clip.width() - tagWidth) / 2;
+        int tagY = bounds.centerY() - font.lineHeight / 2;
+        int tagColor = territory.resourceKind() == ResourceKind.NONE
+                ? theme.secondaryText()
+                : territory.isRainbow() ? TerritoryResourceColors.rainbowColor(0.72, 255) : Render2D.withAlpha(territory.resourceColor(), 255);
+        drawClippedText(g, font, tagText, tagX, tagY, tagColor, clip);
     }
 
     private void drawLabels(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, boolean hovered, long now, boolean headquarters) {

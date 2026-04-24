@@ -3,6 +3,9 @@ package org.nia.niamod.models.eco;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum TerritoryUpgrade {
     DAMAGE(Items.IRON_SWORD, ResourceKind.ORE, new Level[]{
             new Level(0L, 0.0),
@@ -199,6 +202,45 @@ public enum TerritoryUpgrade {
             new Level(32000L, 1.0)
     });
 
+    private static final List<TerritoryUpgrade> COMBAT = List.of(
+            DAMAGE,
+            ATTACK,
+            HEALTH,
+            DEFENSE,
+            TOWER_AURA,
+            STRONGER_MINIONS,
+            TOWER_VOLLEY,
+            TOWER_MULTI_ATTACKS
+    );
+    private static final List<TerritoryUpgrade> ECONOMY = List.of(
+            RESOURCE_STORAGE,
+            EMERALD_STORAGE,
+            RESOURCE_RATE,
+            EFFICIENT_RESOURCES,
+            EMERALD_RATE,
+            EFFICIENT_EMERALDS
+    );
+    private static final List<TerritoryUpgrade> STORAGE = List.of(
+            RESOURCE_STORAGE,
+            EMERALD_STORAGE
+    );
+    private static final List<TerritoryUpgrade> PRODUCTION = List.of(
+            RESOURCE_RATE,
+            EFFICIENT_RESOURCES,
+            EMERALD_RATE,
+            EFFICIENT_EMERALDS
+    );
+    private static final List<TerritoryUpgrade> UTILITY = List.of(
+            GATHERING_EXPERIENCE,
+            MOB_EXPERIENCE,
+            MOB_DAMAGE,
+            PVP_DAMAGE,
+            XP_SEEKING,
+            TOME_SEEKING,
+            EMERALD_SEEKING
+    );
+    private static final List<TerritoryUpgrade> QUICK_MENU = quickMenuUpgrades();
+
     private final Item iconItem;
     private final ResourceKind costResource;
     private final Level[] levels;
@@ -262,6 +304,37 @@ public enum TerritoryUpgrade {
 
     public Level[] levels() {
         return levels;
+    }
+
+    public static List<TerritoryUpgrade> combat() {
+        return COMBAT;
+    }
+
+    public static List<TerritoryUpgrade> economy() {
+        return ECONOMY;
+    }
+
+    public static List<TerritoryUpgrade> storage() {
+        return STORAGE;
+    }
+
+    public static List<TerritoryUpgrade> production() {
+        return PRODUCTION;
+    }
+
+    public static List<TerritoryUpgrade> utility() {
+        return UTILITY;
+    }
+
+    public static List<TerritoryUpgrade> quickMenu() {
+        return QUICK_MENU;
+    }
+
+    private static List<TerritoryUpgrade> quickMenuUpgrades() {
+        ArrayList<TerritoryUpgrade> upgrades = new ArrayList<>(COMBAT.size() + PRODUCTION.size());
+        upgrades.addAll(COMBAT);
+        upgrades.addAll(PRODUCTION);
+        return List.copyOf(upgrades);
     }
 
     public record Level(long cost, double bonus) {

@@ -1,12 +1,12 @@
 package org.nia.niamod.models.eco;
 
-public record TerritoryResourceStore(ResourceAmounts current, ResourceAmounts max) {
-    public static final TerritoryResourceStore EMPTY = new TerritoryResourceStore(ResourceAmounts.EMPTY, ResourceAmounts.EMPTY);
+public record TerritoryResourceStore(Resources current, Resources max) {
+    public static final TerritoryResourceStore EMPTY = new TerritoryResourceStore(Resources.EMPTY, Resources.EMPTY);
 
     public TerritoryResourceStore {
-        current = current == null ? ResourceAmounts.EMPTY : current;
-        max = max == null ? ResourceAmounts.EMPTY : max;
-        current = new ResourceAmounts(
+        current = current == null ? Resources.EMPTY : current;
+        max = max == null ? Resources.EMPTY : max;
+        current = new Resources(
                 clamp(current.emeralds(), max.emeralds()),
                 clamp(current.ore(), max.ore()),
                 clamp(current.crops(), max.crops()),

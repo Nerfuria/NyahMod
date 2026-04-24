@@ -1,6 +1,11 @@
 package org.nia.niamod.features.eco;
 
 import org.nia.niamod.models.eco.*;
+import org.nia.niamod.models.eco.GameChange.Borders;
+import org.nia.niamod.models.eco.GameChange.Headquarters;
+import org.nia.niamod.models.eco.GameChange.Route;
+import org.nia.niamod.models.eco.GameChange.Stat;
+import org.nia.niamod.models.eco.GameChange.Tax;
 
 import java.util.ArrayDeque;
 import java.util.Locale;
@@ -33,37 +38,33 @@ public final class ActionQueue {
             return false;
         }
         String key = normalize(territoryKey);
-        return queue.stream().anyMatch(change -> change instanceof StatChange stat
+        return queue.stream().anyMatch(change -> change instanceof Stat stat
                 && normalize(stat.territoryName()).equals(key)
                 && stat.upgrade() == upgrade);
     }
 
     public synchronized boolean hasQueuedTax(String territoryKey) {
         String key = normalize(territoryKey);
-        return queue.stream().anyMatch(change -> (change instanceof TaxChange tax
-                && normalize(tax.territoryName()).equals(key))
-                || change instanceof GlobalTaxChange);
+        return queue.stream().anyMatch(change -> change instanceof Tax tax
+                && (tax.global() || normalize(tax.territoryName()).equals(key)));
     }
 
     public synchronized boolean hasQueuedBorders(String territoryKey) {
         String key = normalize(territoryKey);
-        return queue.stream().anyMatch(change -> (change instanceof BordersChange borders
-                && normalize(borders.territoryName()).equals(key))
-                || change instanceof GlobalBordersChange);
+        return queue.stream().anyMatch(change -> change instanceof Borders borders
+                && (borders.global() || normalize(borders.territoryName()).equals(key)));
     }
 
     public synchronized boolean hasQueuedRoute(String territoryKey, TerritoryRoute route) {
         String key = normalize(territoryKey);
-        return queue.stream().anyMatch(change -> (change instanceof RouteChange(
-                String territoryName, TerritoryRoute route1
-        )
-                && normalize(territoryName).equals(key)
-                && (route == null || route1 == route))
-                || change instanceof GlobalRouteChange);
+        return queue.stream().anyMatch(change -> change instanceof Route routeChange
+                && (routeChange.global()
+                || (normalize(routeChange.territoryName()).equals(key)
+                && (route == null || routeChange.route() == route))));
     }
 
     public synchronized boolean hasQueuedHeadquarters() {
-        return queue.stream().anyMatch(change -> change instanceof HeadquartersChange);
+        return queue.stream().anyMatch(change -> change instanceof Headquarters);
     }
 
     private String normalize(String value) {

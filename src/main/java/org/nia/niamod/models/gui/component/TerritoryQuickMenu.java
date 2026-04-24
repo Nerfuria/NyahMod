@@ -11,7 +11,6 @@ import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.models.eco.TerritoryResourceColors;
 import org.nia.niamod.models.eco.TerritoryUpgrade;
-import org.nia.niamod.models.eco.UpgradeGroups;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
@@ -31,8 +30,8 @@ public class TerritoryQuickMenu {
     private static final int STORAGE_TILE_H = 34;
     private static final int UPGRADE_COLUMNS = 4;
     private static final int SIDE_ROWS = 4;
-    private static final List<TerritoryUpgrade> STORAGE_UPGRADES = UpgradeGroups.storage();
-    private static final List<TerritoryUpgrade> MAIN_UPGRADES = UpgradeGroups.quickMenu();
+    private static final List<TerritoryUpgrade> STORAGE_UPGRADES = TerritoryUpgrade.storage();
+    private static final List<TerritoryUpgrade> MAIN_UPGRADES = TerritoryUpgrade.quickMenu();
     private static final int UPGRADE_ROWS = Math.max(1, (MAIN_UPGRADES.size() + UPGRADE_COLUMNS - 1) / UPGRADE_COLUMNS);
     private static final int GAP = 2;
     private static final int GRID_H = TILE_H * UPGRADE_ROWS + GAP * (UPGRADE_ROWS - 1);

@@ -5,7 +5,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
-import org.nia.niamod.models.eco.ResourceAmounts;
 import org.nia.niamod.models.eco.ResourceKind;
 import org.nia.niamod.models.eco.Resources;
 import org.nia.niamod.models.eco.TerritoryDetails;
@@ -14,7 +13,6 @@ import org.nia.niamod.models.eco.TerritoryNode;
 import org.nia.niamod.models.eco.TerritoryResourceColors;
 import org.nia.niamod.models.eco.TerritoryResourceStore;
 import org.nia.niamod.models.eco.TerritoryUpgrade;
-import org.nia.niamod.models.eco.UpgradeGroups;
 import org.nia.niamod.models.gui.render.UiRect;
 import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
@@ -147,13 +145,13 @@ public class TerritoryDetailPanel {
         rowY += 9;
 
         rowY = drawSectionTitle(g, font, contentX, right, rowY, "Combat", theme);
-        for (TerritoryUpgrade upgrade : UpgradeGroups.combat()) {
+        for (TerritoryUpgrade upgrade : TerritoryUpgrade.combat()) {
             rowY = drawUpgradeRow(g, font, contentX, right, rowY, mouseX, mouseY, theme, upgrade, combatLabel(upgrade, data), upgradeLevels, actions.upgradeAdjusted());
         }
         rowY += 8;
 
         rowY = drawSectionTitle(g, font, contentX, right, rowY, "Economy", theme);
-        for (TerritoryUpgrade upgrade : UpgradeGroups.economy()) {
+        for (TerritoryUpgrade upgrade : TerritoryUpgrade.economy()) {
             rowY = drawUpgradeRow(
                     g,
                     font,
@@ -172,7 +170,7 @@ public class TerritoryDetailPanel {
 
         rowY += 8;
         rowY = drawSectionTitle(g, font, contentX, right, rowY, "Utility", theme);
-        for (TerritoryUpgrade upgrade : UpgradeGroups.utility()) {
+        for (TerritoryUpgrade upgrade : TerritoryUpgrade.utility()) {
             rowY = drawUpgradeRow(
                     g,
                     font,
@@ -336,13 +334,13 @@ public class TerritoryDetailPanel {
                 + 2
                 + 9
                 + 18
-                + ROW_HEIGHT * UpgradeGroups.combat().size()
+                + ROW_HEIGHT * TerritoryUpgrade.combat().size()
                 + 8
                 + 18
-                + ROW_HEIGHT * UpgradeGroups.economy().size()
+                + ROW_HEIGHT * TerritoryUpgrade.economy().size()
                 + 8
                 + 18
-                + ROW_HEIGHT * UpgradeGroups.utility().size()
+                + ROW_HEIGHT * TerritoryUpgrade.utility().size()
                 + 10;
     }
 
@@ -401,7 +399,7 @@ public class TerritoryDetailPanel {
         return y;
     }
 
-    private int drawResourceRate(GuiGraphics g, Font font, int x, int y, int maxWidth, int color, int amount, String label, ClickGuiTheme theme) {
+    private int drawResourceRate(GuiGraphics g, Font font, int x, int y, int maxWidth, int color, long amount, String label, ClickGuiTheme theme) {
         if (amount <= 0) {
             return y;
         }
@@ -617,8 +615,8 @@ public class TerritoryDetailPanel {
             return drawInfoLine(g, font, x, y, maxWidth, "Stored Resources: Unknown", theme.secondaryText());
         }
 
-        ResourceAmounts current = store.current();
-        ResourceAmounts max = store.max();
+        Resources current = store.current();
+        Resources max = store.max();
         y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Emeralds", current.emeralds(), max.emeralds()), theme.secondaryText());
         y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Ore", current.ore(), max.ore()), theme.secondaryText());
         y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Crops", current.crops(), max.crops()), theme.secondaryText());

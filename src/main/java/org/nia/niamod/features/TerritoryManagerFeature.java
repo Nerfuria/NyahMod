@@ -10,6 +10,12 @@ import org.nia.niamod.features.eco.UncommittedChanges;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
 import org.nia.niamod.models.eco.*;
+import org.nia.niamod.models.eco.GameChange.Borders;
+import org.nia.niamod.models.eco.GameChange.Headquarters;
+import org.nia.niamod.models.eco.GameChange.Loadout;
+import org.nia.niamod.models.eco.GameChange.Route;
+import org.nia.niamod.models.eco.GameChange.Stat;
+import org.nia.niamod.models.eco.GameChange.Tax;
 import org.nia.niamod.models.gui.screens.TerritoryManagerScreen;
 import org.nia.niamod.models.misc.Feature;
 
@@ -106,7 +112,7 @@ public class TerritoryManagerFeature extends Feature {
             stats.put(stat, nextLevel);
             territoryLoadouts.remove(key);
             uncommittedChanges.markStat(key, stat);
-            queueGameChange(new StatChange(territoryNameForKey(key), stat, nextLevel));
+            queueGameChange(new Stat(territoryNameForKey(key), stat, nextLevel));
         }
     }
 
@@ -152,7 +158,7 @@ public class TerritoryManagerFeature extends Feature {
             territoryLoadouts.put(key, loadout.name());
             uncommittedChanges.markAllStats(key);
         });
-        queueGameChange(new LoadoutChange(loadout, targets));
+        queueGameChange(new Loadout(loadout, targets));
         return true;
     }
 
@@ -165,7 +171,7 @@ public class TerritoryManagerFeature extends Feature {
         keyFor(cleaned);
         headquartersTerritoryName = cleaned;
         uncommittedChanges.markHeadquarters(normalize(cleaned));
-        queueGameChange(new HeadquartersChange(cleaned));
+        queueGameChange(new Headquarters(cleaned));
     }
 
     public boolean isHeadquarters(String territoryName) {
@@ -186,7 +192,7 @@ public class TerritoryManagerFeature extends Feature {
             }
             territoryTaxes.put(key, nextTax);
             uncommittedChanges.markTax(key);
-            queueGameChange(new TaxChange(territoryNameForKey(key), nextTax));
+            queueGameChange(new Tax(territoryNameForKey(key), nextTax));
         }
     }
 
@@ -201,7 +207,7 @@ public class TerritoryManagerFeature extends Feature {
             territoryTaxes.put(key, nextTax);
             uncommittedChanges.markTax(key);
         });
-        queueGameChange(new GlobalTaxChange(nextTax));
+        queueGameChange(Tax.global(nextTax));
     }
 
     public boolean bordersOpen(String territoryName) {
@@ -216,7 +222,7 @@ public class TerritoryManagerFeature extends Feature {
             }
             territoryBorders.put(key, open);
             uncommittedChanges.markBorders(key);
-            queueGameChange(new BordersChange(territoryNameForKey(key), open));
+            queueGameChange(new Borders(territoryNameForKey(key), open));
         }
     }
 
@@ -230,7 +236,7 @@ public class TerritoryManagerFeature extends Feature {
             territoryBorders.put(key, open);
             uncommittedChanges.markBorders(key);
         });
-        queueGameChange(new GlobalBordersChange(open));
+        queueGameChange(Borders.global(open));
     }
 
     public TerritoryRoute territoryRoute(String territoryName) {
@@ -245,7 +251,7 @@ public class TerritoryManagerFeature extends Feature {
             }
             territoryRoutes.put(key, route);
             uncommittedChanges.markRoute(key);
-            queueGameChange(new RouteChange(territoryNameForKey(key), route));
+            queueGameChange(new Route(territoryNameForKey(key), route));
         }
     }
 
@@ -263,7 +269,7 @@ public class TerritoryManagerFeature extends Feature {
             territoryRoutes.put(key, route);
             uncommittedChanges.markRoute(key);
         });
-        queueGameChange(new GlobalRouteChange(route));
+        queueGameChange(Route.global(route));
     }
 
     public void applyTerritoryRoute(String territoryName) {
@@ -276,7 +282,7 @@ public class TerritoryManagerFeature extends Feature {
             return;
         }
 
-        queueGameChange(new RouteChange(territoryNameForKey(key), route));
+        queueGameChange(new Route(territoryNameForKey(key), route));
     }
 
     public void receiveStatsFromGame(String territoryName, Map<TerritoryUpgrade, Integer> stats) {
@@ -366,20 +372,20 @@ public class TerritoryManagerFeature extends Feature {
         uncommittedChanges.stats().forEach((territoryKey, stats) -> {
             EnumMap<TerritoryUpgrade, Integer> current = mutableStatsFor(territoryKey);
             for (TerritoryUpgrade stat : stats) {
-                queueGameChange(new StatChange(territoryNameForKey(territoryKey), stat, current.getOrDefault(stat, 0)));
+                queueGameChange(new Stat(territoryNameForKey(territoryKey), stat, current.getOrDefault(stat, 0)));
             }
         });
         for (String territoryKey : uncommittedChanges.taxes()) {
-            queueGameChange(new TaxChange(territoryNameForKey(territoryKey), territoryTaxes.getOrDefault(territoryKey, 0)));
+            queueGameChange(new Tax(territoryNameForKey(territoryKey), territoryTaxes.getOrDefault(territoryKey, 0)));
         }
         for (String territoryKey : uncommittedChanges.borders()) {
-            queueGameChange(new BordersChange(territoryNameForKey(territoryKey), territoryBorders.getOrDefault(territoryKey, false)));
+            queueGameChange(new Borders(territoryNameForKey(territoryKey), territoryBorders.getOrDefault(territoryKey, false)));
         }
         for (String territoryKey : uncommittedChanges.routes()) {
-            queueGameChange(new RouteChange(territoryNameForKey(territoryKey), territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST)));
+            queueGameChange(new Route(territoryNameForKey(territoryKey), territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST)));
         }
         if (uncommittedChanges.hasHeadquarters()) {
-            queueGameChange(new HeadquartersChange(territoryNameForKey(uncommittedChanges.headquarters())));
+            queueGameChange(new Headquarters(territoryNameForKey(uncommittedChanges.headquarters())));
         }
     }
 

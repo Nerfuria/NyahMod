@@ -51,10 +51,10 @@ public record StatsCalculator(TerritoryManagerFeature feature, ConnectedTerritor
     }
 
     public ResourceFlow summarizeResourceFlow(Collection<TerritoryNode> territories) {
-        ResourceAmounts stored = ResourceAmounts.EMPTY;
-        ResourceAmounts capacity = ResourceAmounts.EMPTY;
-        ResourceAmounts gained = ResourceAmounts.EMPTY;
-        ResourceAmounts used = ResourceAmounts.EMPTY;
+        Resources stored = Resources.EMPTY;
+        Resources capacity = Resources.EMPTY;
+        Resources gained = Resources.EMPTY;
+        Resources used = Resources.EMPTY;
 
         if (territories != null) {
             for (TerritoryNode territory : territories) {
@@ -68,7 +68,7 @@ public record StatsCalculator(TerritoryManagerFeature feature, ConnectedTerritor
                     stored = store.current();
                     capacity = store.max();
                 }
-                gained = gained.plus(ResourceAmounts.fromResources(producedResourcesPerHour(territory, stats)));
+                gained = gained.plus(producedResourcesPerHour(territory, stats));
                 used = used.plus(resourceCostPerHour(stats));
             }
         }
@@ -97,15 +97,15 @@ public record StatsCalculator(TerritoryManagerFeature feature, ConnectedTerritor
         long materialStorage = Math.round(materialStorageBase * storageMultiplier(stats, TerritoryUpgrade.RESOURCE_STORAGE));
         long emeraldStorage = Math.round(1500.0 * storageMultiplier(stats, TerritoryUpgrade.EMERALD_STORAGE));
         return new TerritoryResourceStore(
-                ResourceAmounts.EMPTY,
-                new ResourceAmounts(emeraldStorage, materialStorage, materialStorage, materialStorage, materialStorage)
+                Resources.EMPTY,
+                new Resources(emeraldStorage, materialStorage, materialStorage, materialStorage, materialStorage)
         );
     }
 
-    private ResourceAmounts resourceCostPerHour(Map<TerritoryUpgrade, Integer> stats) {
-        ResourceAmounts total = ResourceAmounts.EMPTY;
+    private Resources resourceCostPerHour(Map<TerritoryUpgrade, Integer> stats) {
+        Resources total = Resources.EMPTY;
         for (TerritoryUpgrade upgrade : TerritoryUpgrade.values()) {
-            total = total.plus(ResourceAmounts.of(upgrade.costResource(), upgrade.cost(statLevel(stats, upgrade))));
+            total = total.plus(Resources.of(upgrade.costResource(), upgrade.cost(statLevel(stats, upgrade))));
         }
         return total;
     }
@@ -151,7 +151,7 @@ public record StatsCalculator(TerritoryManagerFeature feature, ConnectedTerritor
         return upgrade.bonus(statLevel(stats, upgrade));
     }
 
-    private double calculateProductionPerHour(int basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
+    private double calculateProductionPerHour(long basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
         if (basePerHour <= 0) {
             return 0.0;
         }
@@ -162,8 +162,8 @@ public record StatsCalculator(TerritoryManagerFeature feature, ConnectedTerritor
         return basePerProduction * (3600.0 / secondsPerProduction) * efficientMultiplier;
     }
 
-    private int roundProductionPerHour(int basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
-        return (int) Math.round(calculateProductionPerHour(basePerHour, stats, rateUpgrade, efficientUpgrade));
+    private long roundProductionPerHour(long basePerHour, Map<TerritoryUpgrade, Integer> stats, TerritoryUpgrade rateUpgrade, TerritoryUpgrade efficientUpgrade) {
+        return Math.round(calculateProductionPerHour(basePerHour, stats, rateUpgrade, efficientUpgrade));
     }
 
     private int ownedConnectionCount(TerritoryNode territory) {

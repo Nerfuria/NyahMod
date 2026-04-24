@@ -1,6 +1,12 @@
 package org.nia.niamod.features.eco;
 
 import org.nia.niamod.models.eco.*;
+import org.nia.niamod.models.eco.GameChange.Borders;
+import org.nia.niamod.models.eco.GameChange.Headquarters;
+import org.nia.niamod.models.eco.GameChange.Loadout;
+import org.nia.niamod.models.eco.GameChange.Route;
+import org.nia.niamod.models.eco.GameChange.Stat;
+import org.nia.niamod.models.eco.GameChange.Tax;
 
 import java.util.Collection;
 import java.util.List;
@@ -8,31 +14,36 @@ import java.util.List;
 public class GameActions {
     public void apply(GameChange change) {
         switch (change) {
-            case StatChange(String territoryName, TerritoryUpgrade upgrade, int level) -> {
+            case Stat(String territoryName, TerritoryUpgrade upgrade, int level) -> {
                 pushStat(territoryName, upgrade, level);
             }
-            case HeadquartersChange(String territoryName) -> {
+            case Headquarters(String territoryName) -> {
                 pushHeadquarters(territoryName);
             }
-            case TaxChange(String territoryName, int percent) -> {
-                pushTax(territoryName, percent);
+            case Tax(String territoryName, int percent, boolean global) -> {
+                if (global) {
+                    pushGlobalTax(percent);
+                } else {
+                    pushTax(territoryName, percent);
+                }
             }
-            case BordersChange(String territoryName, boolean open) -> {
-                pushBorders(territoryName, open);
+            case Borders(String territoryName, boolean open, boolean global) -> {
+                if (global) {
+                    pushGlobalBorders(open);
+                } else {
+                    pushBorders(territoryName, open);
+                }
             }
-            case RouteChange(String territoryName, TerritoryRoute route) -> {
-                pushRoute(territoryName, route);
+            case Route(String territoryName, TerritoryRoute route, boolean global) -> {
+                if (global) {
+                    pushGlobalRoute(route);
+                } else {
+                    pushRoute(territoryName, route);
+                }
             }
-            case LoadoutChange(TerritoryLoadout loadout, List<String> territoryNames) -> {
+            case Loadout(TerritoryLoadout loadout, List<String> territoryNames) -> {
                 applyLoadout(loadout, territoryNames);
             }
-            case GlobalTaxChange(int percent) -> {
-                pushGlobalTax(percent);
-            }
-            case GlobalBordersChange(boolean open) -> {
-                pushGlobalBorders(open);
-            }
-            case GlobalRouteChange(TerritoryRoute route) -> pushGlobalRoute(route);
             case null, default -> {
             }
         }
@@ -40,7 +51,7 @@ public class GameActions {
     }
 
     public List<TerritoryLoadout> loadLoadouts() {
-        // TODO: Replace this fallback with game-loaded loadouts when the bridge exposes them.
+        // TODO
         return Loadouts.defaults();
     }
 
