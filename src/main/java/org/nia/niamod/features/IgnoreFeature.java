@@ -193,8 +193,8 @@ public class IgnoreFeature extends Feature {
 
     public void toggleFavourites() {
         IgnoreAction action = nextFavouriteAction;
-        setNextFavouriteAction(action.opposite());
         runFavouriteAction(action);
+        setNextFavouriteAction(action.opposite());
     }
 
     public void setNextFavouriteAction(IgnoreAction action) {
@@ -209,7 +209,7 @@ public class IgnoreFeature extends Feature {
     }
 
     public void unignoreEveryone() {
-        queue(ignoredNames(), IgnoreAction.UNIGNORE, false);
+        queue(ignoredNames(), IgnoreAction.UNIGNORE);
     }
 
     @Subscribe
@@ -384,30 +384,18 @@ public class IgnoreFeature extends Feature {
     }
 
     private void queueAction(String playerName, IgnoreAction action) {
-        queueAction(playerName, action, true);
-    }
-
-    private void queueAction(String playerName, IgnoreAction action, boolean optimisticStateUpdate) {
         if (action == null || playerName == null || playerName.isBlank()) {
             return;
         }
 
         String trimmed = playerName.trim();
-        String normalized = normalize(trimmed);
-        if (optimisticStateUpdate || !hasQueuedAction(normalized, action)) {
-            queuedCommands.addLast(new QueuedIgnoreCommand(trimmed, action));
-        }
-        boolean ignoredChanged = optimisticStateUpdate && setIgnored(trimmed, action.isIgnoredState());
-        boolean detectedChanged = optimisticStateUpdate && !action.isIgnoredState() && removeChatDetected(trimmed);
+        queuedCommands.addLast(new QueuedIgnoreCommand(trimmed, action));
+        boolean ignoredChanged = setIgnored(trimmed, action.isIgnoredState());
+        boolean detectedChanged = !action.isIgnoredState() && removeChatDetected(trimmed);
         if (ignoredChanged || detectedChanged) {
             persistIgnoredPlayers();
             markChanged();
         }
-    }
-
-    private boolean hasQueuedAction(String normalizedPlayerName, IgnoreAction action) {
-        return queuedCommands.stream()
-                .anyMatch(command -> command.action() == action && normalize(command.playerName()).equals(normalizedPlayerName));
     }
 
     private void runNextQueuedCommand() {
@@ -508,16 +496,12 @@ public class IgnoreFeature extends Feature {
     }
 
     private void queue(List<String> playerNames, IgnoreAction action) {
-        queue(playerNames, action, true);
-    }
-
-    private void queue(List<String> playerNames, IgnoreAction action, boolean optimisticStateUpdate) {
         if (action == null) {
             return;
         }
 
         for (String playerName : playerNames) {
-            queueAction(playerName, action, optimisticStateUpdate);
+            queueAction(playerName, action);
         }
     }
 

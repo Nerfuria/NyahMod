@@ -9,6 +9,7 @@ import org.nia.niamod.config.NyahConfig;
 import org.nia.niamod.eventbus.NiaEventBus;
 import org.nia.niamod.eventbus.Subscribe;
 import org.nia.niamod.models.events.ChatModifyEvent;
+import org.nia.niamod.models.events.CommandSentEvent;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 
@@ -152,10 +153,14 @@ public class ChatEncryptionFeature extends Feature {
     @Safe(ordinal = 0)
     public String processMessage(String message) {
         String prefix = NyahConfig.getData().getEncryptionPrefix();
-        if (prefix == null || prefix.isBlank() || !message.startsWith(prefix)) {
-            return message;
-        }
-        return encryptMessage(message.substring(prefix.length()));
+        int idx = message.indexOf(prefix);
+        if (idx == -1) return message;
+        return message.substring(0, idx) + encryptMessage(message.substring(idx + prefix.length()));
+    }
+
+    @Subscribe
+    public void commandSentEvent(CommandSentEvent event) {
+        event.setCommand(processMessage(event.command()));
     }
 
     public String decodeMessage(String message) {
