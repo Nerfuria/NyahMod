@@ -90,6 +90,7 @@ public class DefenseEstimatesFeature extends Feature {
         return best;
     }
 
+    @Safe
     public static Map<TerritoryUpgrade, Integer> estimateDefenses(String territoryName) {
         TerritoryInfo territoryInfo = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
 

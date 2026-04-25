@@ -1,12 +1,6 @@
 package org.nia.niamod.managers;
 
-import org.nia.niamod.features.ChatEncryptionFeature;
-import org.nia.niamod.features.ConsuTextFeature;
-import org.nia.niamod.features.IgnoreFeature;
-import org.nia.niamod.features.ResourceTickFeature;
-import org.nia.niamod.features.ShoutFilterFeature;
-import org.nia.niamod.features.WarTimersFeature;
-import org.nia.niamod.features.WarTowerEHPFeature;
+import org.nia.niamod.features.*;
 import org.nia.niamod.models.events.PostInitEvent;
 import org.nia.niamod.models.misc.Feature;
 
@@ -19,6 +13,7 @@ public class FeatureManager {
     private static WarTowerEHPFeature warTowerEHPFeature;
     private static ConsuTextFeature consuTextFeature;
     private static ShoutFilterFeature shoutFilterFeature;
+    private static DefenseEstimatesFeature defenseEstimatesFeature;
 
     public static void init() {
         resTickFeature = Feature.createSafe(ResourceTickFeature.class);
@@ -28,6 +23,7 @@ public class FeatureManager {
         warTowerEHPFeature = Feature.createSafe(WarTowerEHPFeature.class);
         consuTextFeature = Feature.createSafe(ConsuTextFeature.class);
         shoutFilterFeature = Feature.createSafe(ShoutFilterFeature.class);
+        defenseEstimatesFeature = Feature.createSafe(DefenseEstimatesFeature.class);
 
         resTickFeature.init();
         chatEncryptionFeature.init();
@@ -36,6 +32,7 @@ public class FeatureManager {
         warTowerEHPFeature.init();
         consuTextFeature.init();
         shoutFilterFeature.init();
+        defenseEstimatesFeature.init();
 
         PostInitEvent.EVENT.register(FeatureManager::postInit);
     }
@@ -70,5 +67,9 @@ public class FeatureManager {
 
     public static ShoutFilterFeature getShoutFilterFeature() {
         return shoutFilterFeature;
+    }
+
+    public static DefenseEstimatesFeature getDefenseEstimatesFeature() {
+        return defenseEstimatesFeature;
     }
 }
