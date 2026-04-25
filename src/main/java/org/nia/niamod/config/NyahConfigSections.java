@@ -204,6 +204,10 @@ final class NyahConfigSections {
                 null,
                 null,
                 List.of(
+                        bool("eco_render_map", "Render Map", "Draw the map texture behind territory boxes.", NyahConfigData::isEcoRenderMap, NyahConfigData::setEcoRenderMap),
+                        bool("eco_render_all_territories", "Render All Territories", "Draw all territories instead of only owned and directly connected territories.", NyahConfigData::isEcoRenderAllTerritories, NyahConfigData::setEcoRenderAllTerritories),
+                        bool("eco_always_render_timers", "Always Render Timers", "Always draw fresh territory cooldown timers; otherwise only draw them while hovered.", NyahConfigData::isEcoAlwaysRenderTimers, NyahConfigData::setEcoAlwaysRenderTimers),
+                        integer("eco_connected_territory_depth", "Connected Depth", "How many non-owned connection steps to draw from owned territories.", 0, 10, NyahConfigData::getEcoConnectedTerritoryDepth, NyahConfigData::setEcoConnectedTerritoryDepth),
                         color("eco_crops_color", "Crops Color", "Territory map color for crops.", NyahConfigData::getEcoCropsColor, NyahConfigData::setEcoCropsColor),
                         color("eco_wood_color", "Wood Color", "Territory map color for wood.", NyahConfigData::getEcoWoodColor, NyahConfigData::setEcoWoodColor),
                         color("eco_ore_color", "Ore Color", "Territory map color for ore.", NyahConfigData::getEcoOreColor, NyahConfigData::setEcoOreColor),

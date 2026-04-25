@@ -65,6 +65,10 @@ public class NyahConfigData {
     private int ecoRainbowCyanColor = 0x00C2FF;
     private int ecoRainbowBlueColor = 0x315BFF;
     private int ecoRainbowVioletColor = 0xB23BFF;
+    private boolean ecoRenderMap = true;
+    private boolean ecoRenderAllTerritories = false;
+    private boolean ecoAlwaysRenderTimers = true;
+    private int ecoConnectedTerritoryDepth = 1;
     private int ecoTerritoryRefreshSeconds = 10;
     private int maximumDistance = 1000;
     private int maximumTerritories = 10;
@@ -172,6 +176,7 @@ public class NyahConfigData {
         ecoRainbowCyanColor &= 0xFFFFFF;
         ecoRainbowBlueColor &= 0xFFFFFF;
         ecoRainbowVioletColor &= 0xFFFFFF;
+        ecoConnectedTerritoryDepth = clamp(ecoConnectedTerritoryDepth, 0, 10);
         ecoTerritoryRefreshSeconds = clamp(ecoTerritoryRefreshSeconds, 1, 300);
         maximumDistance = clamp(maximumDistance, 50, 5000);
         maximumTerritories = clamp(maximumTerritories, 1, 30);

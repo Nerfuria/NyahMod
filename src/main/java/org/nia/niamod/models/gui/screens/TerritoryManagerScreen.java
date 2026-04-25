@@ -8,7 +8,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
@@ -65,14 +67,19 @@ public class TerritoryManagerScreen extends Screen {
     private static final double MIN_ZOOM = 0.35;
     private static final double MAX_ZOOM = 6.0;
     private static final double ZOOM_STEP = 1.16;
-    private static final double MAP_CLICK_DRAG_SLOP = 3.0;
-    private static final double MAP_CLICK_DRAG_SLOP_SQUARED = MAP_CLICK_DRAG_SLOP * MAP_CLICK_DRAG_SLOP;
+    private static final double MAP_CLICK_DRAG = 3.0;
+    private static final double MAP_CLICK_DRAG_SQ = MAP_CLICK_DRAG * MAP_CLICK_DRAG;
     private static final StaticTerritoryData EMPTY_STATIC_DATA = new StaticTerritoryData(Resources.EMPTY, List.of());
-
+    private static final Identifier MAP_TEXTURE = Identifier.fromNamespaceAndPath("niamod", "textures/map.png");
+    private static final int MAP_TEXTURE_WIDTH = 4608;
+    private static final int MAP_TEXTURE_HEIGHT = 6644;
+    private static final double MAP_WORLD_LEFT = -2560.0;
+    private static final double MAP_WORLD_TOP = -MAP_TEXTURE_HEIGHT;
     private final Screen parent;
     private final TerritoryManagerFeature feature;
     private final StatsCalculator statsCalculator;
     private final Map<String, StaticTerritoryData> staticTerritoryData;
+    private final Map<String, List<String>> territoryGraph = new HashMap<>();
     private final List<TerritoryWidget> territoryWidgets = new ArrayList<>();
     private final List<TerritoryWidget> visibleTerritoryWidgets = new ArrayList<>();
     private final List<TerritoryLink> territoryLinks = new ArrayList<>();
@@ -104,10 +111,14 @@ public class TerritoryManagerScreen extends Screen {
     private double zoom = 1.0;
     private double mapDragStartX;
     private double mapDragStartY;
+    private double quickMenuAnchorOffsetX;
+    private double quickMenuAnchorOffsetY;
     private String status = "Loading territory data...";
     private MapBounds mapBounds = MapBounds.EMPTY;
     private TerritoryWidget selectedTerritory;
     private String headquartersConnectivitySignature = "";
+    private String visibleTerritoryKeysSignature = "";
+    private Set<String> cachedVisibleTerritoryKeys = Set.of();
 
     public TerritoryManagerScreen(Screen parent) {
         this(parent, FeatureManager.getTerritoryManagerFeature());
@@ -126,7 +137,7 @@ public class TerritoryManagerScreen extends Screen {
     protected void init() {
         if (!loadRequested) {
             loadRequested = true;
-            loadTerritoriesAsync(true);
+            loadTerritoriesFromCacheOrApi();
         }
     }
 
@@ -140,6 +151,7 @@ public class TerritoryManagerScreen extends Screen {
     public void render(@NotNull GuiGraphics g, int mouseX, int mouseY, float delta) {
         ClickGuiTheme theme = NiaClickGuiScreen.configuredTheme();
         layoutTerritories();
+        recomputeHeadquartersConnectivityIfNeeded();
         drawMap(g, mouseX, mouseY, theme);
         drawResourceOverlay(g, theme);
         drawLoadoutButton(g, mouseX, mouseY, theme);
@@ -157,6 +169,7 @@ public class TerritoryManagerScreen extends Screen {
         }
 
         layoutTerritories();
+        positionQuickMenu();
 
         double mouseX = click.x();
         double mouseY = click.y();
@@ -370,7 +383,7 @@ public class TerritoryManagerScreen extends Screen {
 
         double offsetX = mouseX - mapDragStartX;
         double offsetY = mouseY - mapDragStartY;
-        mapDragExceededClickSlop = offsetX * offsetX + offsetY * offsetY > MAP_CLICK_DRAG_SLOP_SQUARED;
+        mapDragExceededClickSlop = offsetX * offsetX + offsetY * offsetY > MAP_CLICK_DRAG_SQ;
     }
 
     private void refreshOwnedTerritoriesIfDue() {
@@ -386,6 +399,17 @@ public class TerritoryManagerScreen extends Screen {
 
     private long territoryRefreshIntervalMillis() {
         return Math.max(1, NyahConfig.getData().getEcoTerritoryRefreshSeconds()) * 1000L;
+    }
+
+    private void loadTerritoriesFromCacheOrApi() {
+        Map<String, TerritoryResponse> cachedResponse = feature.cachedTerritoryResponse();
+        if (!cachedResponse.isEmpty()) {
+            lastTerritoryRefreshMillis = System.currentTimeMillis();
+            replaceTerritories(cachedResponse, true);
+            return;
+        }
+
+        loadTerritoriesAsync(true);
     }
 
     private void loadTerritoriesAsync(boolean initialLoad) {
@@ -409,6 +433,8 @@ public class TerritoryManagerScreen extends Screen {
                         failLoad(throwable, initialLoad);
                         return;
                     }
+                    feature.cacheTerritoryResponse(response);
+                    lastTerritoryRefreshMillis = feature.territoryResponseCacheUpdatedAtMillis();
                     replaceTerritories(response, initialLoad);
                 });
             });
@@ -437,6 +463,7 @@ public class TerritoryManagerScreen extends Screen {
         clearTerritories(false);
 
         if (response == null) {
+            clearVisibleTerritoryCache();
             clearHeadquartersConnectivityCache();
             status = "No territory data";
             selectedTerritory = null;
@@ -444,6 +471,7 @@ public class TerritoryManagerScreen extends Screen {
             return;
         }
         if (response.isEmpty()) {
+            clearVisibleTerritoryCache();
             clearHeadquartersConnectivityCache();
             status = "No territories for " + guildName;
             selectedTerritory = null;
@@ -540,21 +568,86 @@ public class TerritoryManagerScreen extends Screen {
             Map<String, TerritoryWidget> allWidgetsByName,
             Map<String, TerritoryWidget> allWidgetsByNormalizedName
     ) {
+        String signature = visibleTerritoryKeysSignature(allWidgets);
+        if (signature.equals(visibleTerritoryKeysSignature)) {
+            return cachedVisibleTerritoryKeys;
+        }
+
+        rebuildTerritoryGraph(allWidgets, allWidgetsByName, allWidgetsByNormalizedName);
         Set<String> visibleKeys = new HashSet<>();
+        if (renderAllTerritories()) {
+            for (TerritoryWidget widget : allWidgets) {
+                visibleKeys.add(normalizeName(widget.territory().name()));
+            }
+            return cacheVisibleTerritoryKeys(signature, visibleKeys);
+        }
+
+        int maxDepth = connectedTerritoryDepth();
+        ArrayDeque<TerritoryDepth> queue = new ArrayDeque<>();
         for (TerritoryWidget widget : allWidgets) {
             if (!widget.owned()) {
                 continue;
             }
 
-            visibleKeys.add(normalizeName(widget.territory().name()));
-            for (String connection : widget.territory().connections()) {
-                TerritoryWidget target = findWidget(allWidgetsByName, allWidgetsByNormalizedName, connection);
-                if (target != null && !target.owned()) {
-                    visibleKeys.add(normalizeName(target.territory().name()));
+            String key = normalizeName(widget.territory().name());
+            if (visibleKeys.add(key)) {
+                queue.addLast(new TerritoryDepth(key, 0));
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            TerritoryDepth current = queue.removeFirst();
+            if (current.depth() >= maxDepth) {
+                continue;
+            }
+
+            for (String nextKey : territoryGraph.getOrDefault(current.territoryKey(), List.of())) {
+                if (visibleKeys.add(nextKey)) {
+                    queue.addLast(new TerritoryDepth(nextKey, current.depth() + 1));
                 }
             }
         }
-        return visibleKeys;
+        return cacheVisibleTerritoryKeys(signature, visibleKeys);
+    }
+
+    private void rebuildTerritoryGraph(
+            List<TerritoryWidget> allWidgets,
+            Map<String, TerritoryWidget> allWidgetsByName,
+            Map<String, TerritoryWidget> allWidgetsByNormalizedName
+    ) {
+        territoryGraph.clear();
+        Map<String, Set<String>> graph = new HashMap<>();
+        for (TerritoryWidget widget : allWidgets) {
+            String sourceKey = normalizeName(widget.territory().name());
+            graph.computeIfAbsent(sourceKey, ignored -> new HashSet<>());
+            for (String connection : widget.territory().connections()) {
+                TerritoryWidget target = findWidget(allWidgetsByName, allWidgetsByNormalizedName, connection);
+                if (target == null || target == widget) {
+                    continue;
+                }
+
+                String targetKey = normalizeName(target.territory().name());
+                graph.computeIfAbsent(sourceKey, ignored -> new HashSet<>()).add(targetKey);
+                graph.computeIfAbsent(targetKey, ignored -> new HashSet<>()).add(sourceKey);
+            }
+        }
+
+        graph.forEach((key, connections) -> territoryGraph.put(key, List.copyOf(connections)));
+    }
+
+    private Set<String> cacheVisibleTerritoryKeys(String signature, Set<String> visibleKeys) {
+        visibleTerritoryKeysSignature = signature;
+        cachedVisibleTerritoryKeys = Set.copyOf(visibleKeys);
+        return cachedVisibleTerritoryKeys;
+    }
+
+    private String visibleTerritoryKeysSignature(List<TerritoryWidget> allWidgets) {
+        return renderAllTerritories()
+                + "|" + connectedTerritoryDepth()
+                + "|" + String.join("\0", allWidgets.stream()
+                .map(widget -> normalizeName(widget.territory().name()) + ":" + widget.owned())
+                .sorted()
+                .toList());
     }
 
     private void indexWidget(TerritoryWidget widget, Map<String, TerritoryWidget> byName, Map<String, TerritoryWidget> byNormalizedName) {
@@ -575,11 +668,18 @@ public class TerritoryManagerScreen extends Screen {
         widgetsByNormalizedName.clear();
         mapBounds = MapBounds.EMPTY;
         if (clearSelection) {
+            clearVisibleTerritoryCache();
             selectedTerritory = null;
             quickMenu.hide();
             clearHeadquartersConnectivityCache();
         }
         layoutDirty = true;
+    }
+
+    private void clearVisibleTerritoryCache() {
+        territoryGraph.clear();
+        cachedVisibleTerritoryKeys = Set.of();
+        visibleTerritoryKeysSignature = "";
     }
 
     private void buildTerritoryLinks() {
@@ -590,10 +690,6 @@ public class TerritoryManagerScreen extends Screen {
                 if (target == null || target == widget) {
                     continue;
                 }
-                if (!widget.owned() && !target.owned()) {
-                    continue;
-                }
-
                 String edgeKey = edgeKey(widget.territory().name(), target.territory().name());
                 if (drawnEdges.add(edgeKey)) {
                     territoryLinks.add(new TerritoryLink(widget, target));
@@ -605,32 +701,42 @@ public class TerritoryManagerScreen extends Screen {
     private MapBounds preferredMapBounds() {
         for (TerritoryWidget widget : territoryWidgets) {
             if (widget.owned() && feature.isHeadquarters(widget.territory().name())) {
-                return MapBounds.from(withDirectForeignNeighbors(List.of(widget)));
+                return MapBounds.from(withConnectedNeighbors(List.of(widget), connectedTerritoryDepth()));
             }
         }
 
         List<TerritoryWidget> ownedWidgets = territoryWidgets.stream()
                 .filter(TerritoryWidget::owned)
                 .toList();
-        return MapBounds.from(ownedWidgets.isEmpty() ? territoryWidgets : withDirectForeignNeighbors(ownedWidgets));
+        return MapBounds.from(ownedWidgets.isEmpty() ? territoryWidgets : withConnectedNeighbors(ownedWidgets, connectedTerritoryDepth()));
     }
 
-    private List<TerritoryWidget> withDirectForeignNeighbors(List<TerritoryWidget> baseWidgets) {
+    private List<TerritoryWidget> withConnectedNeighbors(List<TerritoryWidget> baseWidgets, int maxDepth) {
         if (baseWidgets.isEmpty()) {
             return baseWidgets;
         }
 
         List<TerritoryWidget> result = new ArrayList<>(baseWidgets);
         Set<String> resultKeys = new HashSet<>();
+        ArrayDeque<TerritoryDepth> queue = new ArrayDeque<>();
         for (TerritoryWidget widget : baseWidgets) {
-            resultKeys.add(normalizeName(widget.territory().name()));
+            String key = normalizeName(widget.territory().name());
+            if (resultKeys.add(key)) {
+                queue.addLast(new TerritoryDepth(key, 0));
+            }
         }
 
-        for (TerritoryWidget widget : baseWidgets) {
-            for (String connection : widget.territory().connections()) {
-                TerritoryWidget target = findWidget(widgetsByName, widgetsByNormalizedName, connection);
-                if (target != null && !target.owned() && resultKeys.add(normalizeName(target.territory().name()))) {
+        while (!queue.isEmpty()) {
+            TerritoryDepth current = queue.removeFirst();
+            if (current.depth() >= maxDepth) {
+                continue;
+            }
+
+            for (String nextKey : territoryGraph.getOrDefault(current.territoryKey(), List.of())) {
+                TerritoryWidget target = widgetsByNormalizedName.get(nextKey);
+                if (target != null && resultKeys.add(nextKey)) {
                     result.add(target);
+                    queue.addLast(new TerritoryDepth(nextKey, current.depth() + 1));
                 }
             }
         }
@@ -667,27 +773,15 @@ public class TerritoryManagerScreen extends Screen {
             return;
         }
 
-        double availableW = Math.max(1.0, canvas.width() - MAP_PADDING * 2.0);
-        double availableH = Math.max(1.0, canvas.height() - MAP_PADDING * 2.0);
-        double worldW = Math.max(1.0, mapBounds.width());
-        double worldH = Math.max(1.0, mapBounds.height());
-        double baseScale = Math.min(availableW / worldW, availableH / worldH);
-        if (!Double.isFinite(baseScale) || baseScale <= 0) {
-            baseScale = 1.0;
-        }
-        double scale = baseScale * zoom;
-        double worldCenterX = (mapBounds.minX() + mapBounds.maxX()) / 2.0;
-        double worldCenterZ = (mapBounds.minZ() + mapBounds.maxZ()) / 2.0;
-        double screenCenterX = canvas.x() + canvas.width() / 2.0 + panX;
-        double screenCenterY = canvas.y() + canvas.height() / 2.0 + panY;
+        MapTransform transform = mapTransform(canvas);
 
         for (TerritoryWidget widget : territoryWidgets) {
             TerritoryNode territory = widget.territory();
-            double centerX = screenCenterX + (territory.centerX() - worldCenterX) * scale;
-            double centerY = screenCenterY + (territory.centerZ() - worldCenterZ) * scale;
+            double centerX = transform.screenX(territory.centerX());
+            double centerY = transform.screenY(territory.centerZ());
 
-            int boxW = Math.max(1, (int) Math.round(territory.worldWidth() * scale));
-            int boxH = Math.max(1, (int) Math.round(territory.worldHeight() * scale));
+            int boxW = Math.max(1, (int) Math.round(territory.worldWidth() * transform.scale()));
+            int boxH = Math.max(1, (int) Math.round(territory.worldHeight() * transform.scale()));
 
             int x = (int) Math.round(centerX - boxW / 2.0);
             int y = (int) Math.round(centerY - boxH / 2.0);
@@ -717,6 +811,7 @@ public class TerritoryManagerScreen extends Screen {
 
     private void drawMap(GuiGraphics g, int mouseX, int mouseY, ClickGuiTheme theme) {
         UiRect canvas = canvasBounds();
+        drawMapBackground(g, canvas, theme);
         if (territoryWidgets.isEmpty()) {
             drawCenteredStatus(g, canvas, theme);
         } else {
@@ -733,10 +828,72 @@ public class TerritoryManagerScreen extends Screen {
                         canvas,
                         widget.owned() && feature.isHeadquarters(widget.territory().name()),
                         widget == selectedTerritory || loadoutManager.isSelected(widget),
-                        disconnectedFromHeadquarters(widget)
+                        disconnectedFromHeadquarters(widget),
+                        alwaysRenderTimers()
                 );
             }
         }
+    }
+
+    private void drawMapBackground(GuiGraphics g, UiRect canvas, ClickGuiTheme theme) {
+        if (!mapBounds.valid()) {
+            return;
+        }
+
+        MapTransform transform = mapTransform(canvas);
+        boolean renderMapTexture = renderMapTexture();
+        if (renderMapTexture) {
+            double mapX = transform.screenX(MAP_WORLD_LEFT);
+            double mapY = transform.screenY(MAP_WORLD_TOP);
+            float scale = (float) transform.scale();
+
+            g.enableScissor(canvas.x(), canvas.y(), canvas.right(), canvas.bottom());
+            g.pose().pushMatrix();
+            try {
+                g.pose().translate((float) mapX, (float) mapY);
+                g.pose().scale(scale, scale);
+                g.blit(
+                        RenderPipelines.GUI_TEXTURED,
+                        MAP_TEXTURE,
+                        0,
+                        0,
+                        0,
+                        0,
+                        MAP_TEXTURE_WIDTH,
+                        MAP_TEXTURE_HEIGHT,
+                        MAP_TEXTURE_WIDTH,
+                        MAP_TEXTURE_HEIGHT
+                );
+            } finally {
+                g.pose().popMatrix();
+                g.disableScissor();
+            }
+        }
+
+        g.fill(canvas.x(), canvas.y(), canvas.right(), canvas.bottom(), Render2D.withAlpha(theme.background(), renderMapTexture ? 70 : 150));
+    }
+
+    private MapTransform mapTransform(UiRect canvas) {
+        double availableW = Math.max(1.0, canvas.width() - MAP_PADDING * 2.0);
+        double availableH = Math.max(1.0, canvas.height() - MAP_PADDING * 2.0);
+        double worldW = Math.max(1.0, mapBounds.width());
+        double worldH = Math.max(1.0, mapBounds.height());
+        double baseScale = Math.min(availableW / worldW, availableH / worldH);
+        if (!Double.isFinite(baseScale) || baseScale <= 0) {
+            baseScale = 1.0;
+        }
+
+        double worldCenterX = (mapBounds.minX() + mapBounds.maxX()) / 2.0;
+        double worldCenterZ = (mapBounds.minZ() + mapBounds.maxZ()) / 2.0;
+        double screenCenterX = canvas.x() + canvas.width() / 2.0 + panX;
+        double screenCenterY = canvas.y() + canvas.height() / 2.0 + panY;
+        return new MapTransform(
+                baseScale * zoom,
+                worldCenterX,
+                worldCenterZ,
+                screenCenterX,
+                screenCenterY
+        );
     }
 
     private void drawCenteredStatus(GuiGraphics g, UiRect canvas, ClickGuiTheme theme) {
@@ -781,7 +938,7 @@ public class TerritoryManagerScreen extends Screen {
                         actions::adjustUpgrade,
                         actions::adjustTax,
                         percent -> feature.setGlobalTax(ownedTerritoryNames(), percent),
-                        () -> setHeadquarters(territory.name()),
+                        () -> setHeadquarters(actions),
                         actions::toggleBorders,
                         () -> feature.setGlobalBordersOpen(ownedTerritoryNames(), !feature.bordersOpen(territory.name())),
                         actions::toggleRoute,
@@ -799,6 +956,7 @@ public class TerritoryManagerScreen extends Screen {
         if (selectedTerritory == null || !quickMenu.visible()) {
             return;
         }
+        positionQuickMenu();
 
         TerritoryNode territory = selectedTerritory.territory();
         Map<TerritoryUpgrade, Integer> stats = feature.statsFor(territory.name());
@@ -815,7 +973,7 @@ public class TerritoryManagerScreen extends Screen {
                 feature.bordersOpen(territory.name()),
                 feature.territoryRoute(territory.name()).label(),
                 actions::adjustUpgrade,
-                () -> setHeadquarters(territory.name()),
+                () -> setHeadquarters(actions),
                 actions::toggleBorders,
                 () -> feature.setGlobalBordersOpen(ownedTerritoryNames(), !feature.bordersOpen(territory.name())),
                 actions::toggleRoute,
@@ -960,10 +1118,22 @@ public class TerritoryManagerScreen extends Screen {
             return;
         }
         selectedTerritory = widget;
+        quickMenuAnchorOffsetX = mouseX - widget.centerX();
+        quickMenuAnchorOffsetY = mouseY - widget.centerY();
         detailPanel.resetScroll();
         TerritoryDetails details = detailDataFor(widget);
         detailPanel.ensurePosition(width, height, details == null ? Resources.EMPTY : details.producedResources());
         quickMenu.showAt(mouseX, mouseY, width, height);
+    }
+
+    private void positionQuickMenu() {
+        if (selectedTerritory == null || !quickMenu.visible()) {
+            return;
+        }
+
+        int x = (int) Math.round(selectedTerritory.centerX() + quickMenuAnchorOffsetX);
+        int y = (int) Math.round(selectedTerritory.centerY() + quickMenuAnchorOffsetY);
+        quickMenu.moveTo(x, y, width, height);
     }
 
     private void requestCurrentStats() {
@@ -973,8 +1143,8 @@ public class TerritoryManagerScreen extends Screen {
                 .toList());
     }
 
-    private void setHeadquarters(String territoryName) {
-        feature.setHeadquarters(territoryName);
+    private void setHeadquarters(GuiActions actions) {
+        actions.setHeadquarters();
         recomputeHeadquartersConnectivityIfNeeded();
     }
 
@@ -1059,8 +1229,15 @@ public class TerritoryManagerScreen extends Screen {
     private boolean disconnectedFromHeadquarters(TerritoryWidget widget) {
         return widget != null
                 && widget.owned()
-                && !territoriesConnectedToHeadquarters.isEmpty()
+                && !feature.isHeadquarters(widget.territory().name())
+                && hasOwnedHeadquarters()
                 && !territoriesConnectedToHeadquarters.contains(normalizeName(widget.territory().name()));
+    }
+
+    private boolean hasOwnedHeadquarters() {
+        return territoryWidgets.stream()
+                .filter(TerritoryWidget::owned)
+                .anyMatch(widget -> feature.isHeadquarters(widget.territory().name()));
     }
 
     private ResourceFlow summarizeResourceFlow() {
@@ -1156,13 +1333,48 @@ public class TerritoryManagerScreen extends Screen {
         return new UiRect(0, 0, Math.max(1, width), Math.max(1, height));
     }
 
+    private boolean renderMapTexture() {
+        return NyahConfig.getData().isEcoRenderMap();
+    }
+
+    private boolean renderAllTerritories() {
+        return NyahConfig.getData().isEcoRenderAllTerritories();
+    }
+
+    private int connectedTerritoryDepth() {
+        return Math.max(0, NyahConfig.getData().getEcoConnectedTerritoryDepth());
+    }
+
+    private boolean alwaysRenderTimers() {
+        return NyahConfig.getData().isEcoAlwaysRenderTimers();
+    }
+
     private record LoadoutButton(UiRect bounds, Runnable onClick) {
+    }
+
+    private record TerritoryDepth(String territoryKey, int depth) {
     }
 
     private record StaticTerritoryData(Resources resources, List<String> connections) {
         public StaticTerritoryData {
             resources = resources == null ? Resources.EMPTY : resources;
             connections = connections == null ? List.of() : connections;
+        }
+    }
+
+    private record MapTransform(
+            double scale,
+            double worldCenterX,
+            double worldCenterZ,
+            double screenCenterX,
+            double screenCenterY
+    ) {
+        private double screenX(double worldX) {
+            return screenCenterX + (worldX - worldCenterX) * scale;
+        }
+
+        private double screenY(double worldZ) {
+            return screenCenterY + (worldZ - worldCenterZ) * scale;
         }
     }
 

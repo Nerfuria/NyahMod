@@ -65,9 +65,13 @@ public class TerritoryQuickMenu {
     }
 
     public void showAt(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-        x = clamp(mouseX, 4, Math.max(4, screenWidth - WIDTH - 4));
-        y = clamp(mouseY, 4, Math.max(4, screenHeight - HEIGHT - 4));
+        moveTo(mouseX, mouseY, screenWidth, screenHeight);
         visible = true;
+    }
+
+    public void moveTo(int screenX, int screenY, int screenWidth, int screenHeight) {
+        x = clamp(screenX, 4, Math.max(4, screenWidth - WIDTH - 4));
+        y = clamp(screenY, 4, Math.max(4, screenHeight - HEIGHT - 4));
     }
 
     public void hide() {

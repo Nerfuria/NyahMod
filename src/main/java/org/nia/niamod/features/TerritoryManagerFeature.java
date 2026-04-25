@@ -9,6 +9,7 @@ import org.nia.niamod.features.eco.Loadouts;
 import org.nia.niamod.features.eco.UncommittedChanges;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.Scheduler;
+import org.nia.niamod.models.api.TerritoryResponse;
 import org.nia.niamod.models.eco.*;
 import org.nia.niamod.models.eco.GameChange.Borders;
 import org.nia.niamod.models.eco.GameChange.Headquarters;
@@ -43,6 +44,8 @@ public class TerritoryManagerFeature extends Feature {
     private final Map<String, Boolean> territoryBorders = new HashMap<>();
     private final Map<String, TerritoryRoute> territoryRoutes = new HashMap<>();
     private final Map<String, String> territoryNamesByKey = new HashMap<>();
+    private Map<String, TerritoryResponse> territoryResponseCache = Map.of();
+    private long territoryResponseCacheUpdatedAtMillis;
     private String headquartersTerritoryName;
 
     public TerritoryManagerFeature() {
@@ -128,6 +131,21 @@ public class TerritoryManagerFeature extends Feature {
         return loadouts;
     }
 
+    public Map<String, TerritoryResponse> cachedTerritoryResponse() {
+        return territoryResponseCache;
+    }
+
+    public void cacheTerritoryResponse(Map<String, TerritoryResponse> response) {
+        territoryResponseCache = response == null || response.isEmpty()
+                ? Map.of()
+                : Collections.unmodifiableMap(new HashMap<>(response));
+        territoryResponseCacheUpdatedAtMillis = System.currentTimeMillis();
+    }
+
+    public long territoryResponseCacheUpdatedAtMillis() {
+        return territoryResponseCacheUpdatedAtMillis;
+    }
+
     public String loadoutFor(String territoryName) {
         return territoryLoadouts.getOrDefault(keyFor(territoryName), "");
     }
@@ -211,7 +229,7 @@ public class TerritoryManagerFeature extends Feature {
     }
 
     public boolean bordersOpen(String territoryName) {
-        return territoryBorders.getOrDefault(keyFor(territoryName), false);
+        return territoryBorders.getOrDefault(keyFor(territoryName), true);
     }
 
     public void setBordersOpen(String territoryName, boolean open) {
@@ -240,7 +258,7 @@ public class TerritoryManagerFeature extends Feature {
     }
 
     public TerritoryRoute territoryRoute(String territoryName) {
-        return territoryRoutes.getOrDefault(keyFor(territoryName), TerritoryRoute.FASTEST);
+        return territoryRoutes.getOrDefault(keyFor(territoryName), TerritoryRoute.CHEAPEST);
     }
 
     public void setTerritoryRoute(String territoryName, TerritoryRoute route) {
@@ -382,7 +400,7 @@ public class TerritoryManagerFeature extends Feature {
             queueGameChange(new Borders(territoryNameForKey(territoryKey), territoryBorders.getOrDefault(territoryKey, false)));
         }
         for (String territoryKey : uncommittedChanges.routes()) {
-            queueGameChange(new Route(territoryNameForKey(territoryKey), territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.FASTEST)));
+            queueGameChange(new Route(territoryNameForKey(territoryKey), territoryRoutes.getOrDefault(territoryKey, TerritoryRoute.CHEAPEST)));
         }
         if (uncommittedChanges.hasHeadquarters()) {
             queueGameChange(new Headquarters(territoryNameForKey(uncommittedChanges.headquarters())));

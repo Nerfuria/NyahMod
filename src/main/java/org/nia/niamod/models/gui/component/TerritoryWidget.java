@@ -3,11 +3,11 @@ package org.nia.niamod.models.gui.component;
 import lombok.Setter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
-import org.nia.niamod.models.eco.ResourceKind;
+import org.nia.niamod.models.eco.Resources;
 import org.nia.niamod.models.eco.TerritoryNode;
 import org.nia.niamod.models.eco.TerritoryResourceColors;
 import org.nia.niamod.models.gui.render.UiRect;
@@ -15,6 +15,8 @@ import org.nia.niamod.models.gui.screens.NiaClickGuiScreen;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class TerritoryWidget {
@@ -25,9 +27,14 @@ public class TerritoryWidget {
     private static final int MAX_BORDER_DASHES_PER_SIDE = 6;
     private static final int LABEL_PADDING = 4;
     private static final int DISCONNECTED_COLOR = 0xFFFF3B30;
+    private static final TextureIcon CROP_ICON = texture("crop", 21, 21);
+    private static final TextureIcon WOOD_ICON = texture("wood", 21, 21);
+    private static final TextureIcon ORE_ICON = texture("ore", 21, 21);
+    private static final TextureIcon FISH_ICON = texture("fish", 21, 21);
+    private static final TextureIcon EMERALD_ICON = texture("emerald", 16, 16);
+    private static final TextureIcon HQ_ICON = texture("hq", 16, 13);
     private static final double MARQUEE_PIXELS_PER_SECOND = 34.0;
     private static final long MARQUEE_PAUSE_MILLIS = 450L;
-    private static final ItemStack CITY_ICON = new ItemStack(Items.EMERALD);
 
     private final TerritoryNode territory;
     private final boolean owned;
@@ -67,18 +74,23 @@ public class TerritoryWidget {
         return owned;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected, boolean disconnectedFromHeadquarters) {
+    private static TextureIcon texture(String path, int width, int height) {
+        return new TextureIcon(Identifier.fromNamespaceAndPath("niamod", "textures/" + path + ".png"), width, height);
+    }
+
+    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected, boolean disconnectedFromHeadquarters, boolean alwaysRenderTimers) {
         if (!intersects(bounds, canvas, CLIP_PADDING)) {
             return;
         }
 
+        boolean hovered = contains(mouseX, mouseY);
         if (!owned) {
             drawForeignTerritory(g, font, theme, canvas);
+            drawFreshHeldTime(g, font, theme, canvas, now, hovered, alwaysRenderTimers);
             return;
         }
 
-        boolean hovered = contains(mouseX, mouseY);
-        int fillAlpha = hovered ? 62 : 42;
+        int fillAlpha = headquarters ? (hovered ? 92 : 74) : hovered ? 62 : 42;
         int borderAlpha = headquarters || territory.isRainbow() ? 255 : hovered ? 245 : 215;
 
         if (headquarters) {
@@ -134,6 +146,10 @@ public class TerritoryWidget {
         }
         hoveredLastFrame = hovered;
         drawLabels(g, font, theme, canvas, hovered, now, headquarters);
+        if (headquarters) {
+            drawHeadquartersMarker(g, canvas);
+        }
+        drawFreshHeldTime(g, font, theme, canvas, now, hovered, alwaysRenderTimers);
         if (territory.isCity()) {
             drawCityMarker(g, canvas);
         }
@@ -158,7 +174,7 @@ public class TerritoryWidget {
     private void drawForeignTerritory(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas) {
         Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(0x000000, 120));
         drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(0x000000, 235), 2);
-        drawForeignResourceTag(g, font, theme, canvas);
+        drawForeignResourceIcons(g, canvas);
     }
 
     private int disconnectedBorderAlpha(long now, boolean selected) {
@@ -168,20 +184,22 @@ public class TerritoryWidget {
         return (int) Math.round(min + (max - min) * pulse);
     }
 
-    private void drawForeignResourceTag(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas) {
+    private void drawForeignResourceIcons(GuiGraphics g, UiRect canvas) {
         UiRect clip = labelClip(canvas);
         if (clip == null) {
             return;
         }
 
-        Component tagText = NiaClickGuiScreen.styled(fit(font, territory.tag(), clip.width()));
-        int tagWidth = font.width(tagText);
-        int tagX = clip.x() + (clip.width() - tagWidth) / 2;
-        int tagY = bounds.centerY() - font.lineHeight / 2;
-        int tagColor = territory.resourceKind() == ResourceKind.NONE
-                ? theme.secondaryText()
-                : territory.isRainbow() ? TerritoryResourceColors.rainbowColor(0.72, 255) : Render2D.withAlpha(territory.resourceColor(), 255);
-        drawClippedText(g, font, tagText, tagX, tagY, tagColor, clip);
+        List<TextureIcon> icons = resourceIcons();
+        int iconSize = iconSize(clip.width(), clip.height(), icons.size(), 16);
+        if (iconSize <= 0) {
+            return;
+        }
+
+        int totalW = iconRowWidth(icons.size(), iconSize);
+        int iconX = clip.x() + (clip.width() - totalW) / 2;
+        int iconY = clip.y() + (clip.height() - iconSize) / 2;
+        drawIconRow(g, icons, iconX, iconY, iconSize, canvas);
     }
 
     private void drawLabels(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, boolean hovered, long now, boolean headquarters) {
@@ -193,7 +211,9 @@ public class TerritoryWidget {
         int nameWidth = fullNameWidth(font);
         int labelW = clip.width();
         int labelX = clip.x();
-        int blockH = font.lineHeight * 2 + 2;
+        List<TextureIcon> icons = resourceIcons();
+        int iconSize = iconSize(labelW, clip.height() - font.lineHeight - 2, icons.size(), 15);
+        int blockH = font.lineHeight + (iconSize > 0 ? iconSize + 2 : 0);
         int nameY = bounds.centerY() - blockH / 2;
 
         if (hovered && nameWidth > labelW) {
@@ -204,14 +224,98 @@ public class TerritoryWidget {
             drawClippedText(g, font, nameText, nameX, nameY, theme.textColor(), clip);
         }
 
-        String fittedTag = fit(font, territory.tag(), labelW);
-        Component tagText = NiaClickGuiScreen.styled(fittedTag);
-        int tagWidth = font.width(tagText);
-        int tagX = labelX + (labelW - tagWidth) / 2;
-        int tagColor = headquarters
-                ? TerritoryResourceColors.headquarterColor()
-                : territory.isRainbow() ? TerritoryResourceColors.rainbowColor(0.72, 255) : Render2D.withAlpha(territory.resourceColor(), 255);
-        drawClippedText(g, font, tagText, tagX, nameY + font.lineHeight + 2, tagColor, clip);
+        if (iconSize > 0) {
+            int totalW = iconRowWidth(icons.size(), iconSize);
+            int iconX = labelX + (labelW - totalW) / 2;
+            int iconY = nameY + font.lineHeight + 2;
+            drawIconRow(g, icons, iconX, iconY, iconSize, canvas);
+        }
+    }
+
+    private void drawHeadquartersMarker(GuiGraphics g, UiRect canvas) {
+        UiRect clip = intersection(bounds, canvas);
+        if (clip == null) {
+            return;
+        }
+
+        int gold = TerritoryResourceColors.headquarterColor();
+        if (bounds.width() < 16 || bounds.height() < 12) {
+            drawHeadquartersDot(g, canvas, gold);
+            return;
+        }
+
+        int maxIconW = Math.max(7, bounds.width() / 3);
+        int maxIconH = Math.max(6, bounds.height() / 3);
+        int iconW = Math.min(14, maxIconW);
+        int iconH = Math.max(6, Math.round(iconW * HQ_ICON.height() / (float) HQ_ICON.width()));
+        if (iconH > maxIconH) {
+            iconH = maxIconH;
+            iconW = Math.max(7, Math.round(iconH * HQ_ICON.width() / (float) HQ_ICON.height()));
+        }
+
+        int iconX = bounds.x() + 3;
+        int iconY = bounds.y() + 3;
+        drawTexture(g, HQ_ICON, iconX, iconY, iconW, iconH, canvas);
+    }
+
+    private void drawFreshHeldTime(GuiGraphics g, Font font, ClickGuiTheme theme, UiRect canvas, long now, boolean hovered, boolean alwaysRenderTimers) {
+        if (!territory.heldUnderTenMinutes(now) || (!alwaysRenderTimers && !hovered)) {
+            return;
+        }
+
+        UiRect clip = intersection(bounds, canvas);
+        if (clip == null || bounds.height() < 12 || bounds.width() < 18) {
+            return;
+        }
+
+        int maxTextW = Math.max(1, bounds.width() - 12);
+        String time = formatHeldTime(now);
+        String label = timerLabel(font, maxTextW, time);
+        Component text = NiaClickGuiScreen.styled(label);
+        int textWidth = font.width(text);
+        int badgeW = Math.min(bounds.width() - 4, textWidth + 8);
+        int badgeH = Math.min(bounds.height() - 4, font.lineHeight + 3);
+        if (badgeW <= 4 || badgeH <= 4) {
+            return;
+        }
+
+        int badgeX = bounds.x() + (bounds.width() - badgeW) / 2;
+        int badgeY = bounds.bottom() - badgeH - 3;
+        UiRect badge = new UiRect(badgeX, badgeY, badgeW, badgeH);
+        Render2D.clippedRect(g, badge.x(), badge.y(), badge.right(), badge.bottom(), canvas, Render2D.withAlpha(0x000000, 185));
+        drawSolidBorder(g, badge, canvas, Render2D.withAlpha(theme.accentColor(), 140), 1);
+
+        int textX = badge.x() + (badge.width() - textWidth) / 2;
+        int textY = badge.y() + (badge.height() - font.lineHeight) / 2 + 1;
+        drawClippedText(g, font, text, textX, textY, theme.textColor(), clip);
+    }
+
+    private String formatHeldTime(long now) {
+        long heldMillis = Math.max(0L, now - territory.acquiredMillis());
+        long totalSeconds = heldMillis / 1000L;
+        long minutes = totalSeconds / 60L;
+        long seconds = totalSeconds % 60L;
+        return minutes + ":" + (seconds < 10L ? "0" : "") + seconds;
+    }
+
+    private String timerLabel(Font font, int maxWidth, String time) {
+        String full = "Cooldown: " + time;
+        if (font.width(NiaClickGuiScreen.styled(full)) <= maxWidth) {
+            return full;
+        }
+
+        String shortLabel = "CD: " + time;
+        if (font.width(NiaClickGuiScreen.styled(shortLabel)) <= maxWidth) {
+            return shortLabel;
+        }
+        return time;
+    }
+
+    private void drawHeadquartersDot(GuiGraphics g, UiRect canvas, int color) {
+        int size = Math.min(8, Math.max(3, Math.min(bounds.width(), bounds.height()) / 2));
+        int x = bounds.centerX() - size / 2;
+        int y = bounds.centerY() - size / 2;
+        Render2D.clippedRect(g, x, y, x + size, y + size, canvas, Render2D.withAlpha(color, 245));
     }
 
     private void drawCityMarker(GuiGraphics g, UiRect canvas) {
@@ -220,12 +324,82 @@ public class TerritoryWidget {
             return;
         }
 
-        int iconX = bounds.width() >= 18 ? bounds.right() - 17 : bounds.centerX() - 8;
-        int iconY = bounds.height() >= 18 ? bounds.y() + 1 : bounds.centerY() - 8;
+        int size = Math.min(16, Math.max(7, Math.min(bounds.width(), bounds.height()) / 3));
+        int iconX = bounds.width() >= 18 ? bounds.right() - size - 2 : bounds.centerX() - size / 2;
+        int iconY = bounds.height() >= 18 ? bounds.y() + 2 : bounds.centerY() - size / 2;
+        drawTexture(g, EMERALD_ICON, iconX, iconY, size, size, canvas);
+    }
+
+    private List<TextureIcon> resourceIcons() {
+        Resources resources = territory.resources();
+        List<TextureIcon> icons = new ArrayList<>(4);
+        addResourceIcons(icons, CROP_ICON, resources.crops());
+        addResourceIcons(icons, WOOD_ICON, resources.wood());
+        addResourceIcons(icons, ORE_ICON, resources.ore());
+        addResourceIcons(icons, FISH_ICON, resources.fish());
+        return icons;
+    }
+
+    private void addResourceIcons(List<TextureIcon> icons, TextureIcon icon, long amount) {
+        if (amount <= 0L) {
+            return;
+        }
+
+        int count = Math.max(1, (int) Math.round(amount / 3600.0));
+        for (int i = 0; i < count; i++) {
+            icons.add(icon);
+        }
+    }
+
+    private int iconSize(int availableWidth, int availableHeight, int iconCount, int preferredSize) {
+        if (iconCount <= 0 || availableWidth <= 0 || availableHeight <= 0) {
+            return 0;
+        }
+
+        int maxByWidth = (availableWidth - Math.max(0, iconCount - 1) * 2) / iconCount;
+        int size = Math.min(preferredSize, Math.min(availableHeight, maxByWidth));
+        return size < 4 ? 0 : size;
+    }
+
+    private int iconRowWidth(int iconCount, int iconSize) {
+        if (iconCount <= 0 || iconSize <= 0) {
+            return 0;
+        }
+        return iconCount * iconSize + (iconCount - 1) * 2;
+    }
+
+    private void drawIconRow(GuiGraphics g, List<TextureIcon> icons, int x, int y, int iconSize, UiRect canvas) {
+        for (int i = 0; i < icons.size(); i++) {
+            drawTexture(g, icons.get(i), x + i * (iconSize + 2), y, iconSize, iconSize, canvas);
+        }
+    }
+
+    private void drawTexture(GuiGraphics g, TextureIcon icon, int x, int y, int width, int height, UiRect canvas) {
+        UiRect target = new UiRect(x, y, width, height);
+        UiRect clip = intersection(target, canvas);
+        if (clip == null || width <= 0 || height <= 0) {
+            return;
+        }
+
         g.enableScissor(clip.x(), clip.y(), clip.right(), clip.bottom());
+        g.pose().pushMatrix();
         try {
-            g.renderItem(CITY_ICON, iconX, iconY);
+            g.pose().translate((float) x, (float) y);
+            g.pose().scale(width / (float) icon.width(), height / (float) icon.height());
+            g.blit(
+                    RenderPipelines.GUI_TEXTURED,
+                    icon.texture(),
+                    0,
+                    0,
+                    0,
+                    0,
+                    icon.width(),
+                    icon.height(),
+                    icon.width(),
+                    icon.height()
+            );
         } finally {
+            g.pose().popMatrix();
             g.disableScissor();
         }
     }
@@ -333,10 +507,20 @@ public class TerritoryWidget {
     }
 
     private void drawSolidBorder(GuiGraphics g, UiRect bounds, UiRect canvas, int color, int thickness) {
+        if (bounds.width() <= 0 || bounds.height() <= 0 || thickness <= 0) {
+            return;
+        }
         Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.y() + thickness, canvas, color);
         Render2D.clippedRect(g, bounds.x(), bounds.bottom() - thickness, bounds.right(), bounds.bottom(), canvas, color);
         Render2D.clippedRect(g, bounds.x(), bounds.y() + thickness, bounds.x() + thickness, bounds.bottom() - thickness, canvas, color);
         Render2D.clippedRect(g, bounds.right() - thickness, bounds.y() + thickness, bounds.right(), bounds.bottom() - thickness, canvas, color);
+    }
+
+    private UiRect inset(UiRect rect, int amount) {
+        int inset = Math.max(0, amount);
+        int width = Math.max(1, rect.width() - inset * 2);
+        int height = Math.max(1, rect.height() - inset * 2);
+        return new UiRect(rect.x() + inset, rect.y() + inset, width, height);
     }
 
     private void drawRainbowBorder(GuiGraphics g, UiRect bounds, UiRect canvas, int alpha, int thickness) {
@@ -396,6 +580,9 @@ public class TerritoryWidget {
     private double positiveModulo(double value, double modulo) {
         double result = value % modulo;
         return result < 0 ? result + modulo : result;
+    }
+
+    private record TextureIcon(Identifier texture, int width, int height) {
     }
 
 }
