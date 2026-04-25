@@ -51,18 +51,14 @@ public record Resources(long emeralds, long ore, long crops, long fish, long woo
             return ResourceKind.ALL;
         }
 
-        int max = Math.toIntExact(Math.max(Math.max(crops, wood), Math.max(ore, fish)));
+        long max = Math.max(Math.max(ore, crops), Math.max(wood, fish));
         if (max <= 0) {
             return ResourceKind.NONE;
         }
-        if (crops == max) {
-            return ResourceKind.CROPS;
-        }
-        if (wood == max) {
-            return ResourceKind.WOOD;
-        }
-        if (ore == max) {
-            return ResourceKind.ORE;
+        for (ResourceKind resource : ResourceKind.MATERIALS) {
+            if (amount(resource) == max) {
+                return resource;
+            }
         }
         return ResourceKind.FISH;
     }

@@ -72,7 +72,7 @@ public class TerritoryManagerScreen extends Screen {
     private static final StaticTerritoryData EMPTY_STATIC_DATA = new StaticTerritoryData(Resources.EMPTY, List.of());
     private static final Identifier MAP_TEXTURE = Identifier.fromNamespaceAndPath("niamod", "textures/map.png");
     private static final int MAP_TEXTURE_WIDTH = 4608;
-    private static final int MAP_TEXTURE_HEIGHT = 6644;
+    private static final int MAP_TEXTURE_HEIGHT = 6635;
     private static final double MAP_WORLD_LEFT = -2560.0;
     private static final double MAP_WORLD_TOP = -MAP_TEXTURE_HEIGHT;
     private final Screen parent;
@@ -324,6 +324,10 @@ public class TerritoryManagerScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_DOWN) {
+            onClose();
+            return true;
+        }
         if (loadoutManager.visible() && event.key() == GLFW.GLFW_KEY_ESCAPE) {
             loadoutManager.close();
             return true;
@@ -1007,7 +1011,7 @@ public class TerritoryManagerScreen extends Screen {
         Resources produced = details.producedResources();
         List<String> lines = List.of(
                 territory.name(),
-                "Prod E/O/C/F/W: " + formatCompact(produced.emeralds()) + " / " + formatCompact(produced.ore()) + " / " + formatCompact(produced.crops()) + " / " + formatCompact(produced.fish()) + " / " + formatCompact(produced.wood()),
+                "Prod E/O/C/W/F: " + formatCompact(produced.emeralds()) + " / " + formatCompact(produced.ore()) + " / " + formatCompact(produced.crops()) + " / " + formatCompact(produced.wood()) + " / " + formatCompact(produced.fish()),
                 "Tower D/A/H/F: " + StatsCalculator.statLevel(stats, TerritoryUpgrade.DAMAGE) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.ATTACK) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.HEALTH) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.DEFENSE),
                 "Res ER/RR/EE/EmR: " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EFFICIENT_RESOURCES) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.RESOURCE_RATE) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EFFICIENT_EMERALDS) + " / " + StatsCalculator.statLevel(stats, TerritoryUpgrade.EMERALD_RATE)
         );

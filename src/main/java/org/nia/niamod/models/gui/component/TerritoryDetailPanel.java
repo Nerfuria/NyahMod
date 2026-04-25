@@ -355,20 +355,10 @@ public class TerritoryDetailPanel {
     private int resourceSummaryHeight(Resources resources) {
         int rows = 0;
         if (resources != null) {
-            if (resources.emeralds() > 0) {
-                rows++;
-            }
-            if (resources.crops() > 0) {
-                rows++;
-            }
-            if (resources.wood() > 0) {
-                rows++;
-            }
-            if (resources.ore() > 0) {
-                rows++;
-            }
-            if (resources.fish() > 0) {
-                rows++;
+            for (ResourceKind resource : ResourceKind.DISPLAY_ORDER) {
+                if (resources.amount(resource) > 0) {
+                    rows++;
+                }
             }
         }
         return Math.max(1, rows) * 12;
@@ -387,16 +377,18 @@ public class TerritoryDetailPanel {
                 Render2D.withAlpha(theme.secondary(), 70),
                 Render2D.withAlpha(theme.accentColor(), 48)
         );
-        y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.cityColor(), resources.emeralds(), "emeralds", theme);
-        y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.CROPS), resources.crops(), "crops", theme);
-        y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.WOOD), resources.wood(), "wood", theme);
-        y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.ORE), resources.ore(), "ore", theme);
-        y = drawResourceRate(g, font, x, y, maxWidth, TerritoryResourceColors.configuredColor(ResourceKind.FISH), resources.fish(), "fish", theme);
+        for (ResourceKind resource : ResourceKind.DISPLAY_ORDER) {
+            y = drawResourceRate(g, font, x, y, maxWidth, resourceColor(resource), resources.amount(resource), resource.label().toLowerCase(Locale.ROOT), theme);
+        }
         if (y == startY) {
             drawFittedString(g, font, "No resource production", x, y, maxWidth, theme.trinaryText());
             y += 12;
         }
         return y;
+    }
+
+    private int resourceColor(ResourceKind resource) {
+        return resource == ResourceKind.EMERALDS ? TerritoryResourceColors.cityColor() : TerritoryResourceColors.configuredColor(resource);
     }
 
     private int drawResourceRate(GuiGraphics g, Font font, int x, int y, int maxWidth, int color, long amount, String label, ClickGuiTheme theme) {
@@ -617,11 +609,10 @@ public class TerritoryDetailPanel {
 
         Resources current = store.current();
         Resources max = store.max();
-        y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Emeralds", current.emeralds(), max.emeralds()), theme.secondaryText());
-        y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Ore", current.ore(), max.ore()), theme.secondaryText());
-        y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Crops", current.crops(), max.crops()), theme.secondaryText());
-        y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Fish", current.fish(), max.fish()), theme.secondaryText());
-        return drawInfoLine(g, font, x, y, maxWidth, storedResourceLine("Wood", current.wood(), max.wood()), theme.secondaryText());
+        for (ResourceKind resource : ResourceKind.DISPLAY_ORDER) {
+            y = drawInfoLine(g, font, x, y, maxWidth, storedResourceLine(resource.label(), current.amount(resource), max.amount(resource)), theme.secondaryText());
+        }
+        return y;
     }
 
     private String storedResourceLine(String label, long current, long max) {

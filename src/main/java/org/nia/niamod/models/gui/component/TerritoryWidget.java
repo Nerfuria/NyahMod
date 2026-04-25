@@ -333,9 +333,9 @@ public class TerritoryWidget {
     private List<TextureIcon> resourceIcons() {
         Resources resources = territory.resources();
         List<TextureIcon> icons = new ArrayList<>(4);
+        addResourceIcons(icons, ORE_ICON, resources.ore());
         addResourceIcons(icons, CROP_ICON, resources.crops());
         addResourceIcons(icons, WOOD_ICON, resources.wood());
-        addResourceIcons(icons, ORE_ICON, resources.ore());
         addResourceIcons(icons, FISH_ICON, resources.fish());
         return icons;
     }

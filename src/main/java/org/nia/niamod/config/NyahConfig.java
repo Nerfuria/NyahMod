@@ -35,7 +35,7 @@ public class NyahConfig {
         KeybindManager.registerKeybinding(
                 "Open NiaMod Click GUI",
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
-                () -> minecraft().setScreen(getConfigScreen())
+                () -> toggleConfigScreen()
         );
     }
 
@@ -56,6 +56,15 @@ public class NyahConfig {
 
     public static Screen getConfigScreen(Screen currentScreen) {
         return new NiaClickGuiScreen(currentScreen);
+    }
+
+    public static void toggleConfigScreen() {
+        Minecraft minecraft = minecraft();
+        if (minecraft.screen instanceof NiaClickGuiScreen screen) {
+            screen.onClose();
+            return;
+        }
+        minecraft.setScreen(getConfigScreen(minecraft.screen));
     }
 
     public static List<SettingSection> getSections(SettingCategory category) {

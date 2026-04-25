@@ -45,7 +45,7 @@ public class IgnoreFeature extends Feature {
         KeybindManager.registerKeybinding(
                 "Open Ignore Manager",
                 GLFW.GLFW_KEY_BACKSLASH,
-                safeRunnable("open_manager", this::openScreen)
+                safeRunnable("toggle_manager", this::toggleScreen)
         );
         KeybindManager.registerKeybinding(
                 "Mass Ignore",
@@ -496,6 +496,15 @@ public class IgnoreFeature extends Feature {
     public void openScreen() {
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.setScreen(new IgnoreManagerScreen(minecraft.screen, this));
+    }
+
+    public void toggleScreen() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof IgnoreManagerScreen screen) {
+            screen.onClose();
+            return;
+        }
+        openScreen();
     }
 
     private void queue(List<String> playerNames, IgnoreAction action) {

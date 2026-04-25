@@ -1011,6 +1011,10 @@ public class NiaClickGuiScreen extends Screen {
             return true;
         }
 
+        if (event.key() == GLFW.GLFW_KEY_RIGHT_SHIFT) {
+            onClose();
+            return true;
+        }
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
             if (searchMode && !searchQuery.isEmpty()) {
                 searchBox.setValue("");

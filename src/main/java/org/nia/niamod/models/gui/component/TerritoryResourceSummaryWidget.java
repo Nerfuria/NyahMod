@@ -52,11 +52,9 @@ public class TerritoryResourceSummaryWidget {
         Resources net = state == null ? Resources.EMPTY : state.netPerHour();
 
         y = drawHeaderRow(g, font, x, right, y, theme);
-        y = drawResourceRow(g, font, x, right, y, ResourceKind.EMERALDS, stored, capacity, gained, used, net, theme);
-        y = drawResourceRow(g, font, x, right, y, ResourceKind.ORE, stored, capacity, gained, used, net, theme);
-        y = drawResourceRow(g, font, x, right, y, ResourceKind.CROPS, stored, capacity, gained, used, net, theme);
-        y = drawResourceRow(g, font, x, right, y, ResourceKind.FISH, stored, capacity, gained, used, net, theme);
-        y = drawResourceRow(g, font, x, right, y, ResourceKind.WOOD, stored, capacity, gained, used, net, theme);
+        for (ResourceKind resource : ResourceKind.DISPLAY_ORDER) {
+            y = drawResourceRow(g, font, x, right, y, resource, stored, capacity, gained, used, net, theme);
+        }
         drawRow(g, font, x, right, y, "Material Usage", formatPercent(state == null ? 0.0 : state.materialUsagePercent()), theme);
     }
 

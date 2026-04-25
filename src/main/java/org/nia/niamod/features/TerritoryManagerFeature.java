@@ -59,7 +59,7 @@ public class TerritoryManagerFeature extends Feature {
 
     @Override
     public void init() {
-        KeybindManager.registerKeybinding("Open Territory Manager", GLFW.GLFW_KEY_DOWN, safeRunnable("open_screen", this::openScreen));
+        KeybindManager.registerKeybinding("Open Territory Manager", GLFW.GLFW_KEY_DOWN, safeRunnable("toggle_screen", this::toggleScreen));
         Scheduler.scheduleRepeating(
                 safeRunnable("drain_game_action_queue", this::drainGameActionQueue),
                 GAME_ACTION_INTERVAL_TICKS,
@@ -68,8 +68,12 @@ public class TerritoryManagerFeature extends Feature {
         );
     }
 
-    private void openScreen() {
+    private void toggleScreen() {
         Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof TerritoryManagerScreen screen) {
+            screen.onClose();
+            return;
+        }
         minecraft.setScreen(new TerritoryManagerScreen(minecraft.screen, this));
     }
 
