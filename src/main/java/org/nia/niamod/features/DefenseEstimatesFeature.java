@@ -4,7 +4,9 @@ import com.wynntils.core.components.Models;
 import com.wynntils.models.territories.TerritoryInfo;
 import com.wynntils.models.territories.type.GuildResource;
 import com.wynntils.models.territories.type.TerritoryUpgrade;
+import com.wynntils.utils.type.CappedValue;
 import com.wynntils.utils.type.Pair;
+import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.models.misc.Feature;
 import org.nia.niamod.models.misc.Safe;
 import org.nia.niamod.util.TerritoryUtils;
@@ -13,10 +15,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class DefenseEstimatesFeature extends Feature {
 
     private final static Map<Integer, List<EmeraldProdUpgrade>> EMERALD_MODIFIER_OPTIONS = getEmeraldModifierOptions();
+    private final static Map<String, CachedDefenseEstimate> DEFENSE_CACHE = new HashMap<>();
 
     private static Map<Integer, List<EmeraldProdUpgrade>> getEmeraldModifierOptions() {
         Map<Integer, List<EmeraldProdUpgrade>> result = new HashMap<>();
@@ -93,11 +97,17 @@ public class DefenseEstimatesFeature extends Feature {
     @Safe
     public static Map<TerritoryUpgrade, Integer> estimateDefenses(String territoryName) {
         TerritoryInfo territoryInfo = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
+        DefenseCacheKey cacheKey = DefenseCacheKey.from(territoryName, territoryInfo);
+        CachedDefenseEstimate cached = DEFENSE_CACHE.get(territoryName);
+        if (cached != null && cached.key().equals(cacheKey)) {
+            return cached.defenses();
+        }
 
         Map<TerritoryUpgrade, Integer> result = new HashMap<>();
 
-        if (territoryInfo.isHeadquarters())
-            return result;  // TODO deal with HQs separately
+        if (territoryInfo.isHeadquarters()) {
+            return cache(territoryName, cacheKey, result);  // TODO deal with HQs separately
+        }
 
         boolean hasAuraVolley = territoryInfo.getDefences().getLevel() >= 3;
 
@@ -129,13 +139,61 @@ public class DefenseEstimatesFeature extends Feature {
             result.put(bonuses[i], levels.b());
         }
 
-        return result;
+        return cache(territoryName, cacheKey, result);
+    }
+
+    private static Map<TerritoryUpgrade, Integer> cache(
+            String territoryName,
+            DefenseCacheKey cacheKey,
+            Map<TerritoryUpgrade, Integer> defenses) {
+        Map<TerritoryUpgrade, Integer> cachedDefenses = Map.copyOf(defenses);
+        DEFENSE_CACHE.put(territoryName, new CachedDefenseEstimate(cacheKey, cachedDefenses));
+        return cachedDefenses;
     }
 
     @Safe
     public void init() {
-
+        DEFENSE_CACHE.clear();
     }
 
     private record EmeraldProdUpgrade(int efficientEmeralds, int emeraldRate, int oreCost, int cropCost) {}
+
+    private record CachedDefenseEstimate(DefenseCacheKey key, Map<TerritoryUpgrade, Integer> defenses) {}
+
+    private record DefenseCacheKey(
+            String territoryName,
+            int mapTick,
+            String guildName,
+            boolean headquarters,
+            int treasuryLevel,
+            int defenceLevel,
+            int resourceState) {
+
+        private static DefenseCacheKey from(String territoryName, TerritoryInfo territoryInfo) {
+            return new DefenseCacheKey(
+                    territoryName,
+                    getMapTick(),
+                    territoryInfo.getGuildName(),
+                    territoryInfo.isHeadquarters(),
+                    territoryInfo.getTreasury().getLevel(),
+                    territoryInfo.getDefences().getLevel(),
+                    getResourceState(territoryInfo));
+        }
+
+        private static int getMapTick() {
+            ResourceTickFeature resourceTickFeature = FeatureManager.getResTickFeature();
+            return resourceTickFeature == null ? -1 : resourceTickFeature.getMapTick();
+        }
+
+        private static int getResourceState(TerritoryInfo territoryInfo) {
+            int result = 1;
+            for (GuildResource resource : GuildResource.values()) {
+                result = 31 * result + territoryInfo.getGeneration(resource);
+
+                CappedValue storage = territoryInfo.getStorage(resource);
+                result = 31 * result + (storage == null ? 0 : Objects.hash(storage.current(), storage.max()));
+            }
+            return result;
+        }
+    }
 }

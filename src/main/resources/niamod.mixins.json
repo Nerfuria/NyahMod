@@ -14,7 +14,8 @@
     "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",
-    "wynntils.FunctionManagerMixin"
+    "wynntils.FunctionManagerMixin",
+    "wynntils.GuildMapScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
