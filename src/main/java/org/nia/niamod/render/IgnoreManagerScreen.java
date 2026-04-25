@@ -175,11 +175,13 @@ public class IgnoreManagerScreen extends Screen {
         UiRect star = starBounds(bounds);
         int starFill = Render2D.withAlpha(modeColor, player.mode() == IgnorePlayerMode.NONE ? 20 : 38);
         int starBorder = Render2D.withAlpha(modeColor, player.mode() == IgnorePlayerMode.NONE ? 46 : 90);
-        Render2D.shaderRoundedSurface(g, star.x() + 8, star.y() + 6, 20, 20, 6, starFill, starBorder);
-        String starText = "★";
-        int starWidth = font.width(NiaClickGuiScreen.styled(starText));
-        int starTextY = star.y() + (star.height() - font.lineHeight) / 2 + 2;
-        g.drawString(font, NiaClickGuiScreen.styled(starText), star.x() + (star.width() - starWidth) / 2, starTextY, modeColor, false);
+        UiRect starButton = new UiRect(star.x() + 8, star.y() + 6, 20, 20);
+        Render2D.shaderRoundedSurface(g, starButton.x(), starButton.y(), starButton.width(), starButton.height(), 6, starFill, starBorder);
+        Component starText = NiaClickGuiScreen.styled("★");
+        int starWidth = font.width(starText);
+        float starTextX = starButton.x() + starButton.width() / 2.0f - starWidth / 2.0f + 0.5f;
+        float starTextY = starButton.y() + starButton.height() / 2.0f - font.lineHeight / 2.0f + 0.5f;
+        drawStringAt(g, starText, starTextX, starTextY, modeColor);
 
         int nameX = bounds.x() + STAR_W + 6;
         int nameMaxW = bounds.width() - STAR_W - IGNORE_W - 22;
@@ -503,6 +505,13 @@ public class IgnoreManagerScreen extends Screen {
         g.pose().pushMatrix();
         g.pose().translate(x, y);
         g.pose().scale(scale, scale);
+        g.drawString(font, text, 0, 0, color, false);
+        g.pose().popMatrix();
+    }
+
+    private void drawStringAt(GuiGraphics g, Component text, float x, float y, int color) {
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
         g.drawString(font, text, 0, 0, color, false);
         g.pose().popMatrix();
     }
