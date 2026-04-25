@@ -35,9 +35,9 @@ import java.util.regex.Pattern;
 @SuppressWarnings("unused")
 public class IgnoreFeature extends Feature {
     private static final int IGNORE_QUEUE_INTERVAL_TICKS = 10;
-    private static final Pattern CHAT_PLAYER_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
-    private static final Pattern CHAT_ALREADY_IGNORED_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) is already ignored!");
-    private static final Pattern CHAT_UNIGNORED_PATTERN = Pattern.compile("\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
+    private static final Pattern CHAT_PLAYER_PATTERN = Pattern.compile("(\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE|\uDAFF\uDFFC\uE001\uDB00\uDC06) ([A-Za-z0-9]{3,16}) has been added to your ignore list!");
+    private static final Pattern CHAT_ALREADY_IGNORED_PATTERN = Pattern.compile("(\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE|\uDAFF\uDFFC\uE001\uDB00\uDC06) ([A-Za-z0-9]{3,16}) is already ignored!");
+    private static final Pattern CHAT_UNIGNORED_PATTERN = Pattern.compile("(\uDAFF\uDFFC\uE008\uDAFF\uDFFF\uE002\uDAFF\uDFFE|\uDAFF\uDFFC\uE001\uDB00\uDC06) ([A-Za-z0-9]{3,16}) has been removed from your ignore list!");
 
     private final Set<String> ignoredPlayers = new HashSet<>();
     private final Set<String> chatDetectedPlayers = new HashSet<>();
