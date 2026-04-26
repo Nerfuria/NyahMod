@@ -25,6 +25,15 @@ public class WebUtils {
         }
     }
 
+    public static CompletableFuture<byte[]> queryBytesAsync(String url) {
+        try {
+            return CLIENT.sendAsync(byteRequest(url), HttpResponse.BodyHandlers.ofByteArray())
+                    .thenApply(WebUtils::bytesOrThrow);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(new RuntimeException("API request failed", e));
+        }
+    }
+
     private static HttpRequest request(String url) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -34,7 +43,23 @@ public class WebUtils {
                 .build();
     }
 
+    private static HttpRequest byteRequest(String url) {
+        return HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .header("Accept", "*/*")
+                .build();
+    }
+
     private static String bodyOrThrow(HttpResponse<String> response) {
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return response.body();
+        }
+        throw new RuntimeException("HTTP error: " + response.statusCode());
+    }
+
+    private static byte[] bytesOrThrow(HttpResponse<byte[]> response) {
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             return response.body();
         }

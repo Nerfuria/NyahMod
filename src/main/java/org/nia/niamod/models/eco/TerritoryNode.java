@@ -35,6 +35,13 @@ public record TerritoryNode(
         return acquiredMillis > 0 && heldMillis >= 0 && heldMillis < FRESH_HOLD_MILLIS;
     }
 
+    public long millisUntilAttackable(long now) {
+        if (acquiredMillis <= 0) {
+            return 0L;
+        }
+        return Math.max(0L, acquiredMillis + FRESH_HOLD_MILLIS - now);
+    }
+
     public ResourceKind resourceKind() {
         return resources.kind();
     }

@@ -27,6 +27,7 @@ public class TerritoryWidget {
     private static final int MAX_BORDER_DASHES_PER_SIDE = 6;
     private static final int LABEL_PADDING = 4;
     private static final int DISCONNECTED_COLOR = 0xFFFF3B30;
+    private static final int DEFENSE_ALERT_COLOR = 0xFFFFB000;
     private static final TextureIcon CROP_ICON = texture("crop", 21, 21);
     private static final TextureIcon WOOD_ICON = texture("wood", 21, 21);
     private static final TextureIcon ORE_ICON = texture("ore", 21, 21);
@@ -78,7 +79,7 @@ public class TerritoryWidget {
         return new TextureIcon(Identifier.fromNamespaceAndPath("niamod", "textures/" + path + ".png"), width, height);
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected, boolean disconnectedFromHeadquarters, boolean alwaysRenderTimers) {
+    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, ClickGuiTheme theme, long now, UiRect canvas, boolean headquarters, boolean selected, boolean disconnectedFromHeadquarters, boolean defenseAlert, boolean alwaysRenderTimers) {
         if (!intersects(bounds, canvas, CLIP_PADDING)) {
             return;
         }
@@ -101,44 +102,26 @@ public class TerritoryWidget {
             Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(territory.resourceColor(), fillAlpha));
         }
 
-        if (disconnectedFromHeadquarters) {
-            int color = Render2D.withAlpha(DISCONNECTED_COLOR, disconnectedBorderAlpha(now, selected));
-            if (selected) {
-                double phase = System.currentTimeMillis() / 42.0;
-                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
-            } else {
-                drawSolidBorder(g, bounds, canvas, color, 2);
-            }
-        } else if (selected) {
-            int selectedAlpha = (int) Math.round(170 + Math.sin(System.currentTimeMillis() / 115.0) * 55);
-            double phase = System.currentTimeMillis() / 42.0;
-            if (headquarters) {
-                int color = Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), selectedAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
-            } else if (territory.isRainbow()) {
-                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), selectedAlpha));
-            } else {
-                int color = Render2D.withAlpha(territory.resourceColor(), selectedAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, 2, (distance, length) -> color);
-            }
-        } else if (territory.heldUnderTenMinutes(now)) {
-            int flashAlpha = (int) Math.round(138 + Math.sin(System.currentTimeMillis() / 135.0) * 72);
-            double phase = System.currentTimeMillis() / 62.0;
-            if (headquarters) {
-                int color = Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), flashAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> color);
-            } else if (territory.isRainbow()) {
-                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> TerritoryResourceColors.rainbowColor(distance / Math.max(1.0, length), flashAlpha));
-            } else {
-                int color = Render2D.withAlpha(territory.resourceColor(), flashAlpha);
-                drawDashedBorder(g, bounds, canvas, phase, 1, (distance, length) -> color);
-            }
-        } else if (headquarters) {
+        boolean recentlyTaken = territory.heldUnderTenMinutes(now);
+        if (!disconnectedFromHeadquarters && !selected && !recentlyTaken && !defenseAlert && headquarters) {
             drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(TerritoryResourceColors.headquarterColor(), borderAlpha), 2);
-        } else if (territory.isRainbow()) {
+        } else if (!disconnectedFromHeadquarters && !selected && !recentlyTaken && !defenseAlert && territory.isRainbow()) {
             drawRainbowBorder(g, bounds, canvas, borderAlpha, 2);
-        } else {
+        } else if (!disconnectedFromHeadquarters && !selected && !recentlyTaken && !defenseAlert) {
             drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(territory.resourceColor(), borderAlpha), 2);
+        }
+
+        if (recentlyTaken) {
+            drawRecentlyTakenMarkers(g, theme, canvas, now, headquarters);
+        }
+        if (defenseAlert) {
+            drawDefenseAlert(g, canvas, now);
+        }
+        if (disconnectedFromHeadquarters) {
+            drawDisconnectedWarning(g, canvas, now, selected);
+        }
+        if (selected) {
+            drawSelectedBorder(g, theme, canvas, now);
         }
 
         if (hovered && !hoveredLastFrame) {
@@ -182,6 +165,62 @@ public class TerritoryWidget {
         int min = selected ? 205 : 120;
         int max = selected ? 255 : 245;
         return (int) Math.round(min + (max - min) * pulse);
+    }
+
+    private void drawSelectedBorder(GuiGraphics g, ClickGuiTheme theme, UiRect canvas, long now) {
+        int alpha = (int) Math.round(180 + Math.sin(now / 115.0) * 45);
+        int color = Render2D.withAlpha(theme.textColor(), alpha);
+        drawDashedBorder(g, bounds, canvas, now / 42.0, 2, (distance, length) -> color);
+    }
+
+    private void drawRecentlyTakenMarkers(GuiGraphics g, ClickGuiTheme theme, UiRect canvas, long now, boolean headquarters) {
+        int color = Render2D.withAlpha(stateColor(theme, headquarters), (int) Math.round(120 + Math.sin(now / 420.0) * 45));
+        int inset = bounds.width() > 9 && bounds.height() > 9 ? 2 : 0;
+        UiRect markerBounds = inset(bounds, inset);
+        int corner = Math.max(4, Math.min(16, Math.min(markerBounds.width(), markerBounds.height()) / 3));
+        int thickness = markerBounds.width() > 14 && markerBounds.height() > 14 ? 2 : 1;
+
+        drawCornerMarker(g, canvas, markerBounds.x(), markerBounds.y(), corner, thickness, true, true, color);
+        drawCornerMarker(g, canvas, markerBounds.right(), markerBounds.y(), corner, thickness, false, true, color);
+        drawCornerMarker(g, canvas, markerBounds.x(), markerBounds.bottom(), corner, thickness, true, false, color);
+        drawCornerMarker(g, canvas, markerBounds.right(), markerBounds.bottom(), corner, thickness, false, false, color);
+    }
+
+    private void drawDefenseAlert(GuiGraphics g, UiRect canvas, long now) {
+        double pulse = (Math.sin(now / 65.0) + 1.0) / 2.0;
+        int fillAlpha = (int) Math.round(38 + pulse * 82);
+        int borderAlpha = (int) Math.round(168 + pulse * 87);
+        Render2D.clippedRect(g, bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), canvas, Render2D.withAlpha(DEFENSE_ALERT_COLOR, fillAlpha));
+        drawSolidBorder(g, bounds, canvas, Render2D.withAlpha(DEFENSE_ALERT_COLOR, borderAlpha), bounds.width() > 18 && bounds.height() > 18 ? 3 : 2);
+    }
+
+    private void drawDisconnectedWarning(GuiGraphics g, UiRect canvas, long now, boolean selected) {
+        int color = Render2D.withAlpha(DISCONNECTED_COLOR, disconnectedBorderAlpha(now, selected));
+        drawSolidBorder(g, bounds, canvas, color, selected ? 3 : 2);
+    }
+
+    private int stateColor(ClickGuiTheme theme, boolean headquarters) {
+        if (headquarters) {
+            return TerritoryResourceColors.headquarterColor();
+        }
+        if (territory.isRainbow()) {
+            return theme.accentColor();
+        }
+        return territory.resourceColor();
+    }
+
+    private void drawCornerMarker(GuiGraphics g, UiRect canvas, int cornerX, int cornerY, int length, int thickness, boolean rightward, boolean downward, int color) {
+        int horizontalLeft = rightward ? cornerX : cornerX - length;
+        int horizontalRight = rightward ? cornerX + length : cornerX;
+        int horizontalTop = downward ? cornerY : cornerY - thickness;
+        int horizontalBottom = downward ? cornerY + thickness : cornerY;
+        Render2D.clippedRect(g, horizontalLeft, horizontalTop, horizontalRight, horizontalBottom, canvas, color);
+
+        int verticalLeft = rightward ? cornerX : cornerX - thickness;
+        int verticalRight = rightward ? cornerX + thickness : cornerX;
+        int verticalTop = downward ? cornerY : cornerY - length;
+        int verticalBottom = downward ? cornerY + length : cornerY;
+        Render2D.clippedRect(g, verticalLeft, verticalTop, verticalRight, verticalBottom, canvas, color);
     }
 
     private void drawForeignResourceIcons(GuiGraphics g, UiRect canvas) {

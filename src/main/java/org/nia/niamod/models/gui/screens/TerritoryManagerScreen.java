@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import org.nia.niamod.NiamodClient;
 import org.nia.niamod.config.NyahConfig;
+import org.nia.niamod.features.ResourceTickFeature;
 import org.nia.niamod.features.TerritoryManagerFeature;
 import org.nia.niamod.features.eco.GuiActions;
 import org.nia.niamod.managers.FeatureManager;
@@ -32,6 +33,7 @@ import org.nia.niamod.models.gui.component.TerritoryQuickMenu;
 import org.nia.niamod.models.gui.component.TerritoryResourceSummaryWidget;
 import org.nia.niamod.models.gui.component.TerritoryWidget;
 import org.nia.niamod.models.gui.render.UiRect;
+import org.nia.niamod.models.gui.render.WynntilsMapTileManager;
 import org.nia.niamod.models.gui.theme.ClickGuiTheme;
 import org.nia.niamod.render.Render2D;
 import org.nia.niamod.util.FileUtils;
@@ -69,12 +71,11 @@ public class TerritoryManagerScreen extends Screen {
     private static final double ZOOM_STEP = 1.16;
     private static final double MAP_CLICK_DRAG = 3.0;
     private static final double MAP_CLICK_DRAG_SQ = MAP_CLICK_DRAG * MAP_CLICK_DRAG;
+    private static final int UNKNOWN_RESOURCE_TICK_SECONDS = -1;
+    private static final int FALLBACK_RESOURCE_TICK_SECONDS = 60;
+    private static final long UNKNOWN_RESOURCE_TICK_RECHECK_MILLIS = 5_000L;
     private static final StaticTerritoryData EMPTY_STATIC_DATA = new StaticTerritoryData(Resources.EMPTY, List.of());
-    private static final Identifier MAP_TEXTURE = Identifier.fromNamespaceAndPath("niamod", "textures/map.png");
-    private static final int MAP_TEXTURE_WIDTH = 4608;
-    private static final int MAP_TEXTURE_HEIGHT = 6635;
-    private static final double MAP_WORLD_LEFT = -2560.0;
-    private static final double MAP_WORLD_TOP = -MAP_TEXTURE_HEIGHT;
+    private static final WynntilsMapTileManager MAP_TILES = new WynntilsMapTileManager();
     private final Screen parent;
     private final TerritoryManagerFeature feature;
     private final StatsCalculator statsCalculator;
@@ -85,6 +86,7 @@ public class TerritoryManagerScreen extends Screen {
     private final List<TerritoryLink> territoryLinks = new ArrayList<>();
     private final List<Line> visibleConnections = new ArrayList<>();
     private final Set<String> territoriesConnectedToHeadquarters = new HashSet<>();
+    private final Map<String, Integer> territoryDistancesFromHeadquarters = new HashMap<>();
     private final Map<String, TerritoryWidget> widgetsByName = new HashMap<>();
     private final Map<String, TerritoryWidget> widgetsByNormalizedName = new HashMap<>();
     private final TerritoryDetailPanel detailPanel = new TerritoryDetailPanel();
@@ -119,6 +121,8 @@ public class TerritoryManagerScreen extends Screen {
     private String headquartersConnectivitySignature = "";
     private String visibleTerritoryKeysSignature = "";
     private Set<String> cachedVisibleTerritoryKeys = Set.of();
+    private int cachedSecondsUntilNextResourceTick = UNKNOWN_RESOURCE_TICK_SECONDS;
+    private long lastResourceTickProbeMillis;
 
     public TerritoryManagerScreen(Screen parent) {
         this(parent, FeatureManager.getTerritoryManagerFeature());
@@ -135,6 +139,7 @@ public class TerritoryManagerScreen extends Screen {
 
     @Override
     protected void init() {
+        MAP_TILES.requestManifest();
         if (!loadRequested) {
             loadRequested = true;
             loadTerritoriesFromCacheOrApi();
@@ -833,6 +838,7 @@ public class TerritoryManagerScreen extends Screen {
                         widget.owned() && feature.isHeadquarters(widget.territory().name()),
                         widget == selectedTerritory || loadoutManager.isSelected(widget),
                         disconnectedFromHeadquarters(widget),
+                        needsDefenseAlert(widget, now),
                         alwaysRenderTimers()
                 );
             }
@@ -847,34 +853,65 @@ public class TerritoryManagerScreen extends Screen {
         MapTransform transform = mapTransform(canvas);
         boolean renderMapTexture = renderMapTexture();
         if (renderMapTexture) {
-            double mapX = transform.screenX(MAP_WORLD_LEFT);
-            double mapY = transform.screenY(MAP_WORLD_TOP);
-            float scale = (float) transform.scale();
-
-            g.enableScissor(canvas.x(), canvas.y(), canvas.right(), canvas.bottom());
-            g.pose().pushMatrix();
-            try {
-                g.pose().translate((float) mapX, (float) mapY);
-                g.pose().scale(scale, scale);
-                g.blit(
-                        RenderPipelines.GUI_TEXTURED,
-                        MAP_TEXTURE,
-                        0,
-                        0,
-                        0,
-                        0,
-                        MAP_TEXTURE_WIDTH,
-                        MAP_TEXTURE_HEIGHT,
-                        MAP_TEXTURE_WIDTH,
-                        MAP_TEXTURE_HEIGHT
-                );
-            } finally {
-                g.pose().popMatrix();
-                g.disableScissor();
-            }
+            drawMapTiles(g, canvas, transform);
         }
 
         g.fill(canvas.x(), canvas.y(), canvas.right(), canvas.bottom(), Render2D.withAlpha(theme.background(), renderMapTexture ? 70 : 150));
+    }
+
+    private void drawMapTiles(GuiGraphics g, UiRect canvas, MapTransform transform) {
+        g.enableScissor(canvas.x(), canvas.y(), canvas.right(), canvas.bottom());
+        try {
+            for (WynntilsMapTileManager.MapTile tile : MAP_TILES.tiles()) {
+                double tileX = transform.screenX(tile.x1());
+                double tileY = transform.screenY(tile.z1());
+                double tileW = tile.worldWidth() * transform.scale();
+                double tileH = tile.worldHeight() * transform.scale();
+                if (!intersectsScreenRect(tileX, tileY, tileW, tileH, canvas)) {
+                    continue;
+                }
+
+                Identifier texture = MAP_TILES.texture(tile);
+                if (texture == null) {
+                    continue;
+                }
+
+                int textureWidth = MAP_TILES.textureWidth(tile);
+                int textureHeight = MAP_TILES.textureHeight(tile);
+                if (textureWidth <= 0 || textureHeight <= 0) {
+                    continue;
+                }
+
+                g.pose().pushMatrix();
+                try {
+                    g.pose().translate((float) tileX, (float) tileY);
+                    g.pose().scale((float) (tileW / textureWidth), (float) (tileH / textureHeight));
+                    g.blit(
+                            RenderPipelines.GUI_TEXTURED,
+                            texture,
+                            0,
+                            0,
+                            0,
+                            0,
+                            textureWidth,
+                            textureHeight,
+                            textureWidth,
+                            textureHeight
+                    );
+                } finally {
+                    g.pose().popMatrix();
+                }
+            }
+        } finally {
+            g.disableScissor();
+        }
+    }
+
+    private boolean intersectsScreenRect(double x, double y, double width, double height, UiRect canvas) {
+        return x + width >= canvas.x()
+                && x <= canvas.right()
+                && y + height >= canvas.y()
+                && y <= canvas.bottom();
     }
 
     private MapTransform mapTransform(UiRect canvas) {
@@ -1150,6 +1187,11 @@ public class TerritoryManagerScreen extends Screen {
     private void setHeadquarters(GuiActions actions) {
         actions.setHeadquarters();
         recomputeHeadquartersConnectivityIfNeeded();
+        mapBounds = preferredMapBounds();
+        panX = 0.0;
+        panY = 0.0;
+        zoom = 1.0;
+        layoutDirty = true;
     }
 
     private List<String> ownedTerritoryNames() {
@@ -1186,11 +1228,13 @@ public class TerritoryManagerScreen extends Screen {
 
     private void clearHeadquartersConnectivityCache() {
         territoriesConnectedToHeadquarters.clear();
+        territoryDistancesFromHeadquarters.clear();
         headquartersConnectivitySignature = "";
     }
 
     private void recomputeHeadquartersConnectivity() {
         territoriesConnectedToHeadquarters.clear();
+        territoryDistancesFromHeadquarters.clear();
 
         TerritoryWidget headquarters = territoryWidgets.stream()
                 .filter(TerritoryWidget::owned)
@@ -1203,10 +1247,13 @@ public class TerritoryManagerScreen extends Screen {
 
         ArrayDeque<TerritoryWidget> queue = new ArrayDeque<>();
         queue.add(headquarters);
-        territoriesConnectedToHeadquarters.add(normalizeName(headquarters.territory().name()));
+        String headquartersKey = normalizeName(headquarters.territory().name());
+        territoriesConnectedToHeadquarters.add(headquartersKey);
+        territoryDistancesFromHeadquarters.put(headquartersKey, 0);
 
         while (!queue.isEmpty()) {
             TerritoryWidget current = queue.removeFirst();
+            int currentDistance = territoryDistancesFromHeadquarters.getOrDefault(normalizeName(current.territory().name()), 0);
             for (TerritoryLink link : territoryLinks) {
                 if (!link.source().owned() || !link.target().owned()) {
                     continue;
@@ -1224,6 +1271,7 @@ public class TerritoryManagerScreen extends Screen {
 
                 String key = normalizeName(next.territory().name());
                 if (territoriesConnectedToHeadquarters.add(key)) {
+                    territoryDistancesFromHeadquarters.put(key, currentDistance + 1);
                     queue.addLast(next);
                 }
             }
@@ -1242,6 +1290,53 @@ public class TerritoryManagerScreen extends Screen {
         return territoryWidgets.stream()
                 .filter(TerritoryWidget::owned)
                 .anyMatch(widget -> feature.isHeadquarters(widget.territory().name()));
+    }
+
+    private boolean needsDefenseAlert(TerritoryWidget widget, long now) {
+        if (widget == null || !widget.owned() || !widget.territory().heldUnderTenMinutes(now)) {
+            return false;
+        }
+
+        Integer connectionDistance = territoryDistancesFromHeadquarters.get(normalizeName(widget.territory().name()));
+        if (connectionDistance == null || connectionDistance <= 0) {
+            return false;
+        }
+
+        long millisUntilAttackable = widget.territory().millisUntilAttackable(now);
+        long warningLeadMillis = defenseWarningLeadMillis(connectionDistance, now);
+        return millisUntilAttackable > 0L && warningLeadMillis >= millisUntilAttackable;
+    }
+
+    private long defenseWarningLeadMillis(int connectionDistance, long now) {
+        int secondsUntilNextTick = secondsUntilNextResourceTick(now);
+        return secondsUntilNextTick * 1000L + Math.max(0, connectionDistance) * 60_000L;
+    }
+
+    private int secondsUntilNextResourceTick(long now) {
+        if (cachedSecondsUntilNextResourceTick == UNKNOWN_RESOURCE_TICK_SECONDS
+                && now - lastResourceTickProbeMillis < UNKNOWN_RESOURCE_TICK_RECHECK_MILLIS) {
+            return FALLBACK_RESOURCE_TICK_SECONDS;
+        }
+
+        ResourceTickFeature resTickFeature = FeatureManager.getResTickFeature();
+        if (resTickFeature == null) {
+            cachedSecondsUntilNextResourceTick = UNKNOWN_RESOURCE_TICK_SECONDS;
+            lastResourceTickProbeMillis = now;
+            return FALLBACK_RESOURCE_TICK_SECONDS;
+        }
+
+        int seconds = resTickFeature.getTimeUntilResTick();
+        lastResourceTickProbeMillis = now;
+        if (seconds < 0) {
+            cachedSecondsUntilNextResourceTick = UNKNOWN_RESOURCE_TICK_SECONDS;
+            return FALLBACK_RESOURCE_TICK_SECONDS;
+        }
+        if (seconds <= 0) {
+            cachedSecondsUntilNextResourceTick = FALLBACK_RESOURCE_TICK_SECONDS;
+            return cachedSecondsUntilNextResourceTick;
+        }
+        cachedSecondsUntilNextResourceTick = clampInt(seconds, 1, FALLBACK_RESOURCE_TICK_SECONDS);
+        return cachedSecondsUntilNextResourceTick;
     }
 
     private ResourceFlow summarizeResourceFlow() {
