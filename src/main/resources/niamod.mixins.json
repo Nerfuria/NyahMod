@@ -23,7 +23,8 @@
     "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",
-    "PlayerListHudAccessor"
+    "PlayerListHudAccessor",
+    "wynntils.GuildMapScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

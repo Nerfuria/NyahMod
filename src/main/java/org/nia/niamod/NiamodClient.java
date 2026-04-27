@@ -7,6 +7,7 @@ import org.nia.niamod.managers.FeatureManager;
 import org.nia.niamod.managers.KeybindManager;
 import org.nia.niamod.managers.OverlayManager;
 import org.nia.niamod.managers.Scheduler;
+import org.nia.niamod.managers.TerritoryBaseLoader;
 import org.slf4j.Logger;
 
 public class NiamodClient implements ClientModInitializer {
@@ -18,6 +19,7 @@ public class NiamodClient implements ClientModInitializer {
         NyahConfig.init();
         Scheduler.init();
         OverlayManager.init();
+        TerritoryBaseLoader.load();
         FeatureManager.init();
     }
 }

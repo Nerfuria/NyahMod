@@ -28,7 +28,7 @@ public class ShoutFilterFeature extends Feature {
     @Safe
     public void init() {
         NiaEventBus.subscribe(this);
-        shout = Pattern.compile("((\\uDAFF\\uDFFC\\uE015\\uDAFF\\uDFFF\\uE002\\uDAFF\\uDFFE)|(\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06)) [_A-Za-z0-9]{3,16} .+? shouts: .+");
+        shout = Pattern.compile("((\\uDAFF\\uDFFC\\uE015\\uDAFF\\uDFFF\\uE002\\uDAFF\\uDFFE)|(\\uDAFF\\uDFFC\\uE001\\uDB00\\uDC06)) .* .+? shouts: .+");
     }
 
     @Subscribe
