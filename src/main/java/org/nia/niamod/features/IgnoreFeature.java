@@ -268,7 +268,7 @@ public class IgnoreFeature extends Feature {
         } catch (IllegalArgumentException ignored) {
         }
         if (matcher.groupCount() >= 1) {
-            return matcher.group(1);
+            return matcher.group(2);
         }
         return matcher.group();
     }
