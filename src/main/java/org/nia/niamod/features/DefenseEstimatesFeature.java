@@ -20,7 +20,7 @@ import java.util.Objects;
 public class DefenseEstimatesFeature extends Feature {
 
     private final static Map<Integer, List<EmeraldProdUpgrade>> EMERALD_MODIFIER_OPTIONS = getEmeraldModifierOptions();
-    private final static Map<DefenseCacheKey, CachedDefenseEstimate> DEFENSE_CACHE = new HashMap<>();
+    private final static Map<CacheKey, CachedDefenseEstimate> DEFENSE_CACHE = new HashMap<>();
 
     private static Map<Integer, List<EmeraldProdUpgrade>> getEmeraldModifierOptions() {
         Map<Integer, List<EmeraldProdUpgrade>> result = new HashMap<>();
@@ -97,7 +97,7 @@ public class DefenseEstimatesFeature extends Feature {
     @Safe
     public static Map<TerritoryUpgrade, Integer> estimateDefenses(String territoryName) {
         TerritoryInfo territoryInfo = Models.Territory.getTerritoryPoiFromAdvancement(territoryName).getTerritoryInfo();
-        DefenseCacheKey cacheKey = DefenseCacheKey.from(territoryName, territoryInfo);
+        CacheKey cacheKey = CacheKey.from(territoryInfo);
         CachedDefenseEstimate cached = DEFENSE_CACHE.get(cacheKey);
         if (cached != null) {
             return cached.defenses();
@@ -143,7 +143,7 @@ public class DefenseEstimatesFeature extends Feature {
     }
 
     private static Map<TerritoryUpgrade, Integer> cache(
-            DefenseCacheKey cacheKey,
+            CacheKey cacheKey,
             Map<TerritoryUpgrade, Integer> defenses) {
         Map<TerritoryUpgrade, Integer> cachedDefenses = Map.copyOf(defenses);
         DEFENSE_CACHE.put(cacheKey, new CachedDefenseEstimate(cachedDefenses));
@@ -159,33 +159,9 @@ public class DefenseEstimatesFeature extends Feature {
 
     private record CachedDefenseEstimate(Map<TerritoryUpgrade, Integer> defenses) {}
 
-    private record DefenseCacheKey(
-            String territoryName,
-            String guildName,
-            boolean headquarters,
-            int treasuryLevel,
-            int defenceLevel,
-            int resourceState) {
-
-        private static DefenseCacheKey from(String territoryName, TerritoryInfo territoryInfo) {
-            return new DefenseCacheKey(
-                    territoryName,
-                    territoryInfo.getGuildName(),
-                    territoryInfo.isHeadquarters(),
-                    territoryInfo.getTreasury().getLevel(),
-                    territoryInfo.getDefences().getLevel(),
-                    getResourceState(territoryInfo));
-        }
-
-        private static int getResourceState(TerritoryInfo territoryInfo) {
-            int result = 1;
-            for (GuildResource resource : GuildResource.values()) {
-                result = 31 * result + territoryInfo.getGeneration(resource);
-
-                CappedValue storage = territoryInfo.getStorage(resource);
-                result = 31 * result + (storage == null ? 0 : Objects.hash(storage.current(), storage.max()));
-            }
-            return result;
+    private record CacheKey(int emeralds, int ore, int crops, int fish, int wood, boolean hq) {
+        public static CacheKey from(TerritoryInfo info) {
+            return new CacheKey(info.getGeneration(GuildResource.EMERALDS), info.getGeneration(GuildResource.ORE), info.getGeneration(GuildResource.CROPS), info.getGeneration(GuildResource.FISH), info.getGeneration(GuildResource.WOOD), info.isHeadquarters());
         }
     }
 }
