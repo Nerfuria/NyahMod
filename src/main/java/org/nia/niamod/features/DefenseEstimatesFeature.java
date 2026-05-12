@@ -105,7 +105,7 @@ public class DefenseEstimatesFeature extends Feature {
             return cache(cacheKey, result);  // TODO deal with HQs separately
         }
 
-        boolean hasAuraVolley = territoryInfo.getDefences().getLevel() >= 3;
+        boolean hasAuraVolley = territoryInfo.getDefences().getLevel() == 3;    // Force aura and volley if medium
 
         GuildResource[] resources = {GuildResource.ORE, GuildResource.CROPS, GuildResource.WOOD, GuildResource.FISH};
         TerritoryUpgrade[] upgrades = {TerritoryUpgrade.DAMAGE, TerritoryUpgrade.ATTACK, TerritoryUpgrade.HEALTH, TerritoryUpgrade.DEFENCE};
@@ -147,7 +147,10 @@ public class DefenseEstimatesFeature extends Feature {
     }
 
     @Safe
-    public void init() {
+    public void init() {}
+
+    @Safe
+    public static void clear_cache() {
         DEFENSE_CACHE.clear();
     }
 
